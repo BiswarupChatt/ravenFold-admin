@@ -34,6 +34,7 @@ import {
   PRODUCT_TYPES,
   updateProduct,
 } from "@/lib/api/productsApi";
+import { formatCurrency, formatLabel } from "@/utils/methods/formatters";
 
 const emptyForm = {
   title: "",
@@ -51,11 +52,6 @@ const emptyForm = {
   shippingLength: "0",
   shippingWeight: "0",
   shippingWidth: "0",
-};
-
-const formatLabel = (value) => {
-  if (!value) return "-";
-  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 };
 
 const listToInput = (value) => {
@@ -117,16 +113,6 @@ const createUpdatePayload = (form) => ({
     width: inputToNonNegativeNumber(form.shippingWidth),
   },
 });
-
-const formatCurrency = (value) => {
-  if (value === undefined || value === null) return "-";
-
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 2,
-  }).format(value);
-};
 
 export default function ProductDetails() {
   const { productId } = useParams();

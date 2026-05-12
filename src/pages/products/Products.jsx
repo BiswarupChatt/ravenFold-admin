@@ -31,6 +31,7 @@ import {
   PRODUCT_STATUSES,
   PRODUCT_TYPES,
 } from "@/lib/api/productsApi";
+import { formatDate, formatLabel, getStatusColor } from "@/utils/methods/formatters";
 
 const DEFAULT_PAGINATION = {
   page: 1,
@@ -46,34 +47,6 @@ const SORT_OPTIONS = [
   { label: "Title Z-A", value: "-title" },
   { label: "Recently updated", value: "updated" },
 ];
-
-const formatLabel = (value) => {
-  if (!value) return "-";
-  return value.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
-};
-
-const formatDate = (value) => {
-  if (!value) return "-";
-
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-};
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case "active":
-      return "success";
-    case "inactive":
-      return "warning";
-    case "archived":
-      return "default";
-    default:
-      return "info";
-  }
-};
 
 export default function Products() {
   const navigate = useNavigate();
