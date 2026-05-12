@@ -4,6 +4,7 @@ const ROUTES = {
   ROOT: "/dashboard",
 
   PRODUCTS: "/products",
+  PRODUCT_DETAIL: "/products/:productId",
   SETTINGS: "/settings",
   ACCOUNT: "/account",
 

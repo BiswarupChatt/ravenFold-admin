@@ -3,7 +3,7 @@ export function findMenuPathByPathname(menuItems, pathname, path = []) {
   for (const item of menuItems) {
     const newPath = [...path, item.name];
 
-    if (item.path === pathname) {
+    if (item.path === pathname || (item.path && pathname.startsWith(`${item.path}/`))) {
       return newPath;
     }
 

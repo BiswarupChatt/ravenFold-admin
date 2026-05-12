@@ -5,7 +5,9 @@ import Typography from "@mui/material/Typography";
 
 const SidebarItem = ({ item, isOpen, expanded, onToggle }) => {
   const location = useLocation();
-  const isActive = item.path && location.pathname === item.path;
+  const isActive = item.path && (
+    location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)
+  );
   const Icon = item.icon;
 
   const baseStyles = (theme) => ({
