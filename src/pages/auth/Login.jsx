@@ -10,7 +10,7 @@ import {
     Alert,
 } from "@mui/material";
 import { authTokenAtom, userDataAtom, isAuthenticatedAtom } from "../../lib/state/atoms/authAtoms";
-import { loginWithFrontendUser } from "@/lib/auth/localAuth";
+import { loginWithAdminUser } from "@/lib/auth/localAuth";
 
 export default function Login() {
     const navigate = useNavigate();
@@ -19,10 +19,11 @@ export default function Login() {
     const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
 
     const [formData, setFormData] = useState({
-        username: "admin",
-        password: "admin"
+        email: "test@example.com",
+        password: "password123"
     });
     const [error, setError] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -35,10 +36,11 @@ export default function Login() {
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
+        setIsSubmitting(true);
 
         try {
-            const { token, admin } = await loginWithFrontendUser(
-                formData.username,
+            const { token, admin } = await loginWithAdminUser(
+                formData.email,
                 formData.password
             );
 
@@ -48,7 +50,9 @@ export default function Login() {
 
             navigate("/");
         } catch (err) {
-            setError(err.message);
+            setError(err.message || "Login failed. Please try again.");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -69,12 +73,13 @@ export default function Login() {
                 margin="normal"
                 required
                 fullWidth
-                id="username"
-                label="Username"
-                name="username"
+                id="email"
+                label="Email"
+                name="email"
+                type="email"
                 autoComplete="email"
                 autoFocus
-                value={formData.username}
+                value={formData.email}
                 onChange={handleChange}
             />
 
@@ -95,9 +100,10 @@ export default function Login() {
                 type="submit"
                 fullWidth
                 variant="contained"
+                disabled={isSubmitting}
                 sx={{ mt: 3, mb: 2 }}
             >
-                Sign In
+                {isSubmitting ? "Signing In..." : "Sign In"}
             </Button>
 
             <Box sx={{ textAlign: "center" }}>
