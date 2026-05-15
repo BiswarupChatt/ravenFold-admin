@@ -4,7 +4,9 @@ import { BROWSER_STORAGE_KEYS } from "../../../utils/constants/browserStorageKey
 // Auth state atoms
 export const authTokenAtom = atomWithStorage(
     BROWSER_STORAGE_KEYS.authToken,
-    null
+    null,
+    undefined,
+    { getOnInit: true }
 );
 
 export const userDataAtom = atomWithStorage(
@@ -14,7 +16,9 @@ export const userDataAtom = atomWithStorage(
         email: null,
         name: null,
         role: null
-    }
+    },
+    undefined,
+    { getOnInit: true }
 );
 
 export const isAuthenticatedAtom = atomWithStorage(
