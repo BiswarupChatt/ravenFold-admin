@@ -1,5 +1,6 @@
 import {
   Alert,
+  Box,
   Button,
   CircularProgress,
   Dialog,
@@ -11,6 +12,7 @@ import {
   Stack,
   Switch,
   TextField,
+  Typography,
 } from "@mui/material";
 
 const AddEditCategoryModal = ({
@@ -21,6 +23,7 @@ const AddEditCategoryModal = ({
   editingCategory,
   categoryRows,
   disabledParentIds,
+  getHierarchyColor,
   onClose,
   onChange,
   onSubmit,
@@ -69,7 +72,21 @@ const AddEditCategoryModal = ({
                 disabled={disabledParentIds.has(category.id)}
                 sx={{ pl: 2 + category.depth * 2 }}
               >
-                {category.name}
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                  <Box
+                    sx={{
+                      width: 10,
+                      height: 10,
+                      borderRadius: "50%",
+                      bgcolor: getHierarchyColor(category.depth),
+                      boxShadow: `0 0 0 3px ${getHierarchyColor(category.depth)}22`,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <Typography variant="body2" noWrap>
+                    {category.name}
+                  </Typography>
+                </Stack>
               </MenuItem>
             ))}
           </TextField>

@@ -10,6 +10,7 @@ import {
   IconButton,
   Paper,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -42,6 +43,20 @@ const EMPTY_FORM = {
   parentCategoryId: "",
   image: "",
   isActive: true,
+};
+
+const HIERARCHY_COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#dc2626",
+  "#9333ea",
+  "#ea580c",
+  "#0891b2",
+  "#be123c",
+];
+
+const getHierarchyColor = (depth = 0) => {
+  return HIERARCHY_COLORS[depth % HIERARCHY_COLORS.length];
 };
 
 const flattenCategoryTree = (items = [], depth = 0, parentName = "Root") => {
@@ -78,18 +93,6 @@ const collectDescendantIds = (category) => {
   ]);
 };
 
-const formatDate = (value) => {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-};
-
 const buildPayload = (formData) => {
   const payload = {
     name: formData.name.trim(),
@@ -118,6 +121,7 @@ const Category = () => {
   const [saving, setSaving] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState("");
 
   const categoryRows = useMemo(() => flattenCategoryTree(categories), [categories]);
   const inactiveCount = useMemo(() => countInactiveCategories(categories), [categories]);
@@ -220,6 +224,27 @@ const Category = () => {
     }
   };
 
+  const handleToggleStatus = async (category) => {
+    const nextIsActive = !category.isActive;
+
+    setStatusUpdatingId(category.id);
+    setError("");
+
+    try {
+      await updateCategory(authToken, category.id, { isActive: nextIsActive });
+      toast.success(
+        nextIsActive
+          ? "Category activated successfully."
+          : "Category deactivated successfully."
+      );
+      await loadCategories();
+    } catch (err) {
+      setError(err.message || "Failed to update category status.");
+    } finally {
+      setStatusUpdatingId("");
+    }
+  };
+
   const handleDelete = async () => {
     if (!deletingCategory) {
       return;
@@ -288,7 +313,7 @@ const Category = () => {
           )}
 
           <TableContainer>
-            <Table size="small" sx={{ minWidth: 920 }}>
+            <Table size="small" sx={{ minWidth: 840 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Category</TableCell>
@@ -296,14 +321,13 @@ const Category = () => {
                   <TableCell>Image</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="right">Children</TableCell>
-                  <TableCell>Updated</TableCell>
                   <TableCell align="right">Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={6}>
                       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ py: 4 }}>
                         <CircularProgress size={22} />
                         <Typography variant="body2" color="text.secondary">
@@ -316,7 +340,7 @@ const Category = () => {
 
                 {!loading && !error && categoryRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7}>
+                    <TableCell colSpan={6}>
                       <Box sx={{ py: 5, textAlign: "center" }}>
                         <Typography variant="body2" color="text.secondary">
                           No categories found.
@@ -340,10 +364,11 @@ const Category = () => {
                           >
                             <Box
                               sx={{
-                                width: 8,
-                                height: 8,
+                                width: 10,
+                                height: 10,
                                 borderRadius: "50%",
-                                bgcolor: category.depth === 0 ? "primary.main" : "divider",
+                                bgcolor: getHierarchyColor(category.depth),
+                                boxShadow: `0 0 0 3px ${getHierarchyColor(category.depth)}22`,
                                 flexShrink: 0,
                               }}
                             />
@@ -370,15 +395,23 @@ const Category = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <Chip
-                            size="small"
-                            label={category.isActive ? "Active" : "Inactive"}
-                            color={category.isActive ? "success" : "default"}
-                            variant={category.isActive ? "filled" : "outlined"}
-                          />
+                          <Stack direction="row" spacing={1} alignItems="center">
+                            <Switch
+                              size="small"
+                              checked={category.isActive}
+                              disabled={statusUpdatingId === category.id}
+                              onChange={() => handleToggleStatus(category)}
+                              inputProps={{ "aria-label": `toggle ${category.name} status` }}
+                            />
+                            <Typography
+                              variant="body2"
+                              color={category.isActive ? "success.main" : "text.secondary"}
+                            >
+                              {category.isActive ? "Active" : "Inactive"}
+                            </Typography>
+                          </Stack>
                         </TableCell>
                         <TableCell align="right">{category.childCount}</TableCell>
-                        <TableCell>{formatDate(category.updatedAt)}</TableCell>
                         <TableCell align="right">
                           <Tooltip title="Edit category">
                             <IconButton size="small" onClick={() => handleOpenEdit(category)}>
@@ -421,6 +454,7 @@ const Category = () => {
         editingCategory={editingCategory}
         categoryRows={categoryRows}
         disabledParentIds={disabledParentIds}
+        getHierarchyColor={getHierarchyColor}
         onClose={handleCloseDialog}
         onChange={handleFormChange}
         onSubmit={handleSubmit}
