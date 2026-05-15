@@ -1,6 +1,16 @@
 // src/modules/.../SIDEBAR_ITEMS.js
 
 import DashboardIcon from "@mui/icons-material/Dashboard";
+import CategoryIcon from "@mui/icons-material/Category";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import TuneIcon from "@mui/icons-material/Tune";
+import WarehouseIcon from "@mui/icons-material/Warehouse";
+import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import LocalShippingIcon from "@mui/icons-material/LocalShipping";
+import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
+import RateReviewIcon from "@mui/icons-material/RateReview";
 
 import ROUTES from "../../../../../routes/routes";
 
@@ -9,5 +19,61 @@ export const SIDEBAR_ITEMS = [
     name: "Dashboard",
     path: ROUTES.ROOT,
     icon: DashboardIcon,
+  },
+  {
+    name: "Category",
+    path: ROUTES.CATEGORY,
+    icon: CategoryIcon,
+  },
+  {
+    name: "Product",
+    icon: Inventory2Icon,
+    children: [
+      {
+        name: "Product",
+        path: "/product",
+        icon: Inventory2Icon,
+      },
+      {
+        name: "Product Variant",
+        path: "/product-variant",
+        icon: TuneIcon,
+      },
+    ],
+  },
+  {
+    name: "Inventory",
+    path: "/inventory",
+    icon: WarehouseIcon,
+  },
+  {
+    name: "Cart",
+    path: "/cart",
+    icon: ShoppingCartIcon,
+  },
+  {
+    name: "Order",
+    path: "/order",
+    icon: ReceiptLongIcon,
+  },
+  {
+    name: "Payment",
+    path: "/payment",
+    icon: PaymentsIcon,
+  },
+  {
+    name: "Shipping",
+    path: "/shipping",
+    icon: LocalShippingIcon,
+  },
+  {
+    name: "Coupon",
+    path: "/coupon",
+    icon: ConfirmationNumberIcon,
+  },
+  {
+    name: "Review",
+    path: "/review",
+    icon: RateReviewIcon,
   },
 ];

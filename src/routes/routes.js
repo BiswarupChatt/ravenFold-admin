@@ -5,6 +5,8 @@ const ROUTES = {
 
   SETTINGS: "/settings",
   ACCOUNT: "/account",
+  CATEGORY: "/category",
+  CUSTOMER: "/customer",
 
   NOT_FOUND: "*",
 };
