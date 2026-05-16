@@ -4,7 +4,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   CircularProgress,
   Divider,
   IconButton,
@@ -76,14 +75,6 @@ const flattenCategoryTree = (items = [], depth = 0, parentName = "Root") => {
   });
 };
 
-const countInactiveCategories = (items = []) => {
-  return items.reduce((total, category) => {
-    const children = Array.isArray(category.children) ? category.children : [];
-
-    return total + (category.isActive ? 0 : 1) + countInactiveCategories(children);
-  }, 0);
-};
-
 const collectDescendantIds = (category) => {
   const children = Array.isArray(category?.children) ? category.children : [];
 
@@ -124,7 +115,6 @@ const Category = () => {
   const [statusUpdatingId, setStatusUpdatingId] = useState("");
 
   const categoryRows = useMemo(() => flattenCategoryTree(categories), [categories]);
-  const inactiveCount = useMemo(() => countInactiveCategories(categories), [categories]);
 
   const disabledParentIds = useMemo(() => {
     if (!editingCategory) {
@@ -287,17 +277,22 @@ const Category = () => {
           </Box>
 
           <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Chip label={`${categoryRows.length} total`} variant="outlined" />
-            <Chip label={`${inactiveCount} inactive`} color={inactiveCount ? "warning" : "default"} variant="outlined" />
+            <Tooltip title="Refresh categories">
+              <span>
+                <IconButton
+                  color="primary"
+                  onClick={loadCategories}
+                  disabled={loading}
+                >
+                  {loading ? <CircularProgress size={20} /> : <RefreshIcon />}
+                </IconButton>
+              </span>
+            </Tooltip>
             <Button
-              variant="outlined"
-              startIcon={loading ? <CircularProgress size={16} /> : <RefreshIcon />}
-              onClick={loadCategories}
-              disabled={loading}
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreate}
             >
-              Refresh
-            </Button>
-            <Button variant="contained" startIcon={<AddIcon />} onClick={handleOpenCreate}>
               Add Category
             </Button>
           </Stack>
