@@ -4,16 +4,18 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Divider,
   IconButton,
+  InputAdornment,
   Paper,
   Stack,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
 
 import SectionHeader from "@/components/SectionHeader";
 import { fetchAdminCategoryTree } from "@/lib/api/categoryApi";
@@ -58,6 +60,8 @@ const DEFAULT_PAGINATION = {
   hasNextPage: false,
   hasPrevPage: false,
 };
+
+const SEARCH_DEBOUNCE_MS = 400;
 
 const PRODUCT_STATUSES = ["draft", "active", "inactive"];
 
@@ -156,6 +160,7 @@ const Product = () => {
   const [categoryTree, setCategoryTree] = useState([]);
   const [tableParams, setTableParams] = useState(DEFAULT_TABLE_PARAMS);
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
+  const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -185,18 +190,13 @@ const Product = () => {
     setError("");
 
     try {
-      const [productList, nextCategoryTree] = await Promise.all([
-        fetchAdminProducts(authToken, tableParams),
-        fetchAdminCategoryTree(authToken),
-      ]);
+      const productList = await fetchAdminProducts(authToken, tableParams);
 
       setProducts(productList.items);
       setPagination(productList.pagination);
-      setCategoryTree(nextCategoryTree);
     } catch (err) {
       setError(err.message || "Failed to load products.");
       setProducts([]);
-      setCategoryTree([]);
       setPagination({
         ...DEFAULT_PAGINATION,
         limit: tableParams.limit,
@@ -207,9 +207,49 @@ const Product = () => {
     }
   }, [authToken, tableParams]);
 
+  const loadCategoryTree = useCallback(async () => {
+    try {
+      setCategoryTree(await fetchAdminCategoryTree(authToken));
+    } catch (err) {
+      setError(err.message || "Failed to load product categories.");
+      setCategoryTree([]);
+    }
+  }, [authToken]);
+
   useEffect(() => {
     loadProducts();
   }, [loadProducts]);
+
+  useEffect(() => {
+    loadCategoryTree();
+  }, [loadCategoryTree]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const search = searchInput.trim();
+
+      setTableParams((currentParams) => {
+        if ((currentParams.search || "") === search) {
+          return currentParams;
+        }
+
+        const nextParams = {
+          ...currentParams,
+          page: 1,
+        };
+
+        if (search) {
+          nextParams.search = search;
+        } else {
+          delete nextParams.search;
+        }
+
+        return nextParams;
+      });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
 
   const handleOpenCreate = () => {
     setEditingProduct(null);
@@ -345,10 +385,11 @@ const Product = () => {
   };
 
   const handleRowsPerPageChange = (nextLimit) => {
-    setTableParams({
+    setTableParams((currentParams) => ({
+      ...currentParams,
       page: 1,
       limit: nextLimit,
-    });
+    }));
   };
 
   return (
@@ -375,25 +416,48 @@ const Product = () => {
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Tooltip title="Refresh products">
-              <span>
-                <IconButton
-                  color="primary"
-                  onClick={loadProducts}
-                  disabled={loading}
-                >
-                  {loading ? <CircularProgress size={20} /> : <RefreshIcon />}
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreate}
-            >
-              Add Product
-            </Button>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ xs: "stretch", sm: "center" }}
+          >
+            <TextField
+              size="small"
+              placeholder="Search products"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              sx={{ minWidth: { xs: "100%", sm: 280 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchInput ? (
+                  <InputAdornment position="end">
+                    <Tooltip title="Clear search">
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        onClick={() => setSearchInput("")}
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </InputAdornment>
+                ) : null,
+              }}
+            />
+
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreate}
+              >
+                Add Product
+              </Button>
+            </Stack>
           </Stack>
         </Stack>
 

@@ -4,16 +4,18 @@ import {
   Alert,
   Box,
   Button,
-  CircularProgress,
   Divider,
   IconButton,
+  InputAdornment,
   Paper,
   Stack,
+  TextField,
   Tooltip,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
 
 import SectionHeader from "@/components/SectionHeader";
 import {
@@ -51,6 +53,8 @@ const DEFAULT_PAGINATION = {
   hasNextPage: false,
   hasPrevPage: false,
 };
+
+const SEARCH_DEBOUNCE_MS = 400;
 
 const HIERARCHY_COLORS = [
   "#2563eb",
@@ -114,6 +118,7 @@ const Category = () => {
   const [categoryTree, setCategoryTree] = useState([]);
   const [tableParams, setTableParams] = useState(DEFAULT_TABLE_PARAMS);
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
+  const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -192,6 +197,33 @@ const Category = () => {
   useEffect(() => {
     loadCategories();
   }, [loadCategories]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const search = searchInput.trim();
+
+      setTableParams((currentParams) => {
+        if ((currentParams.search || "") === search) {
+          return currentParams;
+        }
+
+        const nextParams = {
+          ...currentParams,
+          page: 1,
+        };
+
+        if (search) {
+          nextParams.search = search;
+        } else {
+          delete nextParams.search;
+        }
+
+        return nextParams;
+      });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
 
   const handleOpenCreate = () => {
     setEditingCategory(null);
@@ -329,11 +361,12 @@ const Category = () => {
   };
 
   const handleRowsPerPageChange = (nextLimit) => {
-    setTableParams({
+    setTableParams((currentParams) => ({
+      ...currentParams,
       page: 1,
       limit: nextLimit,
       rootOnly: true,
-    });
+    }));
   };
 
   return (
@@ -360,25 +393,48 @@ const Category = () => {
             </Typography>
           </Box>
 
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Tooltip title="Refresh categories">
-              <span>
-                <IconButton
-                  color="primary"
-                  onClick={loadCategories}
-                  disabled={loading}
-                >
-                  {loading ? <CircularProgress size={20} /> : <RefreshIcon />}
-                </IconButton>
-              </span>
-            </Tooltip>
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={handleOpenCreate}
-            >
-              Add Category
-            </Button>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1}
+            alignItems={{ xs: "stretch", sm: "center" }}
+          >
+            <TextField
+              size="small"
+              placeholder="Search categories"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              sx={{ minWidth: { xs: "100%", sm: 280 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchInput ? (
+                  <InputAdornment position="end">
+                    <Tooltip title="Clear search">
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        onClick={() => setSearchInput("")}
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </InputAdornment>
+                ) : null,
+              }}
+            />
+
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="contained"
+                startIcon={<AddIcon />}
+                onClick={handleOpenCreate}
+              >
+                Add Category
+              </Button>
+            </Stack>
           </Stack>
         </Stack>
 
