@@ -9,16 +9,12 @@ import {
   IconButton,
   Paper,
   Stack,
-  Switch,
   Tooltip,
   Typography,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
-import DataTable from "@/components/DataTable";
 import SectionHeader from "@/components/SectionHeader";
 import {
   createCategory,
@@ -30,6 +26,7 @@ import {
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
 import AddEditCategoryModal from "./components/AddEditCategoryModal";
+import CategoryTable from "./components/CategoryTable";
 import DeleteCategoryModal from "./components/DeleteCategoryModal";
 
 const EMPTY_FORM = {
@@ -316,126 +313,6 @@ const Category = () => {
     });
   };
 
-  const categoryColumns = [
-    {
-      id: "category",
-      header: "Category",
-      minWidth: 260,
-      render: (category) => (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 1,
-            pl: category.depth * 3,
-          }}
-        >
-          <Box
-            sx={{
-              width: 10,
-              height: 10,
-              borderRadius: "50%",
-              bgcolor: getHierarchyColor(category.depth),
-              boxShadow: `0 0 0 3px ${getHierarchyColor(category.depth)}22`,
-              flexShrink: 0,
-            }}
-          />
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="body2" fontWeight={600} noWrap>
-              {category.name}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>
-              {category.slug || "-"}
-            </Typography>
-          </Box>
-        </Box>
-      ),
-    },
-    {
-      id: "parent",
-      header: "Parent",
-      minWidth: 160,
-      render: (category) => category.parentName,
-    },
-    {
-      id: "image",
-      header: "Image",
-      minWidth: 220,
-      render: (category) =>
-        category.image ? (
-          <Typography variant="body2" color="primary" noWrap sx={{ maxWidth: 220 }}>
-            {category.image}
-          </Typography>
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            -
-          </Typography>
-        ),
-    },
-    {
-      id: "status",
-      header: "Status",
-      minWidth: 160,
-      render: (category) => (
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Switch
-            size="small"
-            checked={category.isActive}
-            disabled={statusUpdatingId === category.id}
-            onChange={() => handleToggleStatus(category)}
-            inputProps={{ "aria-label": `toggle ${category.name} status` }}
-          />
-          <Typography
-            variant="body2"
-            color={category.isActive ? "success.main" : "text.secondary"}
-          >
-            {category.isActive ? "Active" : "Inactive"}
-          </Typography>
-        </Stack>
-      ),
-    },
-    {
-      id: "children",
-      header: "Children",
-      align: "right",
-      minWidth: 110,
-      render: (category) => category.childCount,
-    },
-    {
-      id: "actions",
-      header: "Actions",
-      align: "right",
-      minWidth: 140,
-      render: (category) => (
-        <>
-          <Tooltip title="Edit category">
-            <IconButton size="small" onClick={() => handleOpenEdit(category)}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip
-            title={
-              category.childCount > 0
-                ? "Delete child categories first"
-                : "Delete category"
-            }
-          >
-            <span>
-              <IconButton
-                size="small"
-                color="error"
-                disabled={category.childCount > 0}
-                onClick={() => setDeletingCategory(category)}
-              >
-                <DeleteOutlineIcon fontSize="small" />
-              </IconButton>
-            </span>
-          </Tooltip>
-        </>
-      ),
-    },
-  ];
-
   return (
     <>
       <SectionHeader title="Category" />
@@ -491,19 +368,18 @@ const Category = () => {
             </Alert>
           )}
 
-          <DataTable
-            columns={categoryColumns}
+          <CategoryTable
             rows={categoryTableRows}
             loading={loading}
             error={error}
-            loadingMessage="Loading categories..."
-            emptyMessage="No categories found."
-            minWidth={1050}
-            pagination={{
-              ...pagination,
-              onPageChange: handleTablePageChange,
-              onRowsPerPageChange: handleRowsPerPageChange,
-            }}
+            pagination={pagination}
+            statusUpdatingId={statusUpdatingId}
+            getHierarchyColor={getHierarchyColor}
+            onToggleStatus={handleToggleStatus}
+            onEdit={handleOpenEdit}
+            onDelete={setDeletingCategory}
+            onPageChange={handleTablePageChange}
+            onRowsPerPageChange={handleRowsPerPageChange}
           />
         </Box>
       </Paper>
