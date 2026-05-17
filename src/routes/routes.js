@@ -6,6 +6,7 @@ const ROUTES = {
   SETTINGS: "/settings",
   ACCOUNT: "/account",
   CATEGORY: "/category",
+  PRODUCT: "/product",
   CUSTOMER: "/customer",
 
   NOT_FOUND: "*",

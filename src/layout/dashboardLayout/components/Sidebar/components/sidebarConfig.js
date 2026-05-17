@@ -31,7 +31,7 @@ export const SIDEBAR_ITEMS = [
     children: [
       {
         name: "Product",
-        path: "/product",
+        path: ROUTES.PRODUCT,
         icon: Inventory2Icon,
       },
       {
