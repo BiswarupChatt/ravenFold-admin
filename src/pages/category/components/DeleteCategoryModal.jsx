@@ -20,7 +20,7 @@ const DeleteCategoryModal = ({
       <DialogTitle>Delete Category</DialogTitle>
       <DialogContent dividers>
         <Typography variant="body2">
-          Delete "{category?.name}"? This action cannot be undone.
+          {`Delete "${category?.name}"? This action cannot be undone.`}
         </Typography>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>

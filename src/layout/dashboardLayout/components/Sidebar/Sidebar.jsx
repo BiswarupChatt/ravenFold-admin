@@ -42,9 +42,11 @@ const Sidebar = () => {
         boxShadow: theme.shadows[2],
         height: "100%",
         width: isOpen ? OPEN_WIDTH : CLOSED_WIDTH,
+        flex: `0 0 ${isOpen ? OPEN_WIDTH : CLOSED_WIDTH}px`,
         transition: theme.transitions.create("width", {
           duration: theme.transitions.duration.standard,
         }),
+        flexShrink: 0,
         display: "flex",
         flexDirection: "column",
       })}

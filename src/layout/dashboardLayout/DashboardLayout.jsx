@@ -19,19 +19,21 @@ const DashboardLayout = () => {
   }
 
   return (
-    <Box display="flex" height="100vh" flexDirection="row">
+    <Box display="flex" height="100vh" width="100dvw" overflow="hidden" flexDirection="row">
       {isLeft && <Sidebar />}
 
-      <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
         <Navbar isLeft={isLeft} />
 
         <Box
           component="main"
           sx={{
             flex: 1,
+            minWidth: 0,
             bgcolor: "background.default",
             color: "text.primary",
-            overflow: "auto",
+            overflowX: "hidden",
+            overflowY: "auto",
             direction: isLeft ? "ltr" : "rtl",
           }}
         >
@@ -40,7 +42,7 @@ const DashboardLayout = () => {
               <Outlet />
             </PageWrapper>
           ) : (
-            <Box sx={{ width: "100%", direction: "ltr" }}>
+            <Box sx={{ width: "100%", minWidth: 0, direction: "ltr" }}>
               <PageWrapper>
                 <Outlet />
               </PageWrapper>

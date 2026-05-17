@@ -7,18 +7,25 @@ export default function PageWrapper({ children }) {
     <Box
       sx={{
         minHeight: "100vh",
+        minWidth: 0,
         bgcolor: "background.default",
         py: 2,
+        overflowX: "hidden",
       }}
     >
       <Container
         maxWidth="lg"
         sx={{
-          px:  2,
+          width: "100%",
+          maxWidth: "100%",
+          minWidth: 0,
+          boxSizing: "border-box",
+          px: 2,
         }}
       >
         <Box
           sx={{
+            minWidth: 0,
             bgcolor: "background.paper",
             borderRadius: 2,
             px: 3,

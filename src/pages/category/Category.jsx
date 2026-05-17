@@ -10,12 +10,6 @@ import {
   Paper,
   Stack,
   Switch,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Tooltip,
   Typography,
 } from "@mui/material";
@@ -24,10 +18,12 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 
+import DataTable from "@/components/DataTable";
 import SectionHeader from "@/components/SectionHeader";
 import {
   createCategory,
   deleteCategory,
+  fetchAdminCategories,
   fetchAdminCategoryTree,
   updateCategory,
 } from "@/lib/api/categoryApi";
@@ -42,6 +38,20 @@ const EMPTY_FORM = {
   parentCategoryId: "",
   image: "",
   isActive: true,
+};
+
+const DEFAULT_TABLE_PARAMS = {
+  page: 1,
+  limit: 10,
+};
+
+const DEFAULT_PAGINATION = {
+  page: DEFAULT_TABLE_PARAMS.page,
+  limit: DEFAULT_TABLE_PARAMS.limit,
+  total: 0,
+  totalPages: 0,
+  hasNextPage: false,
+  hasPrevPage: false,
 };
 
 const HIERARCHY_COLORS = [
@@ -103,6 +113,9 @@ const Category = () => {
   const authToken = useAtomValue(authTokenAtom);
   const toast = useToast();
   const [categories, setCategories] = useState([]);
+  const [categoryTree, setCategoryTree] = useState([]);
+  const [tableParams, setTableParams] = useState(DEFAULT_TABLE_PARAMS);
+  const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -114,7 +127,28 @@ const Category = () => {
   const [deleting, setDeleting] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState("");
 
-  const categoryRows = useMemo(() => flattenCategoryTree(categories), [categories]);
+  const categoryRows = useMemo(() => flattenCategoryTree(categoryTree), [categoryTree]);
+
+  const categoryMetaById = useMemo(() => {
+    return new Map(categoryRows.map((category) => [category.id, category]));
+  }, [categoryRows]);
+
+  const categoryTableRows = useMemo(() => {
+    return categories.map((category) => {
+      const categoryMeta = categoryMetaById.get(category.id);
+      const parentCategory = category.parentCategoryId
+        ? categoryMetaById.get(category.parentCategoryId)
+        : null;
+
+      return {
+        ...category,
+        children: categoryMeta?.children || [],
+        childCount: categoryMeta?.childCount || 0,
+        depth: categoryMeta?.depth || 0,
+        parentName: categoryMeta?.parentName || parentCategory?.name || "Root",
+      };
+    });
+  }, [categories, categoryMetaById]);
 
   const disabledParentIds = useMemo(() => {
     if (!editingCategory) {
@@ -132,16 +166,27 @@ const Category = () => {
     setError("");
 
     try {
-      const categoryTree = await fetchAdminCategoryTree(authToken);
+      const [categoryList, nextCategoryTree] = await Promise.all([
+        fetchAdminCategories(authToken, tableParams),
+        fetchAdminCategoryTree(authToken),
+      ]);
 
-      setCategories(categoryTree);
+      setCategories(categoryList.items);
+      setPagination(categoryList.pagination);
+      setCategoryTree(nextCategoryTree);
     } catch (err) {
       setError(err.message || "Failed to load categories.");
       setCategories([]);
+      setCategoryTree([]);
+      setPagination({
+        ...DEFAULT_PAGINATION,
+        limit: tableParams.limit,
+        page: tableParams.page,
+      });
     } finally {
       setLoading(false);
     }
-  }, [authToken]);
+  }, [authToken, tableParams]);
 
   useEffect(() => {
     loadCategories();
@@ -155,7 +200,9 @@ const Category = () => {
   };
 
   const handleOpenEdit = (category) => {
-    setEditingCategory(category);
+    const editableCategory = categoryMetaById.get(category.id) || category;
+
+    setEditingCategory(editableCategory);
     setFormData({
       name: category.name || "",
       slug: category.slug || "",
@@ -255,11 +302,148 @@ const Category = () => {
     }
   };
 
+  const handleTablePageChange = (nextPage) => {
+    setTableParams((currentParams) => ({
+      ...currentParams,
+      page: nextPage,
+    }));
+  };
+
+  const handleRowsPerPageChange = (nextLimit) => {
+    setTableParams({
+      page: 1,
+      limit: nextLimit,
+    });
+  };
+
+  const categoryColumns = [
+    {
+      id: "category",
+      header: "Category",
+      minWidth: 260,
+      render: (category) => (
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            pl: category.depth * 3,
+          }}
+        >
+          <Box
+            sx={{
+              width: 10,
+              height: 10,
+              borderRadius: "50%",
+              bgcolor: getHierarchyColor(category.depth),
+              boxShadow: `0 0 0 3px ${getHierarchyColor(category.depth)}22`,
+              flexShrink: 0,
+            }}
+          />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" fontWeight={600} noWrap>
+              {category.name}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>
+              {category.slug || "-"}
+            </Typography>
+          </Box>
+        </Box>
+      ),
+    },
+    {
+      id: "parent",
+      header: "Parent",
+      minWidth: 160,
+      render: (category) => category.parentName,
+    },
+    {
+      id: "image",
+      header: "Image",
+      minWidth: 220,
+      render: (category) =>
+        category.image ? (
+          <Typography variant="body2" color="primary" noWrap sx={{ maxWidth: 220 }}>
+            {category.image}
+          </Typography>
+        ) : (
+          <Typography variant="body2" color="text.secondary">
+            -
+          </Typography>
+        ),
+    },
+    {
+      id: "status",
+      header: "Status",
+      minWidth: 160,
+      render: (category) => (
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Switch
+            size="small"
+            checked={category.isActive}
+            disabled={statusUpdatingId === category.id}
+            onChange={() => handleToggleStatus(category)}
+            inputProps={{ "aria-label": `toggle ${category.name} status` }}
+          />
+          <Typography
+            variant="body2"
+            color={category.isActive ? "success.main" : "text.secondary"}
+          >
+            {category.isActive ? "Active" : "Inactive"}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      id: "children",
+      header: "Children",
+      align: "right",
+      minWidth: 110,
+      render: (category) => category.childCount,
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      align: "right",
+      minWidth: 140,
+      render: (category) => (
+        <>
+          <Tooltip title="Edit category">
+            <IconButton size="small" onClick={() => handleOpenEdit(category)}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+          <Tooltip
+            title={
+              category.childCount > 0
+                ? "Delete child categories first"
+                : "Delete category"
+            }
+          >
+            <span>
+              <IconButton
+                size="small"
+                color="error"
+                disabled={category.childCount > 0}
+                onClick={() => setDeletingCategory(category)}
+              >
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </span>
+          </Tooltip>
+        </>
+      ),
+    },
+  ];
+
   return (
     <>
       <SectionHeader title="Category" />
 
-      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+      <Paper
+        variant="outlined"
+        sx={{ width: "100%", maxWidth: "100%", minWidth: 0, borderRadius: 2, overflow: "hidden" }}
+      >
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={2}
@@ -307,137 +491,20 @@ const Category = () => {
             </Alert>
           )}
 
-          <TableContainer>
-            <Table size="small" sx={{ minWidth: 840 }}>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Category</TableCell>
-                  <TableCell>Parent</TableCell>
-                  <TableCell>Image</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="right">Children</TableCell>
-                  <TableCell align="right">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ py: 4 }}>
-                        <CircularProgress size={22} />
-                        <Typography variant="body2" color="text.secondary">
-                          Loading categories...
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-
-                {!loading && !error && categoryRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6}>
-                      <Box sx={{ py: 5, textAlign: "center" }}>
-                        <Typography variant="body2" color="text.secondary">
-                          No categories found.
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-
-                {!loading
-                  ? categoryRows.map((category) => (
-                      <TableRow key={category.id} hover>
-                        <TableCell>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              pl: category.depth * 3,
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: "50%",
-                                bgcolor: getHierarchyColor(category.depth),
-                                boxShadow: `0 0 0 3px ${getHierarchyColor(category.depth)}22`,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <Box sx={{ minWidth: 0 }}>
-                              <Typography variant="body2" fontWeight={600} noWrap>
-                                {category.name}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary" noWrap>
-                                {category.slug || "-"}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        </TableCell>
-                        <TableCell>{category.parentName}</TableCell>
-                        <TableCell>
-                          {category.image ? (
-                            <Typography variant="body2" color="primary" noWrap sx={{ maxWidth: 160 }}>
-                              {category.image}
-                            </Typography>
-                          ) : (
-                            <Typography variant="body2" color="text.secondary">
-                              -
-                            </Typography>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Stack direction="row" spacing={1} alignItems="center">
-                            <Switch
-                              size="small"
-                              checked={category.isActive}
-                              disabled={statusUpdatingId === category.id}
-                              onChange={() => handleToggleStatus(category)}
-                              inputProps={{ "aria-label": `toggle ${category.name} status` }}
-                            />
-                            <Typography
-                              variant="body2"
-                              color={category.isActive ? "success.main" : "text.secondary"}
-                            >
-                              {category.isActive ? "Active" : "Inactive"}
-                            </Typography>
-                          </Stack>
-                        </TableCell>
-                        <TableCell align="right">{category.childCount}</TableCell>
-                        <TableCell align="right">
-                          <Tooltip title="Edit category">
-                            <IconButton size="small" onClick={() => handleOpenEdit(category)}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip
-                            title={
-                              category.childCount > 0
-                                ? "Delete child categories first"
-                                : "Delete category"
-                            }
-                          >
-                            <span>
-                              <IconButton
-                                size="small"
-                                color="error"
-                                disabled={category.childCount > 0}
-                                onClick={() => setDeletingCategory(category)}
-                              >
-                                <DeleteOutlineIcon fontSize="small" />
-                              </IconButton>
-                            </span>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  : null}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <DataTable
+            columns={categoryColumns}
+            rows={categoryTableRows}
+            loading={loading}
+            error={error}
+            loadingMessage="Loading categories..."
+            emptyMessage="No categories found."
+            minWidth={1050}
+            pagination={{
+              ...pagination,
+              onPageChange: handleTablePageChange,
+              onRowsPerPageChange: handleRowsPerPageChange,
+            }}
+          />
         </Box>
       </Paper>
 
