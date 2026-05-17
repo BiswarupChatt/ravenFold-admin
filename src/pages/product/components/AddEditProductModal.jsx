@@ -25,6 +25,7 @@ const AddEditProductModal = ({
   productStatuses,
   getHierarchyColor,
   onClose,
+  onClear,
   onChange,
   onSubmit,
 }) => {
@@ -210,18 +211,28 @@ const AddEditProductModal = ({
         </Stack>
       </DialogContent>
 
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={saving}>
-          Cancel
-        </Button>
-        <Button
-          variant="contained"
-          onClick={onSubmit}
-          disabled={saving}
-          startIcon={saving ? <CircularProgress size={16} /> : null}
-        >
-          {editingProduct ? "Save Changes" : "Create Product"}
-        </Button>
+      <DialogActions sx={{ px: 3, py: 2, justifyContent: "space-between" }}>
+        <Box>
+          {!editingProduct ? (
+            <Button onClick={onClear} disabled={saving}>
+              Clear
+            </Button>
+          ) : null}
+        </Box>
+
+        <Stack direction="row" spacing={1}>
+          <Button onClick={onClose} disabled={saving}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={onSubmit}
+            disabled={saving}
+            startIcon={saving ? <CircularProgress size={16} /> : null}
+          >
+            {editingProduct ? "Save Changes" : "Create Product"}
+          </Button>
+        </Stack>
       </DialogActions>
     </Dialog>
   );

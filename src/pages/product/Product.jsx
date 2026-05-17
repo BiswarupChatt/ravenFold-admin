@@ -159,6 +159,7 @@ const Product = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createFormData, setCreateFormData] = useState(EMPTY_FORM);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
@@ -212,7 +213,7 @@ const Product = () => {
 
   const handleOpenCreate = () => {
     setEditingProduct(null);
-    setFormData(EMPTY_FORM);
+    setFormData(createFormData);
     setFormError("");
     setDialogOpen(true);
   };
@@ -237,10 +238,24 @@ const Product = () => {
   const handleFormChange = (event) => {
     const { checked, name, type, value } = event.target;
 
-    setFormData((currentFormData) => ({
-      ...currentFormData,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData((currentFormData) => {
+      const nextFormData = {
+        ...currentFormData,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      if (!editingProduct) {
+        setCreateFormData(nextFormData);
+      }
+
+      return nextFormData;
+    });
+  };
+
+  const handleClearForm = () => {
+    setCreateFormData(EMPTY_FORM);
+    setFormData(EMPTY_FORM);
+    setFormError("");
   };
 
   const handleSubmit = async () => {
@@ -288,6 +303,8 @@ const Product = () => {
       } else {
         await createProduct(authToken, payload);
         toast.success("Product created successfully.");
+        setCreateFormData(EMPTY_FORM);
+        setFormData(EMPTY_FORM);
       }
 
       setDialogOpen(false);
@@ -412,6 +429,7 @@ const Product = () => {
         productStatuses={PRODUCT_STATUSES}
         getHierarchyColor={getHierarchyColor}
         onClose={handleCloseDialog}
+        onClear={handleClearForm}
         onChange={handleFormChange}
         onSubmit={handleSubmit}
       />

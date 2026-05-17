@@ -40,6 +40,7 @@ const EMPTY_FORM = {
 const DEFAULT_TABLE_PARAMS = {
   page: 1,
   limit: 10,
+  rootOnly: true,
 };
 
 const DEFAULT_PAGINATION = {
@@ -116,6 +117,7 @@ const Category = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createFormData, setCreateFormData] = useState(EMPTY_FORM);
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [formError, setFormError] = useState("");
   const [editingCategory, setEditingCategory] = useState(null);
@@ -131,19 +133,21 @@ const Category = () => {
   }, [categoryRows]);
 
   const categoryTableRows = useMemo(() => {
-    return categories.map((category) => {
+    return categories.flatMap((category) => {
       const categoryMeta = categoryMetaById.get(category.id);
       const parentCategory = category.parentCategoryId
         ? categoryMetaById.get(category.parentCategoryId)
         : null;
 
-      return {
+      const categoryWithMeta = {
         ...category,
         children: categoryMeta?.children || [],
         childCount: categoryMeta?.childCount || 0,
         depth: categoryMeta?.depth || 0,
         parentName: categoryMeta?.parentName || parentCategory?.name || "Root",
       };
+
+      return flattenCategoryTree([categoryWithMeta], categoryWithMeta.depth, categoryWithMeta.parentName);
     });
   }, [categories, categoryMetaById]);
 
@@ -191,7 +195,7 @@ const Category = () => {
 
   const handleOpenCreate = () => {
     setEditingCategory(null);
-    setFormData(EMPTY_FORM);
+    setFormData(createFormData);
     setFormError("");
     setDialogOpen(true);
   };
@@ -218,15 +222,30 @@ const Category = () => {
 
     setDialogOpen(false);
     setFormError("");
+    setEditingCategory(null);
   };
 
   const handleFormChange = (event) => {
     const { checked, name, type, value } = event.target;
 
-    setFormData((currentFormData) => ({
-      ...currentFormData,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setFormData((currentFormData) => {
+      const nextFormData = {
+        ...currentFormData,
+        [name]: type === "checkbox" ? checked : value,
+      };
+
+      if (!editingCategory) {
+        setCreateFormData(nextFormData);
+      }
+
+      return nextFormData;
+    });
+  };
+
+  const handleClearForm = () => {
+    setCreateFormData(EMPTY_FORM);
+    setFormData(EMPTY_FORM);
+    setFormError("");
   };
 
   const handleSubmit = async () => {
@@ -247,9 +266,12 @@ const Category = () => {
       } else {
         await createCategory(authToken, payload);
         toast.success("Category created successfully.");
+        setCreateFormData(EMPTY_FORM);
+        setFormData(EMPTY_FORM);
       }
 
       setDialogOpen(false);
+      setEditingCategory(null);
       await loadCategories();
     } catch (err) {
       setFormError(err.message || "Failed to save category.");
@@ -310,6 +332,7 @@ const Category = () => {
     setTableParams({
       page: 1,
       limit: nextLimit,
+      rootOnly: true,
     });
   };
 
@@ -394,6 +417,7 @@ const Category = () => {
         disabledParentIds={disabledParentIds}
         getHierarchyColor={getHierarchyColor}
         onClose={handleCloseDialog}
+        onClear={handleClearForm}
         onChange={handleFormChange}
         onSubmit={handleSubmit}
       />
