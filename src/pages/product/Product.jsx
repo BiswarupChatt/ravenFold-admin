@@ -24,6 +24,7 @@ import {
   deleteProduct,
   fetchAdminProducts,
   updateProduct,
+  uploadProductImages,
 } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
@@ -108,6 +109,8 @@ const splitTags = (value) => {
     .filter(Boolean);
 };
 
+const joinLines = (items = []) => items.join("\n");
+
 const buildPayload = (formData) => {
   const payload = {
     name: formData.name.trim(),
@@ -169,6 +172,7 @@ const Product = () => {
   const [formError, setFormError] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImages, setUploadingImages] = useState(false);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -266,7 +270,7 @@ const Product = () => {
   };
 
   const handleCloseDialog = () => {
-    if (saving) {
+    if (saving || uploadingImages) {
       return;
     }
 
@@ -275,14 +279,11 @@ const Product = () => {
     setEditingProduct(null);
   };
 
-  const handleFormChange = (event) => {
-    const { checked, name, type, value } = event.target;
-
+  const setModalFormData = useCallback((nextFormDataOrUpdater) => {
     setFormData((currentFormData) => {
-      const nextFormData = {
-        ...currentFormData,
-        [name]: type === "checkbox" ? checked : value,
-      };
+      const nextFormData = typeof nextFormDataOrUpdater === "function"
+        ? nextFormDataOrUpdater(currentFormData)
+        : nextFormDataOrUpdater;
 
       if (!editingProduct) {
         setCreateFormData(nextFormData);
@@ -290,7 +291,72 @@ const Product = () => {
 
       return nextFormData;
     });
+  }, [editingProduct]);
+
+  const handleFormChange = (event) => {
+    const { checked, name, type, value } = event.target;
+
+    setModalFormData((currentFormData) => ({
+      ...currentFormData,
+      [name]: type === "checkbox" ? checked : value,
+    }));
   };
+
+  const handleImagesChange = useCallback((imageUrls) => {
+    setModalFormData((currentFormData) => ({
+      ...currentFormData,
+      imageUrls: joinLines(imageUrls),
+    }));
+  }, [setModalFormData]);
+
+  const handleUploadImages = useCallback(async (files) => {
+    const fileList = Array.from(files || []);
+    const imageFiles = fileList.filter((file) => file.type?.startsWith("image/"));
+
+    if (fileList.length === 0) {
+      return [];
+    }
+
+    if (imageFiles.length === 0) {
+      const message = "Only image files can be uploaded.";
+
+      setFormError(message);
+      throw new Error(message);
+    }
+
+    if (imageFiles.length !== fileList.length) {
+      toast.warning("Non-image files were skipped.");
+    }
+
+    setUploadingImages(true);
+    setFormError("");
+
+    try {
+      const uploadedImages = await uploadProductImages(authToken, imageFiles);
+      const uploadedUrls = uploadedImages.map((image) => image.url).filter(Boolean);
+
+      setModalFormData((currentFormData) => ({
+        ...currentFormData,
+        imageUrls: joinLines([
+          ...splitLines(currentFormData.imageUrls),
+          ...uploadedUrls,
+        ]),
+      }));
+
+      toast.success(
+        uploadedUrls.length === 1
+          ? "Image uploaded successfully."
+          : `${uploadedUrls.length} images uploaded successfully.`
+      );
+
+      return uploadedUrls;
+    } catch (err) {
+      setFormError(err.message || "Failed to upload product images.");
+      throw err;
+    } finally {
+      setUploadingImages(false);
+    }
+  }, [authToken, setModalFormData, toast]);
 
   const handleClearForm = () => {
     setCreateFormData(EMPTY_FORM);
@@ -488,6 +554,7 @@ const Product = () => {
         formData={formData}
         formError={formError}
         saving={saving}
+        uploadingImages={uploadingImages}
         editingProduct={editingProduct}
         categoryRows={categoryRows}
         productStatuses={PRODUCT_STATUSES}
@@ -495,6 +562,8 @@ const Product = () => {
         onClose={handleCloseDialog}
         onClear={handleClearForm}
         onChange={handleFormChange}
+        onImagesChange={handleImagesChange}
+        onUploadImages={handleUploadImages}
         onSubmit={handleSubmit}
       />
 

@@ -55,16 +55,49 @@ const ProductTable = ({
       id: "product",
       header: "Product",
       minWidth: 260,
-      render: (product) => (
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="body2" fontWeight={600} noWrap>
-            {product.name}
-          </Typography>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            {product.slug || "-"}
-          </Typography>
-        </Box>
-      ),
+      render: (product) => {
+        const primaryImage = Array.isArray(product.images) ? product.images[0] : "";
+
+        return (
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 44,
+                height: 44,
+                borderRadius: 1,
+                bgcolor: "action.hover",
+                border: "1px solid",
+                borderColor: "divider",
+                flexShrink: 0,
+                overflow: "hidden",
+              }}
+            >
+              {primaryImage ? (
+                <Box
+                  component="img"
+                  src={primaryImage}
+                  alt=""
+                  loading="lazy"
+                  sx={{
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                  }}
+                />
+              ) : null}
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="body2" fontWeight={600} noWrap>
+                {product.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {product.slug || "-"}
+              </Typography>
+            </Box>
+          </Stack>
+        );
+      },
     },
     {
       id: "category",
