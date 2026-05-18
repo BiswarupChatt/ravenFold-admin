@@ -8,6 +8,7 @@ import Account from "../pages/account/Account";
 import Settings from "../pages/settings/Settings";
 import Category from "../pages/category/Category";
 import Product from "../pages/product/Product";
+import ProductDetailsPage from "../pages/product/ProductDetailsPage";
 import Customer from "../pages/customer/Customer";
 import NotFound from "../pages/NotFound";
 
@@ -26,6 +27,9 @@ export const appRoutes = [
       { index: true, element: <Navigate to={ROUTES.ROOT} replace /> },
       { path: ROUTES.ROOT.slice(1), element: <Dashboard /> },
       { path: ROUTES.CATEGORY.slice(1), element: <Category /> },
+      { path: `${ROUTES.PRODUCT.slice(1)}/new`, element: <ProductDetailsPage mode="create" /> },
+      { path: `${ROUTES.PRODUCT.slice(1)}/:productId/edit`, element: <ProductDetailsPage mode="edit" /> },
+      { path: `${ROUTES.PRODUCT.slice(1)}/:productId`, element: <ProductDetailsPage mode="view" /> },
       { path: ROUTES.PRODUCT.slice(1), element: <Product /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },

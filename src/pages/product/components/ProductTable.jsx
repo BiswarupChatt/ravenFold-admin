@@ -44,7 +44,7 @@ const ProductTable = ({
   loading,
   error,
   pagination,
-  onEdit,
+  onView,
   onDelete,
   onPageChange,
   onRowsPerPageChange,
@@ -93,7 +93,7 @@ const ProductTable = ({
                 variant="body2"
                 fontWeight={600}
                 noWrap
-                onClick={() => onEdit(product)}
+                onClick={() => onView(product)}
                 sx={{
                   display: "block",
                   width: "100%",

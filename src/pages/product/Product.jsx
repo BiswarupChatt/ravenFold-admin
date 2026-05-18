@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import {
   Alert,
@@ -19,47 +20,17 @@ import SearchIcon from "@mui/icons-material/Search";
 
 import SectionHeader from "@/components/SectionHeader";
 import { fetchAdminCategoryTree } from "@/lib/api/categoryApi";
-import {
-  createProduct,
-  deleteProduct,
-  fetchAdminProducts,
-  updateProduct,
-  uploadProductImages,
-} from "@/lib/api/productApi";
+import { deleteProduct, fetchAdminProducts } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import {
   DEFAULT_PAGINATION,
   DEFAULT_TABLE_PARAMS,
-  PRODUCT_STATUSES,
   SEARCH_DEBOUNCE_MS,
-  getHierarchyColor,
-  joinLines,
-  normalizeAttributes,
-  normalizeText,
-  splitCommaSeparatedValues,
-  splitLines,
 } from "@/lib/utils/adminShared";
 import { useToast } from "@/hooks/ToastContext";
-import AddEditViewProductModal from "./components/AddEditViewProductModal";
+import ROUTES from "@/routes/routes";
 import DeleteProductModal from "./components/DeleteProductModal";
 import ProductTable from "./components/ProductTable";
-
-const EMPTY_FORM = {
-  name: "",
-  slug: "",
-  categoryId: "",
-  sku: "",
-  basePrice: "",
-  salePrice: "",
-  status: "draft",
-  shortDescription: "",
-  description: "",
-  imageUrls: "",
-  tags: "",
-  attributes: [],
-  hasVariants: false,
-  isFeatured: false,
-};
 
 const flattenCategoryTree = (items = [], depth = 0) => {
   return items.flatMap((category) => {
@@ -76,62 +47,10 @@ const flattenCategoryTree = (items = [], depth = 0) => {
   });
 };
 
-const buildPayload = (formData) => {
-  const payload = {
-    name: normalizeText(formData.name),
-    categoryId: formData.categoryId,
-    sku: normalizeText(formData.sku),
-    basePrice: formData.basePrice,
-    salePrice: formData.salePrice === "" ? null : formData.salePrice,
-    status: formData.status,
-    shortDescription: normalizeText(formData.shortDescription),
-    description: normalizeText(formData.description),
-    images: splitLines(formData.imageUrls),
-    tags: splitCommaSeparatedValues(formData.tags),
-    attributes: normalizeAttributes(formData.attributes),
-    hasVariants: Boolean(formData.hasVariants),
-    isFeatured: Boolean(formData.isFeatured),
-  };
-
-  const slug = normalizeText(formData.slug);
-
-  if (slug) {
-    payload.slug = slug;
-  }
-
-  return payload;
-};
-
-const getProductFromResponse = (response) => response?.data || null;
-
-const getProductId = (product) => product?.id || product?._id || "";
-
-const productToFormData = (product) => {
-  return {
-    name: product.name || "",
-    slug: product.slug || "",
-    categoryId: product.categoryId || "",
-    sku: product.sku || "",
-    basePrice: product.basePrice === null || product.basePrice === undefined
-      ? ""
-      : String(product.basePrice),
-    salePrice: product.salePrice === null || product.salePrice === undefined
-      ? ""
-      : String(product.salePrice),
-    status: product.status || "draft",
-    shortDescription: product.shortDescription || "",
-    description: product.description || "",
-    imageUrls: Array.isArray(product.images) ? product.images.join("\n") : "",
-    tags: Array.isArray(product.tags) ? product.tags.join(", ") : "",
-    attributes: normalizeAttributes(product.attributes),
-    hasVariants: Boolean(product.hasVariants),
-    isFeatured: Boolean(product.isFeatured),
-  };
-};
-
 const Product = () => {
   const authToken = useAtomValue(authTokenAtom);
   const toast = useToast();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [categoryTree, setCategoryTree] = useState([]);
   const [tableParams, setTableParams] = useState(DEFAULT_TABLE_PARAMS);
@@ -139,17 +58,8 @@ const Product = () => {
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [createFormData, setCreateFormData] = useState(EMPTY_FORM);
-  const [formData, setFormData] = useState(EMPTY_FORM);
-  const [formError, setFormError] = useState("");
-  const [editingProduct, setEditingProduct] = useState(null);
-  const [saving, setSaving] = useState(false);
-  const [uploadingImages, setUploadingImages] = useState(false);
-  const [pendingImageFiles, setPendingImageFiles] = useState([]);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [variantsOpen, setVariantsOpen] = useState(false);
 
   const categoryRows = useMemo(() => flattenCategoryTree(categoryTree), [categoryTree]);
 
@@ -230,258 +140,8 @@ const Product = () => {
     return () => clearTimeout(timeoutId);
   }, [searchInput]);
 
-  const handleOpenCreate = () => {
-    setEditingProduct(null);
-    setFormData(createFormData);
-    setFormError("");
-    setPendingImageFiles([]);
-    setVariantsOpen(Boolean(createFormData.hasVariants));
-    setDialogOpen(true);
-  };
-
-  const handleOpenEdit = (product) => {
-    setEditingProduct(product);
-    setFormData(productToFormData(product));
-    setFormError("");
-    setPendingImageFiles([]);
-    setVariantsOpen(Boolean(product.hasVariants));
-    setDialogOpen(true);
-  };
-
-  const handleCloseDialog = () => {
-    if (saving || uploadingImages) {
-      return;
-    }
-
-    setDialogOpen(false);
-    setFormError("");
-    setEditingProduct(null);
-    setPendingImageFiles([]);
-    setVariantsOpen(false);
-  };
-
-  const setModalFormData = useCallback((nextFormDataOrUpdater) => {
-    setFormData((currentFormData) => {
-      const nextFormData = typeof nextFormDataOrUpdater === "function"
-        ? nextFormDataOrUpdater(currentFormData)
-        : nextFormDataOrUpdater;
-
-      if (!editingProduct) {
-        setCreateFormData(nextFormData);
-      }
-
-      return nextFormData;
-    });
-  }, [editingProduct]);
-
-  const handleFormChange = (event) => {
-    const { checked, name, type, value } = event.target;
-
-    setModalFormData((currentFormData) => ({
-      ...currentFormData,
-      [name]: type === "checkbox" ? checked : value,
-    }));
-  };
-
-  const handleHasVariantsChange = useCallback((event) => {
-    const { checked } = event.target;
-
-    setVariantsOpen(checked);
-    setModalFormData((currentFormData) => ({
-      ...currentFormData,
-      hasVariants: checked,
-    }));
-  }, [setModalFormData]);
-
-  const handleImagesChange = useCallback((imageUrls) => {
-    setModalFormData((currentFormData) => ({
-      ...currentFormData,
-      imageUrls: joinLines(imageUrls),
-    }));
-  }, [setModalFormData]);
-
-  const handleAttributesChange = useCallback((attributes) => {
-    setModalFormData((currentFormData) => ({
-      ...currentFormData,
-      attributes,
-    }));
-  }, [setModalFormData]);
-
-  const handleVariantsChanged = useCallback(async (changes = {}) => {
-    if (changes.hasVariants) {
-      setVariantsOpen(true);
-      setModalFormData((currentFormData) => ({
-        ...currentFormData,
-        hasVariants: true,
-      }));
-    }
-
-    await loadProducts();
-  }, [loadProducts, setModalFormData]);
-
-  const handleSelectImageFiles = useCallback((files) => {
-    const fileList = Array.from(files || []);
-    const imageFiles = fileList.filter((file) => file.type?.startsWith("image/"));
-
-    if (fileList.length === 0) {
-      return [];
-    }
-
-    if (imageFiles.length === 0) {
-      const message = "Only image files can be uploaded.";
-
-      setFormError(message);
-      throw new Error(message);
-    }
-
-    if (imageFiles.length !== fileList.length) {
-      toast.warning("Non-image files were skipped.");
-    }
-
-    setFormError("");
-    setPendingImageFiles((currentFiles) => [...currentFiles, ...imageFiles]);
-    toast.success(
-      imageFiles.length === 1
-        ? "Image queued. It will upload after saving."
-        : `${imageFiles.length} images queued. They will upload after saving.`
-    );
-
-    return imageFiles;
-  }, [toast]);
-
-  const handleClearForm = () => {
-    setCreateFormData(EMPTY_FORM);
-    setFormData(EMPTY_FORM);
-    setFormError("");
-    setPendingImageFiles([]);
-    setVariantsOpen(false);
-  };
-
-  const handleSubmit = async () => {
-    const payload = buildPayload(formData);
-    const basePrice = Number(payload.basePrice);
-    const salePrice = payload.salePrice === null ? null : Number(payload.salePrice);
-
-    if (!payload.name) {
-      setFormError("Product name is required.");
-      return;
-    }
-
-    if (!payload.categoryId) {
-      setFormError("Category is required.");
-      return;
-    }
-
-    if (!payload.sku) {
-      setFormError("SKU is required.");
-      return;
-    }
-
-    if (!Number.isFinite(basePrice) || basePrice < 0) {
-      setFormError("Base price must be a valid non-negative number.");
-      return;
-    }
-
-    if (salePrice !== null && (!Number.isFinite(salePrice) || salePrice < 0)) {
-      setFormError("Sale price must be a valid non-negative number.");
-      return;
-    }
-
-    if (salePrice !== null && salePrice > basePrice) {
-      setFormError("Sale price cannot be greater than base price.");
-      return;
-    }
-
-    const incompleteAttribute = payload.attributes.find((attribute) => !attribute.name || !attribute.value);
-
-    if (incompleteAttribute) {
-      setFormError("Each attribute needs both a name and value.");
-      return;
-    }
-
-    const attributeNames = payload.attributes.map((attribute) => attribute.name.toLowerCase());
-    const hasDuplicateAttributeNames = new Set(attributeNames).size !== attributeNames.length;
-
-    if (hasDuplicateAttributeNames) {
-      setFormError("Attribute names must be unique.");
-      return;
-    }
-
-    setSaving(true);
-    setFormError("");
-
-    const uploadPendingImages = async () => {
-      if (pendingImageFiles.length === 0) {
-        return [];
-      }
-
-      setUploadingImages(true);
-
-      try {
-        const uploadedImages = await uploadProductImages(authToken, pendingImageFiles);
-
-        return uploadedImages.map((image) => image.url).filter(Boolean);
-      } finally {
-        setUploadingImages(false);
-      }
-    };
-
-    try {
-      if (editingProduct) {
-        const uploadedUrls = await uploadPendingImages();
-
-        await updateProduct(authToken, editingProduct.id, {
-          ...payload,
-          images: [
-            ...payload.images,
-            ...uploadedUrls,
-          ],
-        });
-        toast.success("Product updated successfully.");
-      } else {
-        const createResponse = await createProduct(authToken, payload);
-        const createdProduct = getProductFromResponse(createResponse);
-        const createdProductId = getProductId(createdProduct);
-
-        if (pendingImageFiles.length > 0) {
-          if (!createdProductId) {
-            throw new Error("Product created, but the response did not include an id for image upload.");
-          }
-
-          try {
-            const uploadedUrls = await uploadPendingImages();
-
-            await updateProduct(authToken, createdProductId, {
-              images: [
-                ...payload.images,
-                ...uploadedUrls,
-              ],
-            });
-          } catch (err) {
-            setEditingProduct(createdProduct);
-            await loadProducts();
-            throw new Error(
-              err.message
-                ? `Product created, but image upload failed: ${err.message}`
-                : "Product created, but image upload failed."
-            );
-          }
-        }
-
-        toast.success("Product created successfully.");
-        setCreateFormData(EMPTY_FORM);
-        setFormData(EMPTY_FORM);
-      }
-
-      setPendingImageFiles([]);
-      setDialogOpen(false);
-      setEditingProduct(null);
-      await loadProducts();
-    } catch (err) {
-      setFormError(err.message || "Failed to save product.");
-    } finally {
-      setSaving(false);
-    }
+  const handleViewProduct = (product) => {
+    navigate(`${ROUTES.PRODUCT}/${product.id}`);
   };
 
   const handleDelete = async () => {
@@ -573,15 +233,13 @@ const Product = () => {
               }}
             />
 
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleOpenCreate}
-              >
-                Add Product
-              </Button>
-            </Stack>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={() => navigate(`${ROUTES.PRODUCT}/new`)}
+            >
+              Add Product
+            </Button>
           </Stack>
         </Stack>
 
@@ -599,35 +257,13 @@ const Product = () => {
             loading={loading}
             error={error}
             pagination={pagination}
-            onEdit={handleOpenEdit}
+            onView={handleViewProduct}
             onDelete={setDeletingProduct}
             onPageChange={handleTablePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
           />
         </Box>
       </Paper>
-
-      <AddEditViewProductModal
-        open={dialogOpen}
-        formData={formData}
-        formError={formError}
-        saving={saving}
-        uploadingImages={uploadingImages}
-        editingProduct={editingProduct}
-        categoryRows={categoryRows}
-        productStatuses={PRODUCT_STATUSES}
-        getHierarchyColor={getHierarchyColor}
-        variantsOpen={variantsOpen}
-        onClose={handleCloseDialog}
-        onClear={handleClearForm}
-        onChange={handleFormChange}
-        onHasVariantsChange={handleHasVariantsChange}
-        onImagesChange={handleImagesChange}
-        onAttributesChange={handleAttributesChange}
-        onSelectImageFiles={handleSelectImageFiles}
-        onVariantsChanged={handleVariantsChanged}
-        onSubmit={handleSubmit}
-      />
 
       <DeleteProductModal
         open={Boolean(deletingProduct)}

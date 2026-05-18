@@ -72,6 +72,20 @@ export const fetchAdminProducts = async (authToken, params = {}) => {
   };
 };
 
+export const fetchAdminProduct = async (authToken, productIdOrSlug) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/admin/${productIdOrSlug}`, {
+    headers: getAuthHeaders(authToken),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const payload = await response.json();
+
+  return payload?.data || null;
+};
+
 export const uploadProductImages = async (authToken, files = []) => {
   const fileList = Array.from(files);
 
@@ -186,6 +200,20 @@ export const createProductOption = async (authToken, productId, optionPayload) =
   return response.json();
 };
 
+export const updateProductOption = async (authToken, productId, optionId, optionPayload) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options/${optionId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(authToken, true),
+    body: JSON.stringify(optionPayload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
 export const deleteProductOption = async (authToken, productId, optionId) => {
   const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options/${optionId}`, {
     method: "DELETE",
@@ -202,6 +230,20 @@ export const deleteProductOption = async (authToken, productId, optionId) => {
 export const createProductOptionValue = async (authToken, productId, optionId, valuePayload) => {
   const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options/${optionId}/values`, {
     method: "POST",
+    headers: getAuthHeaders(authToken, true),
+    body: JSON.stringify(valuePayload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
+export const updateProductOptionValue = async (authToken, productId, optionId, valueId, valuePayload) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options/${optionId}/values/${valueId}`, {
+    method: "PATCH",
     headers: getAuthHeaders(authToken, true),
     body: JSON.stringify(valuePayload),
   });
