@@ -23,7 +23,7 @@ import {
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
-import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import KeyboardArrowLeftIcon from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
@@ -537,7 +537,7 @@ const AddEditViewProductModal = ({
                         </Box>
 
                         {editable ? (
-                          <Stack direction="row" spacing={0.25} alignItems="center" sx={{ px: 0.5, py: 0.5 }}>
+                          <Stack direction="row" alignItems="center">
                             <DragIndicatorIcon fontSize="small" color={busy ? "disabled" : "action"} />
                             <Tooltip title="Move left">
                               <span>
@@ -625,16 +625,37 @@ const AddEditViewProductModal = ({
               ) : null}
 
               {editable ? (
-                <TextField
-                  label="Image URLs"
-                  name="imageUrls"
-                  value={formData.imageUrls}
-                  onChange={onChange}
-                  fullWidth
-                  multiline
-                  minRows={2}
-                  helperText="First URL is used as the primary display image."
-                />
+                <DetailPanel title="Image URLs">
+                  <Stack spacing={1.25}>
+                    {imageUrls.length > 0 ? (
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                        {imageUrls.map((imageUrl, index) => (
+                          <Tooltip title={imageUrl} key={`${imageUrl}-${index}`}>
+                            <Chip
+                              label={`${index === 0 ? "Primary: " : ""}${imageUrl}`}
+                              color={index === 0 ? "primary" : "default"}
+                              variant={index === 0 ? "filled" : "outlined"}
+                              onDelete={() => handleRemoveImage(index)}
+                              disabled={busy}
+                              sx={{
+                                maxWidth: "100%",
+                                "& .MuiChip-label": {
+                                  display: "block",
+                                  overflow: "hidden",
+                                  textOverflow: "ellipsis",
+                                },
+                              }}
+                            />
+                          </Tooltip>
+                        ))}
+                      </Stack>
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No image URLs added yet.
+                      </Typography>
+                    )}
+                  </Stack>
+                </DetailPanel>
               ) : null}
             </Stack>
 

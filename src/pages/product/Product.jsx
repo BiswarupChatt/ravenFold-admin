@@ -477,9 +477,6 @@ const Product = () => {
             <Typography variant="h6" fontWeight={600}>
               Product Management
             </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Manage products, pricing, visibility, and catalog metadata.
-            </Typography>
           </Box>
 
           <Stack
