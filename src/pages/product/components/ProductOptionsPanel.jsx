@@ -92,9 +92,6 @@ const ProductOptionsPanel = ({
         <Typography variant="subtitle1" fontWeight={700}>
           Options
         </Typography>
-        <Typography variant="caption" color="text.secondary">
-          Define attributes like size, color, or fabric.
-        </Typography>
       </Box>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end">
         {editable ? (
