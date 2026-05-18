@@ -409,26 +409,6 @@ const AddEditViewProductModal = ({
                     />
                   ) : null}
 
-                  {editable ? (
-                    <Button
-                      component="label"
-                      variant="contained"
-                      size="small"
-                      startIcon={uploadingImages ? <CircularProgress color="inherit" size={14} /> : <CloudUploadIcon />}
-                      disabled={busy}
-                      sx={{ position: "absolute", right: 12, bottom: 12 }}
-                    >
-                      {uploadingImages ? "Uploading" : "Upload"}
-                      <Box
-                        component="input"
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        hidden
-                        onChange={handleFileInputChange}
-                      />
-                    </Button>
-                  ) : null}
                 </Box>
                 {uploadingImages ? <LinearProgress /> : null}
               </Box>
