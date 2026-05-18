@@ -272,6 +272,28 @@ const AddEditViewProductModal = ({
     }
   };
 
+  const renderEditModeToggle = () => {
+    if (!isEditingProduct) {
+      return null;
+    }
+
+    return (
+      <Tooltip title={editable ? "View product" : "Edit product"}>
+        <span>
+          <IconButton
+            size="small"
+            onClick={toggleEditing}
+            disabled={busy}
+            aria-label={editable ? "View product" : "Edit product"}
+            sx={{ flexShrink: 0 }}
+          >
+            {editable ? <VisibilityIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+          </IconButton>
+        </span>
+      </Tooltip>
+    );
+  };
+
   const uploadFilesWithLocalPreviews = async (files) => {
     const fileList = Array.from(files || []);
 
@@ -394,33 +416,12 @@ const AddEditViewProductModal = ({
   return (
     <Dialog open={open} onClose={busy ? undefined : onClose} fullWidth maxWidth="lg">
       <DialogTitle sx={{ pb: 1.5 }}>
-        <Stack
-          direction={{ xs: "column", sm: "row" }}
-          spacing={1.5}
-          alignItems={{ xs: "stretch", sm: "center" }}
-          justifyContent="space-between"
-        >
-          <Box sx={{ minWidth: 0 }}>
+        <Stack direction="row" spacing={1} alignItems="flex-start">
+          <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography variant="h6" component="span" fontWeight={700}>
               {isEditingProduct ? "Product Details" : "Add Product"}
             </Typography>
-            <Typography variant="body2" color="text.secondary" noWrap>
-              {isEditingProduct ? displayName : "Create a catalog product with images, pricing, and metadata."}
-            </Typography>
           </Box>
-
-          {isEditingProduct ? (
-            <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
-              <Button
-                variant="outlined"
-                startIcon={editable ? <VisibilityIcon/> : <EditIcon />}
-                onClick={toggleEditing}
-                disabled={busy}
-              >
-                {editable ? "View" : "Edit"}
-              </Button>
-            </Stack>
-          ) : null}
         </Stack>
       </DialogTitle>
 
@@ -751,6 +752,25 @@ const AddEditViewProductModal = ({
               >
                 {editable ? (
                   <Stack spacing={2}>
+                    {isEditingProduct ? (
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ minWidth: 0, width: "100%" }}
+                      >
+                        <Typography
+                          variant="subtitle1"
+                          fontWeight={800}
+                          noWrap
+                          sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+                        >
+                          {displayName}
+                        </Typography>
+                        {renderEditModeToggle()}
+                      </Stack>
+                    ) : null}
                     <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                       <TextField
                         label="Name"
@@ -794,9 +814,23 @@ const AddEditViewProductModal = ({
                 ) : (
                   <Stack spacing={1.5}>
                     <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="h5" fontWeight={800} sx={{ overflowWrap: "anywhere" }}>
-                        {displayName}
-                      </Typography>
+                      <Stack
+                        direction="row"
+                        spacing={0.75}
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ minWidth: 0, width: "100%" }}
+                      >
+                        <Typography
+                          variant="h5"
+                          fontWeight={800}
+                          noWrap
+                          sx={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}
+                        >
+                          {displayName}
+                        </Typography>
+                        {renderEditModeToggle()}
+                      </Stack>
                       <Typography variant="body2" color="text.secondary">
                         SKU {formData.sku || "-"}
                       </Typography>
