@@ -22,11 +22,11 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 
 import { splitCommaSeparatedValues } from "@/lib/utils/adminShared";
-import DetailPanel from "./productDetails/DetailPanel";
-import ProductAttributesPanel from "./productDetails/ProductAttributesPanel";
-import ProductImageSection from "./productDetails/ProductImageSection";
-import ReadOnlyField from "./productDetails/ReadOnlyField";
+import ProductAttributesPanel from "./ProductAttributesPanel";
+import ProductImageSection from "./ProductImageSection";
+import ReadOnlyField from "./ReadOnlyField";
 import ProductVariantsPanel from "./ProductVariantsPanel";
+import DetailPanel from "./DetailPanel";
 
 const statusColors = {
   active: "success",

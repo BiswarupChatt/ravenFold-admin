@@ -27,11 +27,13 @@ const ProductAttributesPanel = ({
     action={editable ? (
       <Button
         size="small"
+                        variant="outlined"
+
         startIcon={<AddIcon />}
         onClick={onAddAttribute}
         disabled={busy}
       >
-        Add
+        Add Attributes
       </Button>
     ) : null}
   >

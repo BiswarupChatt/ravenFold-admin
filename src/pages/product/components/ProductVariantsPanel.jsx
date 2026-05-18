@@ -4,7 +4,6 @@ import {
   Alert,
   Box,
   Button,
-  Checkbox,
   Chip,
   CircularProgress,
   FormControlLabel,
@@ -13,6 +12,12 @@ import {
   MenuItem,
   Stack,
   Switch,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -678,20 +683,7 @@ const ProductVariantsPanel = ({
         </Stack>
 
         <Stack spacing={2} sx={{ p: 2 }}>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            <Chip
-              label={`${variants.length} variant${variants.length === 1 ? "" : "s"}`}
-              color={variants.length > 0 ? "primary" : "default"}
-              variant={variants.length > 0 ? "filled" : "outlined"}
-              size="small"
-            />
-            <Chip
-              label={canCreateVariant ? "Ready for combinations" : "Options required"}
-              color={canCreateVariant ? "success" : "default"}
-              variant={canCreateVariant ? "filled" : "outlined"}
-              size="small"
-            />
-          </Stack>
+
 
           {editable && !canCreateVariant ? (
             <Alert severity="info">
@@ -917,133 +909,83 @@ const ProductVariantsPanel = ({
             </Stack>
           ) : null}
 
-          <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1}
-            alignItems={{ xs: "stretch", sm: "center" }}
-            justifyContent="space-between"
-          >
-            <TextField
-              size="small"
-              placeholder="Search variants"
-              value={variantSearch}
-              onChange={(event) => setVariantSearch(event.target.value)}
-              sx={{ maxWidth: { sm: 320 } }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <Tooltip title="Filter variants">
-              <span>
-                <IconButton size="small" disabled>
-                  <FilterListIcon fontSize="small" />
-                </IconButton>
-              </span>
-            </Tooltip>
-          </Stack>
-
-          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
-            <Box sx={{ overflowX: "auto" }}>
-              <Box sx={{ minWidth: 780 }}>
-                <Box
-                  sx={{
-                    display: "grid",
-                    gridTemplateColumns: "48px 96px minmax(220px, 1fr) 180px 160px 96px",
-                    alignItems: "center",
-                    bgcolor: "action.hover",
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    minHeight: 52,
-                  }}
-                >
-                  <Box sx={{ px: 1.25 }}>
-                    <Checkbox size="small" disabled />
-                  </Box>
-                  <Box />
-                  <Typography variant="body2" color="text.secondary" fontWeight={600}>
+          <TableContainer sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
+            <Table size="small" sx={{ minWidth: 780 }}>
+              <TableHead sx={{ bgcolor: "action.hover" }}>
+                <TableRow>
+                  <TableCell sx={{ width: 96 }} />
+                  <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>
                     Variant
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                  </TableCell>
+                  <TableCell sx={{ width: 180, fontWeight: 700, color: "text.secondary" }}>
                     Price
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    fontWeight={600}
-                    sx={{ textDecoration: "underline dotted", textUnderlineOffset: 4 }}
-                  >
-                    Available
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" fontWeight={600} align="right" sx={{ pr: 1.5 }}>
-                    Actions
-                  </Typography>
-                </Box>
-
-                {filteredVariants.length > 0 ? filteredVariants.map((variant) => (
-                  <Box
-                    key={variant.id}
+                  </TableCell>
+                  <TableCell
                     sx={{
-                      display: "grid",
-                      gridTemplateColumns: "48px 96px minmax(220px, 1fr) 180px 160px 96px",
-                      alignItems: "center",
-                      borderBottom: "1px solid",
-                      borderColor: "divider",
-                      minHeight: 108,
-                      "&:last-of-type": {
-                        borderBottom: 0,
-                      },
+                      width: 160,
+                      fontWeight: 700,
+                      color: "text.secondary",
+                      textDecoration: "underline dotted",
+                      textUnderlineOffset: 4,
                     }}
                   >
-                    <Box sx={{ px: 1.25 }}>
-                      <Checkbox size="small" disabled />
-                    </Box>
-                    <Box
-                      sx={{
-                        width: 74,
-                        height: 74,
-                        border: "1px dashed",
-                        borderColor: "divider",
-                        borderRadius: 1,
-                        bgcolor: "background.default",
-                        display: "grid",
-                        placeItems: "center",
-                        overflow: "hidden",
-                      }}
-                    >
-                      {variant.images?.[0] ? (
-                        <Box
-                          component="img"
-                          src={variant.images[0]}
-                          alt=""
-                          sx={{ width: "100%", height: "100%", objectFit: "cover" }}
-                        />
-                      ) : (
-                        <ImageOutlinedIcon color="primary" fontSize="small" />
-                      )}
-                    </Box>
-                    <Box sx={{ minWidth: 0, pr: 2 }}>
-                      <Typography variant="body1" fontWeight={700} noWrap>
-                        {getVariantLabel(variant)}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
-                        {variant.sku}
-                      </Typography>
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
-                        {(variant.optionValues || []).map((optionValue) => (
-                          <Chip
-                            key={`${variant.id}-${optionValue.optionName}`}
-                            label={`${optionValue.optionName}: ${optionValue.value}`}
-                            size="small"
-                            variant="outlined"
+                    Available
+                  </TableCell>
+                  <TableCell align="right" sx={{ width: 96, fontWeight: 700, color: "text.secondary" }}>
+                    Actions
+                  </TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {filteredVariants.length > 0 ? filteredVariants.map((variant) => (
+                  <TableRow key={variant.id} hover sx={{ "& td": { py: 1.25 } }}>
+                    <TableCell sx={{ width: 96 }}>
+                      <Box
+                        sx={{
+                          width: 74,
+                          height: 74,
+                          border: "1px dashed",
+                          borderColor: "divider",
+                          borderRadius: 1,
+                          bgcolor: "background.default",
+                          display: "grid",
+                          placeItems: "center",
+                          overflow: "hidden",
+                        }}
+                      >
+                        {variant.images?.[0] ? (
+                          <Box
+                            component="img"
+                            src={variant.images[0]}
+                            alt=""
+                            sx={{ width: "100%", height: "100%", objectFit: "cover" }}
                           />
-                        ))}
-                      </Stack>
-                    </Box>
-                    <Box sx={{ pr: 2 }}>
+                        ) : (
+                          <ImageOutlinedIcon color="primary" fontSize="small" />
+                        )}
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="body1" fontWeight={700} noWrap>
+                          {getVariantLabel(variant)}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
+                          {variant.sku}
+                        </Typography>
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap" useFlexGap sx={{ mt: 0.75 }}>
+                          {(variant.optionValues || []).map((optionValue) => (
+                            <Chip
+                              key={`${variant.id}-${optionValue.optionName}`}
+                              label={`${optionValue.optionName}: ${optionValue.value}`}
+                              size="small"
+                              variant="outlined"
+                            />
+                          ))}
+                        </Stack>
+                      </Box>
+                    </TableCell>
+                    <TableCell sx={{ width: 180 }}>
                       <Box
                         sx={{
                           border: "1px solid",
@@ -1064,8 +1006,8 @@ const ProductVariantsPanel = ({
                           Sale $ {formatMoney(variant.salePrice)}
                         </Typography>
                       ) : null}
-                    </Box>
-                    <Box sx={{ pr: 2 }}>
+                    </TableCell>
+                    <TableCell sx={{ width: 160 }}>
                       {editable ? (
                         <Switch
                           checked={variant.isActive !== false}
@@ -1080,10 +1022,10 @@ const ProductVariantsPanel = ({
                           size="small"
                         />
                       )}
-                    </Box>
-                    <Stack direction="row" spacing={0.5} justifyContent="flex-end" sx={{ pr: 1 }}>
+                    </TableCell>
+                    <TableCell align="right" sx={{ width: 96 }}>
                       {editable ? (
-                        <>
+                        <Stack direction="row" spacing={0.5} justifyContent="flex-end">
                           <Tooltip title="Edit variant">
                             <span>
                               <IconButton size="small" onClick={() => handleEditVariant(variant)} disabled={busy}>
@@ -1103,18 +1045,22 @@ const ProductVariantsPanel = ({
                               </IconButton>
                             </span>
                           </Tooltip>
-                        </>
+                        </Stack>
                       ) : null}
-                    </Stack>
-                  </Box>
+                    </TableCell>
+                  </TableRow>
                 )) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ p: 2 }}>
-                    No variants found.
-                  </Typography>
+                  <TableRow>
+                    <TableCell colSpan={5}>
+                      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+                        No variants found.
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
                 )}
-              </Box>
-            </Box>
-          </Box>
+              </TableBody>
+            </Table>
+          </TableContainer>
         </Stack>
       </Box>
     </Stack>
