@@ -7,7 +7,6 @@ import {
   Typography,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import EditIcon from "@mui/icons-material/Edit";
 
 import DataTable from "@/components/DataTable";
 
@@ -88,7 +87,30 @@ const ProductTable = ({
               ) : null}
             </Box>
             <Box sx={{ minWidth: 0 }}>
-              <Typography variant="body2" fontWeight={600} noWrap>
+              <Typography
+                component="button"
+                type="button"
+                variant="body2"
+                fontWeight={600}
+                noWrap
+                onClick={() => onEdit(product)}
+                sx={{
+                  display: "block",
+                  width: "100%",
+                  p: 0,
+                  border: 0,
+                  bgcolor: "transparent",
+                  color: "primary.main",
+                  cursor: "pointer",
+                  font: "inherit",
+                  fontWeight: 600,
+                  textAlign: "left",
+                  textDecoration: "none",
+                  "&:hover": {
+                    textDecoration: "underline",
+                  },
+                }}
+              >
                 {product.name}
               </Typography>
               <Typography variant="caption" color="text.secondary" noWrap>
@@ -166,20 +188,13 @@ const ProductTable = ({
       id: "actions",
       header: "Actions",
       align: "right",
-      minWidth: 140,
+      minWidth: 90,
       render: (product) => (
-        <>
-          <Tooltip title="Edit product">
-            <IconButton size="small" onClick={() => onEdit(product)}>
-              <EditIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="Delete product">
-            <IconButton size="small" color="error" onClick={() => onDelete(product)}>
-              <DeleteOutlineIcon fontSize="small" />
-            </IconButton>
-          </Tooltip>
-        </>
+        <Tooltip title="Delete product">
+          <IconButton size="small" color="error" onClick={() => onDelete(product)}>
+            <DeleteOutlineIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       ),
     },
   ];
@@ -192,7 +207,7 @@ const ProductTable = ({
       error={error}
       loadingMessage="Loading products..."
       emptyMessage="No products found."
-      minWidth={1270}
+      minWidth={1220}
       pagination={{
         ...pagination,
         onPageChange,

@@ -28,7 +28,7 @@ import {
 } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
-import AddEditProductModal from "./components/AddEditProductModal";
+import AddEditViewProductModal from "./components/AddEditViewProductModal";
 import DeleteProductModal from "./components/DeleteProductModal";
 import ProductTable from "./components/ProductTable";
 
@@ -549,7 +549,7 @@ const Product = () => {
         </Box>
       </Paper>
 
-      <AddEditProductModal
+      <AddEditViewProductModal
         open={dialogOpen}
         formData={formData}
         formError={formError}
