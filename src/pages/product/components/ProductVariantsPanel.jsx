@@ -20,7 +20,6 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import CloseIcon from "@mui/icons-material/Close";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditIcon from "@mui/icons-material/Edit";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
@@ -42,26 +41,7 @@ import {
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
 import { joinLines, splitCommaSeparatedValues, splitLines } from "@/lib/utils/adminShared";
-
-const RECOMMENDED_OPTIONS = [
-  "Color",
-  "Size",
-  "Fabric",
-  "Age group",
-  "Clothing features",
-  "Target gender",
-];
-
-const EMPTY_OPTION_FORM = {
-  name: "",
-  values: "",
-};
-
-const EMPTY_VALUE_EDIT = {
-  optionId: "",
-  valueId: "",
-  value: "",
-};
+import ProductOptionsPanel, { EMPTY_OPTION_FORM, EMPTY_VALUE_EDIT } from "./ProductOptionsPanel";
 
 const EMPTY_VARIANT_FORM = {
   id: "",
@@ -88,14 +68,6 @@ const cardSx = {
   borderRadius: 1,
   bgcolor: "background.paper",
   overflow: "hidden",
-};
-
-const valuePillSx = {
-  borderRadius: 1,
-  bgcolor: (theme) => `${theme.palette.primary.main}12`,
-  color: "primary.dark",
-  minHeight: 32,
-  px: 1,
 };
 
 const formatMoney = (value) => {
@@ -201,7 +173,6 @@ const ProductVariantsPanel = ({
   const [variantForm, setVariantForm] = useState(EMPTY_VARIANT_FORM);
   const [optionFormOpen, setOptionFormOpen] = useState(false);
   const [variantFormOpen, setVariantFormOpen] = useState(false);
-  const [optionSearch, setOptionSearch] = useState("");
   const [variantSearch, setVariantSearch] = useState("");
   const [editingOptionId, setEditingOptionId] = useState("");
   const [editingOptionName, setEditingOptionName] = useState("");
@@ -221,15 +192,6 @@ const ProductVariantsPanel = ({
   }, [options]);
 
   const canCreateVariant = options.length > 0 && everyOptionHasValue;
-
-  const recommendedOptions = useMemo(() => {
-    const search = optionSearch.trim().toLowerCase();
-    const usedNames = new Set(options.map((option) => option.name.toLowerCase()));
-
-    return RECOMMENDED_OPTIONS.filter((name) => {
-      return !usedNames.has(name.toLowerCase()) && (!search || name.toLowerCase().includes(search));
-    });
-  }, [optionSearch, options]);
 
   const filteredVariants = useMemo(() => {
     const search = variantSearch.trim().toLowerCase();
@@ -284,7 +246,6 @@ const ProductVariantsPanel = ({
       setVariantForm(EMPTY_VARIANT_FORM);
       setOptionFormOpen(false);
       setVariantFormOpen(false);
-      setOptionSearch("");
       setVariantSearch("");
       setEditingOptionId("");
       setEditingOptionName("");
@@ -326,7 +287,6 @@ const ProductVariantsPanel = ({
       });
       setOptionForm(EMPTY_OPTION_FORM);
       setOptionFormOpen(false);
-      setOptionSearch("");
       toast.success("Product option created.");
       await loadVariantData();
     } catch (err) {
@@ -650,329 +610,43 @@ const ProductVariantsPanel = ({
         </Stack>
       ) : null}
 
-      <Box sx={cardSx}>
-        <Stack
-          direction="row"
-          spacing={1}
-          alignItems="center"
-          justifyContent="space-between"
-          sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
-        >
-          <Box>
-            <Typography variant="subtitle1" fontWeight={700}>
-              Options
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Define attributes like size, color, or fabric.
-            </Typography>
-          </Box>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end">
-            <Chip label={`${options.length} option${options.length === 1 ? "" : "s"}`} size="small" />
-            <Chip label={`${valueCount} value${valueCount === 1 ? "" : "s"}`} size="small" />
-          </Stack>
-        </Stack>
-
-        <Stack spacing={1.5} sx={{ p: 2 }}>
-          <Box sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, overflow: "hidden" }}>
-            {options.length > 0 ? (
-              options.map((option) => (
-                <Box
-                  key={option.id}
-                  sx={{
-                    p: 1.5,
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    "&:last-of-type": {
-                      borderBottom: 0,
-                    },
-                  }}
-                >
-                  <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                    <DragIndicatorIcon color="disabled" sx={{ mt: 1 }} />
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                      {editingOptionId === option.id ? (
-                        <Stack spacing={1}>
-                          <TextField
-                            label="Option name"
-                            value={editingOptionName}
-                            onChange={(event) => setEditingOptionName(event.target.value)}
-                            disabled={busy}
-                            fullWidth
-                            size="small"
-                          />
-                          <Stack direction="row" spacing={1} justifyContent="flex-end">
-                            <Button
-                              size="small"
-                              onClick={() => {
-                                setEditingOptionId("");
-                                setEditingOptionName("");
-                              }}
-                              disabled={busy}
-                            >
-                              Cancel
-                            </Button>
-                            <Button size="small" variant="contained" onClick={handleUpdateOption} disabled={busy}>
-                              Save option
-                            </Button>
-                          </Stack>
-                        </Stack>
-                      ) : (
-                        <Stack spacing={1.25}>
-                          <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-                            <Typography variant="body1" fontWeight={700}>
-                              {option.name}
-                            </Typography>
-                            {editable ? (
-                              <Stack direction="row" spacing={0.5}>
-                                <Tooltip title="Edit option">
-                                  <span>
-                                    <IconButton size="small" onClick={() => handleStartEditOption(option)} disabled={busy}>
-                                      <EditIcon fontSize="small" />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-                                <Tooltip title="Delete option">
-                                  <span>
-                                    <IconButton
-                                      size="small"
-                                      color="error"
-                                      onClick={() => handleDeleteOption(option.id)}
-                                      disabled={busy}
-                                    >
-                                      <DeleteOutlineIcon fontSize="small" />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-                              </Stack>
-                            ) : null}
-                          </Stack>
-
-                          <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-                            {(option.values || []).map((optionValue) => (
-                              editingValue.valueId === optionValue.id ? (
-                                <Stack
-                                  key={optionValue.id}
-                                  direction="row"
-                                  spacing={0.5}
-                                  alignItems="center"
-                                  sx={{ minWidth: { xs: "100%", sm: 260 } }}
-                                >
-                                  <TextField
-                                    label="Value"
-                                    value={editingValue.value}
-                                    onChange={(event) => setEditingValue((current) => ({
-                                      ...current,
-                                      value: event.target.value,
-                                    }))}
-                                    disabled={busy}
-                                    size="small"
-                                    fullWidth
-                                  />
-                                  <Button size="small" variant="contained" onClick={handleUpdateOptionValue} disabled={busy}>
-                                    Save
-                                  </Button>
-                                  <IconButton size="small" onClick={() => setEditingValue(EMPTY_VALUE_EDIT)} disabled={busy}>
-                                    <CloseIcon fontSize="small" />
-                                  </IconButton>
-                                </Stack>
-                              ) : (
-                                <Stack
-                                  key={optionValue.id}
-                                  direction="row"
-                                  spacing={0.5}
-                                  alignItems="center"
-                                  sx={valuePillSx}
-                                >
-                                  <Typography variant="body2" fontWeight={600}>
-                                    {optionValue.value}
-                                  </Typography>
-                                  {editable ? (
-                                    <>
-                                      <Tooltip title="Edit value">
-                                        <span>
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => handleStartEditValue(option.id, optionValue)}
-                                            disabled={busy}
-                                            sx={{ p: 0.25 }}
-                                          >
-                                            <EditIcon sx={{ fontSize: 15 }} />
-                                          </IconButton>
-                                        </span>
-                                      </Tooltip>
-                                      <Tooltip title="Delete value">
-                                        <span>
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => handleDeleteOptionValue(option.id, optionValue.id)}
-                                            disabled={busy}
-                                            sx={{ p: 0.25 }}
-                                          >
-                                            <CloseIcon sx={{ fontSize: 15 }} />
-                                          </IconButton>
-                                        </span>
-                                      </Tooltip>
-                                    </>
-                                  ) : null}
-                                </Stack>
-                              )
-                            ))}
-                            {(option.values || []).length === 0 ? (
-                              <Typography variant="body2" color="text.secondary">
-                                No values yet.
-                              </Typography>
-                            ) : null}
-                          </Stack>
-
-                          {editable ? (
-                            <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                              <TextField
-                                label={`Add ${option.name} value`}
-                                value={valueDrafts[option.id] || ""}
-                                onChange={(event) => handleValueDraftChange(option.id, event.target.value)}
-                                disabled={busy}
-                                fullWidth
-                                size="small"
-                              />
-                              <Button
-                                variant="outlined"
-                                onClick={() => handleAddOptionValue(option.id)}
-                                disabled={busy}
-                                sx={{ minWidth: 88 }}
-                              >
-                                Add
-                              </Button>
-                            </Stack>
-                          ) : null}
-                        </Stack>
-                      )}
-                    </Box>
-                  </Stack>
-                </Box>
-              ))
-            ) : (
-              <Typography variant="body2" color="text.secondary" sx={{ p: 1.5 }}>
-                No variant options added yet.
-              </Typography>
-            )}
-
-            {editable ? (
-              <Box sx={{ borderTop: "1px solid", borderColor: "divider", p: 1.25 }}>
-                <Button
-                  startIcon={<AddIcon />}
-                  onClick={() => openOptionForm()}
-                  disabled={busy}
-                  sx={{ justifyContent: "flex-start" }}
-                >
-                  Add another option
-                </Button>
-              </Box>
-            ) : null}
-          </Box>
-
-          {editable && optionFormOpen ? (
-            <Box
-              sx={{
-                width: 380,
-                maxWidth: "100%",
-                border: "1px solid",
-                borderColor: "divider",
-                borderRadius: 1,
-                bgcolor: "background.paper",
-                boxShadow: 4,
-                overflow: "hidden",
-              }}
-            >
-              <Box sx={{ p: 1.25, borderBottom: "1px solid", borderColor: "divider" }}>
-                <TextField
-                  autoFocus
-                  size="small"
-                  placeholder="Search"
-                  value={optionSearch}
-                  onChange={(event) => setOptionSearch(event.target.value)}
-                  fullWidth
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Box>
-              <Box sx={{ py: 1 }}>
-                <Typography variant="caption" color="text.secondary" sx={{ display: "block", px: 2, pb: 0.5 }}>
-                  Recommended
-                </Typography>
-                {recommendedOptions.map((name) => (
-                  <Button
-                    key={name}
-                    fullWidth
-                    onClick={() => openOptionForm(name)}
-                    sx={{
-                      justifyContent: "flex-start",
-                      px: 2,
-                      py: 0.75,
-                      color: "text.primary",
-                      borderRadius: 0,
-                      "&:hover": {
-                        bgcolor: "action.hover",
-                      },
-                    }}
-                  >
-                    {name}
-                  </Button>
-                ))}
-                {recommendedOptions.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ px: 2, py: 1 }}>
-                    No recommendations match.
-                  </Typography>
-                ) : null}
-              </Box>
-              <Stack spacing={1} sx={{ p: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
-                <TextField
-                  label="Option name"
-                  value={optionForm.name}
-                  onChange={(event) => handleOptionFormChange("name", event.target.value)}
-                  disabled={busy}
-                  fullWidth
-                  size="small"
-                />
-                <TextField
-                  label="Values"
-                  value={optionForm.values}
-                  onChange={(event) => handleOptionFormChange("values", event.target.value)}
-                  disabled={busy}
-                  fullWidth
-                  size="small"
-                  helperText="Comma separated, for example: XS, S, M"
-                />
-                <Stack direction="row" spacing={1} justifyContent="flex-end">
-                  <Button
-                    startIcon={<CloseIcon />}
-                    onClick={() => {
-                      setOptionFormOpen(false);
-                      setOptionForm(EMPTY_OPTION_FORM);
-                      setOptionSearch("");
-                    }}
-                    disabled={busy}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="contained"
-                    startIcon={<AddIcon />}
-                    onClick={handleCreateOption}
-                    disabled={busy}
-                  >
-                    Add option
-                  </Button>
-                </Stack>
-              </Stack>
-            </Box>
-          ) : null}
-        </Stack>
-      </Box>
+      <ProductOptionsPanel
+        busy={busy}
+        editable={editable}
+        editingOptionId={editingOptionId}
+        editingOptionName={editingOptionName}
+        editingValue={editingValue}
+        optionForm={optionForm}
+        optionFormOpen={optionFormOpen}
+        options={options}
+        valueCount={valueCount}
+        valueDrafts={valueDrafts}
+        onAddOptionClick={() => openOptionForm()}
+        onAddOptionValue={handleAddOptionValue}
+        onCancelEditOption={() => {
+          setEditingOptionId("");
+          setEditingOptionName("");
+        }}
+        onCancelEditValue={() => setEditingValue(EMPTY_VALUE_EDIT)}
+        onCancelOptionForm={() => {
+          setOptionFormOpen(false);
+          setOptionForm(EMPTY_OPTION_FORM);
+        }}
+        onCreateOption={handleCreateOption}
+        onDeleteOption={handleDeleteOption}
+        onDeleteOptionValue={handleDeleteOptionValue}
+        onEditingOptionNameChange={setEditingOptionName}
+        onEditingValueChange={(value) => setEditingValue((current) => ({
+          ...current,
+          value,
+        }))}
+        onOptionFormChange={handleOptionFormChange}
+        onStartEditOption={handleStartEditOption}
+        onStartEditValue={handleStartEditValue}
+        onUpdateOption={handleUpdateOption}
+        onUpdateOptionValue={handleUpdateOptionValue}
+        onValueDraftChange={handleValueDraftChange}
+      />
 
       <Box sx={cardSx}>
         <Stack
@@ -985,9 +659,6 @@ const ProductVariantsPanel = ({
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
               Variants
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              Manage SKU, price, media, shipping, and availability for each combination.
             </Typography>
           </Box>
           {editable ? (
