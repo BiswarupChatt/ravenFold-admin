@@ -1,3 +1,5 @@
+import { buildQueryString, normalizePagination } from "@/lib/utils/adminShared";
+
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
   .replace(/\/$/, "")
   .replace(/\/api$/, "");
@@ -20,37 +22,6 @@ const getAuthHeaders = (authToken, hasBody = false) => {
   return {
     ...(hasBody ? { "Content-Type": "application/json" } : {}),
     Authorization: `Bearer ${authToken}`,
-  };
-};
-
-const buildQueryString = (params = {}) => {
-  const searchParams = new URLSearchParams();
-
-  Object.entries(params).forEach(([key, value]) => {
-    if (value === undefined || value === null || value === "") {
-      return;
-    }
-
-    searchParams.set(key, String(value));
-  });
-
-  const queryString = searchParams.toString();
-
-  return queryString ? `?${queryString}` : "";
-};
-
-const normalizePagination = (pagination = {}, fallbackParams = {}) => {
-  const limit = Number(pagination.limit || fallbackParams.limit || 10);
-  const page = Number(pagination.page || fallbackParams.page || 1);
-  const total = Number(pagination.total || 0);
-
-  return {
-    page,
-    limit,
-    total,
-    totalPages: Number(pagination.totalPages || Math.ceil(total / limit) || 0),
-    hasNextPage: Boolean(pagination.hasNextPage),
-    hasPrevPage: Boolean(pagination.hasPrevPage),
   };
 };
 

@@ -27,6 +27,18 @@ import {
   uploadProductImages,
 } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
+import {
+  DEFAULT_PAGINATION,
+  DEFAULT_TABLE_PARAMS,
+  PRODUCT_STATUSES,
+  SEARCH_DEBOUNCE_MS,
+  getHierarchyColor,
+  joinLines,
+  normalizeAttributes,
+  normalizeText,
+  splitCommaSeparatedValues,
+  splitLines,
+} from "@/lib/utils/adminShared";
 import { useToast } from "@/hooks/ToastContext";
 import AddEditViewProductModal from "./components/AddEditViewProductModal";
 import DeleteProductModal from "./components/DeleteProductModal";
@@ -44,40 +56,9 @@ const EMPTY_FORM = {
   description: "",
   imageUrls: "",
   tags: "",
+  attributes: [],
   hasVariants: false,
   isFeatured: false,
-};
-
-const DEFAULT_TABLE_PARAMS = {
-  page: 1,
-  limit: 10,
-};
-
-const DEFAULT_PAGINATION = {
-  page: DEFAULT_TABLE_PARAMS.page,
-  limit: DEFAULT_TABLE_PARAMS.limit,
-  total: 0,
-  totalPages: 0,
-  hasNextPage: false,
-  hasPrevPage: false,
-};
-
-const SEARCH_DEBOUNCE_MS = 400;
-
-const PRODUCT_STATUSES = ["draft", "active", "inactive"];
-
-const HIERARCHY_COLORS = [
-  "#2563eb",
-  "#16a34a",
-  "#dc2626",
-  "#9333ea",
-  "#ea580c",
-  "#0891b2",
-  "#be123c",
-];
-
-const getHierarchyColor = (depth = 0) => {
-  return HIERARCHY_COLORS[depth % HIERARCHY_COLORS.length];
 };
 
 const flattenCategoryTree = (items = [], depth = 0) => {
@@ -95,44 +76,35 @@ const flattenCategoryTree = (items = [], depth = 0) => {
   });
 };
 
-const splitLines = (value) => {
-  return value
-    .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-const splitTags = (value) => {
-  return value
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-const joinLines = (items = []) => items.join("\n");
-
 const buildPayload = (formData) => {
   const payload = {
-    name: formData.name.trim(),
+    name: normalizeText(formData.name),
     categoryId: formData.categoryId,
-    sku: formData.sku.trim(),
+    sku: normalizeText(formData.sku),
     basePrice: formData.basePrice,
     salePrice: formData.salePrice === "" ? null : formData.salePrice,
     status: formData.status,
-    shortDescription: formData.shortDescription.trim(),
-    description: formData.description.trim(),
+    shortDescription: normalizeText(formData.shortDescription),
+    description: normalizeText(formData.description),
     images: splitLines(formData.imageUrls),
-    tags: splitTags(formData.tags),
+    tags: splitCommaSeparatedValues(formData.tags),
+    attributes: normalizeAttributes(formData.attributes),
     hasVariants: Boolean(formData.hasVariants),
     isFeatured: Boolean(formData.isFeatured),
   };
 
-  if (formData.slug.trim()) {
-    payload.slug = formData.slug.trim();
+  const slug = normalizeText(formData.slug);
+
+  if (slug) {
+    payload.slug = slug;
   }
 
   return payload;
 };
+
+const getProductFromResponse = (response) => response?.data || null;
+
+const getProductId = (product) => product?.id || product?._id || "";
 
 const productToFormData = (product) => {
   return {
@@ -151,6 +123,7 @@ const productToFormData = (product) => {
     description: product.description || "",
     imageUrls: Array.isArray(product.images) ? product.images.join("\n") : "",
     tags: Array.isArray(product.tags) ? product.tags.join(", ") : "",
+    attributes: normalizeAttributes(product.attributes),
     hasVariants: Boolean(product.hasVariants),
     isFeatured: Boolean(product.isFeatured),
   };
@@ -173,6 +146,7 @@ const Product = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [saving, setSaving] = useState(false);
   const [uploadingImages, setUploadingImages] = useState(false);
+  const [pendingImageFiles, setPendingImageFiles] = useState([]);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -259,6 +233,7 @@ const Product = () => {
     setEditingProduct(null);
     setFormData(createFormData);
     setFormError("");
+    setPendingImageFiles([]);
     setDialogOpen(true);
   };
 
@@ -266,6 +241,7 @@ const Product = () => {
     setEditingProduct(product);
     setFormData(productToFormData(product));
     setFormError("");
+    setPendingImageFiles([]);
     setDialogOpen(true);
   };
 
@@ -277,6 +253,7 @@ const Product = () => {
     setDialogOpen(false);
     setFormError("");
     setEditingProduct(null);
+    setPendingImageFiles([]);
   };
 
   const setModalFormData = useCallback((nextFormDataOrUpdater) => {
@@ -309,7 +286,14 @@ const Product = () => {
     }));
   }, [setModalFormData]);
 
-  const handleUploadImages = useCallback(async (files) => {
+  const handleAttributesChange = useCallback((attributes) => {
+    setModalFormData((currentFormData) => ({
+      ...currentFormData,
+      attributes,
+    }));
+  }, [setModalFormData]);
+
+  const handleSelectImageFiles = useCallback((files) => {
     const fileList = Array.from(files || []);
     const imageFiles = fileList.filter((file) => file.type?.startsWith("image/"));
 
@@ -328,40 +312,22 @@ const Product = () => {
       toast.warning("Non-image files were skipped.");
     }
 
-    setUploadingImages(true);
     setFormError("");
+    setPendingImageFiles((currentFiles) => [...currentFiles, ...imageFiles]);
+    toast.success(
+      imageFiles.length === 1
+        ? "Image queued. It will upload after saving."
+        : `${imageFiles.length} images queued. They will upload after saving.`
+    );
 
-    try {
-      const uploadedImages = await uploadProductImages(authToken, imageFiles);
-      const uploadedUrls = uploadedImages.map((image) => image.url).filter(Boolean);
-
-      setModalFormData((currentFormData) => ({
-        ...currentFormData,
-        imageUrls: joinLines([
-          ...splitLines(currentFormData.imageUrls),
-          ...uploadedUrls,
-        ]),
-      }));
-
-      toast.success(
-        uploadedUrls.length === 1
-          ? "Image uploaded successfully."
-          : `${uploadedUrls.length} images uploaded successfully.`
-      );
-
-      return uploadedUrls;
-    } catch (err) {
-      setFormError(err.message || "Failed to upload product images.");
-      throw err;
-    } finally {
-      setUploadingImages(false);
-    }
-  }, [authToken, setModalFormData, toast]);
+    return imageFiles;
+  }, [toast]);
 
   const handleClearForm = () => {
     setCreateFormData(EMPTY_FORM);
     setFormData(EMPTY_FORM);
     setFormError("");
+    setPendingImageFiles([]);
   };
 
   const handleSubmit = async () => {
@@ -399,20 +365,88 @@ const Product = () => {
       return;
     }
 
+    const incompleteAttribute = payload.attributes.find((attribute) => !attribute.name || !attribute.value);
+
+    if (incompleteAttribute) {
+      setFormError("Each attribute needs both a name and value.");
+      return;
+    }
+
+    const attributeNames = payload.attributes.map((attribute) => attribute.name.toLowerCase());
+    const hasDuplicateAttributeNames = new Set(attributeNames).size !== attributeNames.length;
+
+    if (hasDuplicateAttributeNames) {
+      setFormError("Attribute names must be unique.");
+      return;
+    }
+
     setSaving(true);
     setFormError("");
 
+    const uploadPendingImages = async () => {
+      if (pendingImageFiles.length === 0) {
+        return [];
+      }
+
+      setUploadingImages(true);
+
+      try {
+        const uploadedImages = await uploadProductImages(authToken, pendingImageFiles);
+
+        return uploadedImages.map((image) => image.url).filter(Boolean);
+      } finally {
+        setUploadingImages(false);
+      }
+    };
+
     try {
       if (editingProduct) {
-        await updateProduct(authToken, editingProduct.id, payload);
+        const uploadedUrls = await uploadPendingImages();
+
+        await updateProduct(authToken, editingProduct.id, {
+          ...payload,
+          images: [
+            ...payload.images,
+            ...uploadedUrls,
+          ],
+        });
         toast.success("Product updated successfully.");
       } else {
-        await createProduct(authToken, payload);
+        const createResponse = await createProduct(authToken, payload);
+        const createdProduct = getProductFromResponse(createResponse);
+        const createdProductId = getProductId(createdProduct);
+
+        if (pendingImageFiles.length > 0) {
+          if (!createdProductId) {
+            throw new Error("Product created, but the response did not include an id for image upload.");
+          }
+
+          try {
+            const uploadedUrls = await uploadPendingImages();
+
+            await updateProduct(authToken, createdProductId, {
+              images: [
+                ...payload.images,
+                ...uploadedUrls,
+              ],
+            });
+          } catch (err) {
+            setEditingProduct(createdProduct);
+            await loadProducts();
+            throw new Error(
+              err.message
+                ? `Product created, but image upload failed: ${err.message}`
+                : "Product created, but image upload failed."
+            );
+          }
+        }
+
         toast.success("Product created successfully.");
         setCreateFormData(EMPTY_FORM);
         setFormData(EMPTY_FORM);
       }
 
+      setPendingImageFiles([]);
       setDialogOpen(false);
       setEditingProduct(null);
       await loadProducts();
@@ -560,7 +594,8 @@ const Product = () => {
         onClear={handleClearForm}
         onChange={handleFormChange}
         onImagesChange={handleImagesChange}
-        onUploadImages={handleUploadImages}
+        onAttributesChange={handleAttributesChange}
+        onSelectImageFiles={handleSelectImageFiles}
         onSubmit={handleSubmit}
       />
 

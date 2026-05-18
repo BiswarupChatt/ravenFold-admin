@@ -26,6 +26,13 @@ import {
   updateCategory,
 } from "@/lib/api/categoryApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
+import {
+  CATEGORY_DEFAULT_PAGINATION as DEFAULT_PAGINATION,
+  CATEGORY_TABLE_PARAMS as DEFAULT_TABLE_PARAMS,
+  SEARCH_DEBOUNCE_MS,
+  getHierarchyColor,
+  normalizeText,
+} from "@/lib/utils/adminShared";
 import { useToast } from "@/hooks/ToastContext";
 import AddEditCategoryModal from "./components/AddEditCategoryModal";
 import CategoryTable from "./components/CategoryTable";
@@ -37,37 +44,6 @@ const EMPTY_FORM = {
   parentCategoryId: "",
   image: "",
   isActive: true,
-};
-
-const DEFAULT_TABLE_PARAMS = {
-  page: 1,
-  limit: 10,
-  rootOnly: true,
-};
-
-const DEFAULT_PAGINATION = {
-  page: DEFAULT_TABLE_PARAMS.page,
-  limit: DEFAULT_TABLE_PARAMS.limit,
-  total: 0,
-  totalPages: 0,
-  hasNextPage: false,
-  hasPrevPage: false,
-};
-
-const SEARCH_DEBOUNCE_MS = 400;
-
-const HIERARCHY_COLORS = [
-  "#2563eb",
-  "#16a34a",
-  "#dc2626",
-  "#9333ea",
-  "#ea580c",
-  "#0891b2",
-  "#be123c",
-];
-
-const getHierarchyColor = (depth = 0) => {
-  return HIERARCHY_COLORS[depth % HIERARCHY_COLORS.length];
 };
 
 const flattenCategoryTree = (items = [], depth = 0, parentName = "Root") => {
@@ -98,14 +74,16 @@ const collectDescendantIds = (category) => {
 
 const buildPayload = (formData) => {
   const payload = {
-    name: formData.name.trim(),
+    name: normalizeText(formData.name),
     parentCategoryId: formData.parentCategoryId || null,
-    image: formData.image.trim(),
+    image: normalizeText(formData.image),
     isActive: Boolean(formData.isActive),
   };
 
-  if (formData.slug.trim()) {
-    payload.slug = formData.slug.trim();
+  const slug = normalizeText(formData.slug);
+
+  if (slug) {
+    payload.slug = slug;
   }
 
   return payload;

@@ -20,6 +20,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
@@ -30,6 +31,8 @@ import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
 import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
+import { splitCommaSeparatedValues } from "@/lib/utils/adminShared";
+
 const statusColors = {
   active: "success",
   draft: "default",
@@ -39,13 +42,6 @@ const statusColors = {
 const splitImageUrls = (value = "") => {
   return value
     .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-const splitTags = (value = "") => {
-  return value
-    .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
 };
@@ -169,6 +165,18 @@ const ReadOnlyField = ({ label, value, multiline = false }) => (
   </Box>
 );
 
+const imageStatusChipSx = {
+  position: "absolute",
+  top: 8,
+  left: 8,
+  zIndex: 2,
+  fontWeight: 700,
+  boxShadow: 2,
+  "& .MuiChip-label": {
+    px: 1,
+  },
+};
+
 const AddEditViewProductModal = ({
   open,
   formData,
@@ -183,7 +191,8 @@ const AddEditViewProductModal = ({
   onClear,
   onChange,
   onImagesChange,
-  onUploadImages,
+  onAttributesChange,
+  onSelectImageFiles,
   onSubmit,
 }) => {
   const [detailsEditable, setDetailsEditable] = useState(true);
@@ -192,16 +201,31 @@ const AddEditViewProductModal = ({
   const [localImagePreviews, setLocalImagePreviews] = useState([]);
   const [localImageUploadFailed, setLocalImageUploadFailed] = useState(false);
   const wasOpenRef = useRef(false);
+  const localImagePreviewsRef = useRef([]);
   const imageUrls = useMemo(() => splitImageUrls(formData.imageUrls), [formData.imageUrls]);
-  const tagValues = useMemo(() => splitTags(formData.tags), [formData.tags]);
+  const tagValues = useMemo(() => splitCommaSeparatedValues(formData.tags), [formData.tags]);
+  const attributeRows = useMemo(
+    () => (Array.isArray(formData.attributes) ? formData.attributes : []),
+    [formData.attributes]
+  );
+  const visibleAttributeRows = useMemo(() => (
+    attributeRows
+      .map((attribute) => ({
+        name: String(attribute?.name || "").trim(),
+        value: String(attribute?.value || "").trim(),
+      }))
+      .filter((attribute) => attribute.name || attribute.value)
+  ), [attributeRows]);
   const currentFormSignature = useMemo(() => JSON.stringify(formData), [formData]);
   const isEditingProduct = Boolean(editingProduct);
   const editable = !isEditingProduct || detailsEditable;
   const busy = saving || uploadingImages;
   const hasUnsavedChanges = open && initialFormSignature !== "" && currentFormSignature !== initialFormSignature;
-  const hasFooterWarning = hasUnsavedChanges || localImagePreviews.length > 0;
-  const footerWarningLabel = localImagePreviews.length > 0 && localImageUploadFailed
-    ? "Images not uploaded"
+  const hasQueuedImages = localImagePreviews.length > 0;
+  const hasChangesToSave = hasUnsavedChanges || hasQueuedImages;
+  const hasFooterWarning = hasChangesToSave;
+  const footerWarningLabel = hasQueuedImages
+    ? `${localImagePreviews.length} image${localImagePreviews.length === 1 ? "" : "s"} queued for upload`
     : "Unsaved changes";
   const primaryImage = imageUrls[0] || localImagePreviews[0]?.url || "";
   const displayName = formData.name || "Untitled product";
@@ -215,19 +239,32 @@ const AddEditViewProductModal = ({
       setInitialFormSignature(currentFormSignature);
       setDraggedImageIndex(null);
       setLocalImageUploadFailed(false);
-      setLocalImagePreviews([]);
+      setLocalImagePreviews((currentPreviews) => {
+        revokeLocalImagePreviews(currentPreviews);
+        return [];
+      });
+    }
+
+    if (!open && wasOpenRef.current) {
+      setInitialFormSignature("");
+      setDraggedImageIndex(null);
+      setLocalImageUploadFailed(false);
+      setLocalImagePreviews((currentPreviews) => {
+        revokeLocalImagePreviews(currentPreviews);
+        return [];
+      });
     }
 
     wasOpenRef.current = open;
-
-    if (!open) {
-      setInitialFormSignature("");
-    }
   }, [open, editingProduct, currentFormSignature]);
 
   useEffect(() => {
-    return () => revokeLocalImagePreviews(localImagePreviews);
+    localImagePreviewsRef.current = localImagePreviews;
   }, [localImagePreviews]);
+
+  useEffect(() => {
+    return () => revokeLocalImagePreviews(localImagePreviewsRef.current);
+  }, []);
 
   const toggleEditing = () => {
     if (!busy && isEditingProduct) {
@@ -242,16 +279,20 @@ const AddEditViewProductModal = ({
       return;
     }
 
-    const nextLocalImagePreviews = createLocalImagePreviews(fileList);
-
     setLocalImageUploadFailed(false);
-    setLocalImagePreviews(nextLocalImagePreviews);
 
     try {
-      await onUploadImages(fileList);
-      setLocalImagePreviews([]);
+      const selectedImageFiles = await onSelectImageFiles(fileList);
+      const nextLocalImagePreviews = createLocalImagePreviews(selectedImageFiles);
+
+      if (nextLocalImagePreviews.length > 0) {
+        setLocalImagePreviews((currentPreviews) => [
+          ...currentPreviews,
+          ...nextLocalImagePreviews,
+        ]);
+      }
     } catch {
-      setLocalImageUploadFailed(nextLocalImagePreviews.length > 0);
+      setLocalImageUploadFailed(false);
     }
   };
 
@@ -308,6 +349,46 @@ const AddEditViewProductModal = ({
 
     onImagesChange(moveImage(imageUrls, draggedImageIndex, targetIndex));
     setDraggedImageIndex(null);
+  };
+
+  const handleAddAttribute = () => {
+    if (!editable || busy) {
+      return;
+    }
+
+    onAttributesChange([
+      ...attributeRows,
+      {
+        name: "",
+        value: "",
+      },
+    ]);
+  };
+
+  const handleAttributeChange = (index, field, value) => {
+    const nextAttributes = attributeRows.map((attribute, attributeIndex) => (
+      attributeIndex === index
+        ? {
+            ...attribute,
+            [field]: value,
+          }
+        : attribute
+    ));
+
+    onAttributesChange(nextAttributes);
+  };
+
+  const handleRemoveAttribute = (index) => {
+    onAttributesChange(attributeRows.filter((_, attributeIndex) => attributeIndex !== index));
+  };
+
+  const handleClearClick = () => {
+    setLocalImageUploadFailed(false);
+    setLocalImagePreviews((currentPreviews) => {
+      revokeLocalImagePreviews(currentPreviews);
+      return [];
+    });
+    onClear();
   };
 
   return (
@@ -407,6 +488,16 @@ const AddEditViewProductModal = ({
                       size="small"
                       sx={{ position: "absolute", left: 12, top: 12 }}
                     />
+                  ) : localImagePreviews.length > 0 ? (
+                    <Chip
+                      label={uploadingImages ? "Uploading" : "Queued"}
+                      size="small"
+                      sx={{
+                        ...imageStatusChipSx,
+                        bgcolor: uploadingImages ? "info.main" : "warning.main",
+                        color: uploadingImages ? "info.contrastText" : "warning.contrastText",
+                      }}
+                    />
                   ) : null}
 
                 </Box>
@@ -424,11 +515,9 @@ const AddEditViewProductModal = ({
                     Image Gallery
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {imageUrls.length
-                      ? `${imageUrls.length} uploaded`
-                      : localImagePreviews.length
-                        ? `${localImagePreviews.length} selected`
-                        : "No images selected"}
+                    {imageUrls.length || localImagePreviews.length
+                      ? `${imageUrls.length} uploaded${localImagePreviews.length ? `, ${localImagePreviews.length} queued` : ""}`
+                      : "No images selected"}
                   </Typography>
                 </Box>
 
@@ -590,10 +679,21 @@ const AddEditViewProductModal = ({
                           }}
                         />
                         <Chip
-                          label={localImageUploadFailed ? "Not uploaded" : "Uploading"}
-                          color={localImageUploadFailed ? "error" : "default"}
+                          label={localImageUploadFailed ? "Not queued" : uploadingImages ? "Uploading" : "Queued"}
                           size="small"
-                          sx={{ position: "absolute", top: 6, left: 6 }}
+                          sx={{
+                            ...imageStatusChipSx,
+                            bgcolor: localImageUploadFailed
+                              ? "error.main"
+                              : uploadingImages
+                                ? "info.main"
+                                : "warning.main",
+                            color: localImageUploadFailed
+                              ? "error.contrastText"
+                              : uploadingImages
+                                ? "info.contrastText"
+                                : "warning.contrastText",
+                          }}
                         />
                       </Box>
                       <Typography variant="caption" noWrap sx={{ display: "block", px: 1, py: 0.75 }}>
@@ -895,6 +995,81 @@ const AddEditViewProductModal = ({
                   <ReadOnlyField label="Tags" value="-" />
                 )}
               </DetailPanel>
+
+              <DetailPanel
+                title="Attributes"
+                action={editable ? (
+                  <Button
+                    size="small"
+                    startIcon={<AddIcon />}
+                    onClick={handleAddAttribute}
+                    disabled={busy}
+                  >
+                    Add
+                  </Button>
+                ) : null}
+              >
+                {editable ? (
+                  <Stack spacing={1.5}>
+                    {attributeRows.length > 0 ? (
+                      attributeRows.map((attribute, index) => (
+                        <Stack
+                          key={index}
+                          direction={{ xs: "column", sm: "row" }}
+                          spacing={1}
+                          alignItems={{ xs: "stretch", sm: "flex-start" }}
+                        >
+                          <TextField
+                            label="Name"
+                            value={attribute.name || ""}
+                            onChange={(event) => handleAttributeChange(index, "name", event.target.value)}
+                            fullWidth
+                            size="small"
+                            disabled={busy}
+                          />
+                          <TextField
+                            label="Value"
+                            value={attribute.value || ""}
+                            onChange={(event) => handleAttributeChange(index, "value", event.target.value)}
+                            fullWidth
+                            size="small"
+                            disabled={busy}
+                          />
+                          <Tooltip title="Remove attribute">
+                            <span>
+                              <IconButton
+                                color="error"
+                                size="small"
+                                onClick={() => handleRemoveAttribute(index)}
+                                disabled={busy}
+                                sx={{ mt: { xs: 0, sm: 0.5 }, alignSelf: { xs: "flex-end", sm: "auto" } }}
+                              >
+                                <DeleteOutlineIcon fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </Stack>
+                      ))
+                    ) : (
+                      <Typography variant="body2" color="text.secondary">
+                        No attributes added yet.
+                      </Typography>
+                    )}
+                  </Stack>
+                ) : visibleAttributeRows.length > 0 ? (
+                  <Box>
+                    {visibleAttributeRows.map((attribute, index) => (
+                      <ReadOnlyField
+                        key={`${attribute.name}-${index}`}
+                        label={attribute.name}
+                        value={attribute.value}
+                      />
+                    ))}
+                  </Box>
+                ) : (
+                  <ReadOnlyField label="Attributes" value="-" />
+                )}
+              </DetailPanel>
             </Stack>
           </Box>
         </Stack>
@@ -903,7 +1078,7 @@ const AddEditViewProductModal = ({
       <DialogActions sx={{ px: 3, py: 2, justifyContent: "space-between" }}>
         <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
           {!isEditingProduct ? (
-            <Button onClick={onClear} disabled={busy}>
+            <Button onClick={handleClearClick} disabled={busy}>
               Clear
             </Button>
           ) : null}
@@ -919,7 +1094,7 @@ const AddEditViewProductModal = ({
           <Button
             variant="contained"
             onClick={onSubmit}
-            disabled={busy || (isEditingProduct && !hasUnsavedChanges)}
+            disabled={busy || (isEditingProduct && !hasChangesToSave)}
             startIcon={saving ? <CircularProgress color="inherit" size={16} /> : null}
           >
             {isEditingProduct ? "Save Changes" : "Create Product"}
