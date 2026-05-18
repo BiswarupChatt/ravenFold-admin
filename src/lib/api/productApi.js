@@ -157,3 +157,133 @@ export const deleteProduct = async (authToken, productId) => {
 
   return response.json();
 };
+
+export const fetchProductOptions = async (authToken, productId) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options`, {
+    headers: getAuthHeaders(authToken),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const payload = await response.json();
+
+  return Array.isArray(payload?.data) ? payload.data : [];
+};
+
+export const createProductOption = async (authToken, productId, optionPayload) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options`, {
+    method: "POST",
+    headers: getAuthHeaders(authToken, true),
+    body: JSON.stringify(optionPayload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
+export const deleteProductOption = async (authToken, productId, optionId) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options/${optionId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(authToken),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
+export const createProductOptionValue = async (authToken, productId, optionId, valuePayload) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options/${optionId}/values`, {
+    method: "POST",
+    headers: getAuthHeaders(authToken, true),
+    body: JSON.stringify(valuePayload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
+export const deleteProductOptionValue = async (authToken, productId, optionId, valueId) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/options/${optionId}/values/${valueId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(authToken),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
+export const fetchAdminProductVariants = async (authToken, productId, params = {}) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/products/${productId}/variants/admin${buildQueryString(params)}`,
+    {
+      headers: getAuthHeaders(authToken),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const payload = await response.json();
+  const data = payload?.data || {};
+
+  return {
+    items: Array.isArray(data.items) ? data.items : [],
+    pagination: normalizePagination(data.pagination, params),
+  };
+};
+
+export const createProductVariant = async (authToken, productId, variantPayload) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/variants`, {
+    method: "POST",
+    headers: getAuthHeaders(authToken, true),
+    body: JSON.stringify(variantPayload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
+export const updateProductVariant = async (authToken, productId, variantId, variantPayload) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/variants/${variantId}`, {
+    method: "PATCH",
+    headers: getAuthHeaders(authToken, true),
+    body: JSON.stringify(variantPayload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};
+
+export const deleteProductVariant = async (authToken, productId, variantId) => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${productId}/variants/${variantId}`, {
+    method: "DELETE",
+    headers: getAuthHeaders(authToken),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  return response.json();
+};

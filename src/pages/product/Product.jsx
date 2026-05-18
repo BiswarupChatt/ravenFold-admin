@@ -149,6 +149,7 @@ const Product = () => {
   const [pendingImageFiles, setPendingImageFiles] = useState([]);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [variantsOpen, setVariantsOpen] = useState(false);
 
   const categoryRows = useMemo(() => flattenCategoryTree(categoryTree), [categoryTree]);
 
@@ -234,6 +235,7 @@ const Product = () => {
     setFormData(createFormData);
     setFormError("");
     setPendingImageFiles([]);
+    setVariantsOpen(Boolean(createFormData.hasVariants));
     setDialogOpen(true);
   };
 
@@ -242,6 +244,7 @@ const Product = () => {
     setFormData(productToFormData(product));
     setFormError("");
     setPendingImageFiles([]);
+    setVariantsOpen(Boolean(product.hasVariants));
     setDialogOpen(true);
   };
 
@@ -254,6 +257,7 @@ const Product = () => {
     setFormError("");
     setEditingProduct(null);
     setPendingImageFiles([]);
+    setVariantsOpen(false);
   };
 
   const setModalFormData = useCallback((nextFormDataOrUpdater) => {
@@ -279,6 +283,16 @@ const Product = () => {
     }));
   };
 
+  const handleHasVariantsChange = useCallback((event) => {
+    const { checked } = event.target;
+
+    setVariantsOpen(checked);
+    setModalFormData((currentFormData) => ({
+      ...currentFormData,
+      hasVariants: checked,
+    }));
+  }, [setModalFormData]);
+
   const handleImagesChange = useCallback((imageUrls) => {
     setModalFormData((currentFormData) => ({
       ...currentFormData,
@@ -292,6 +306,18 @@ const Product = () => {
       attributes,
     }));
   }, [setModalFormData]);
+
+  const handleVariantsChanged = useCallback(async (changes = {}) => {
+    if (changes.hasVariants) {
+      setVariantsOpen(true);
+      setModalFormData((currentFormData) => ({
+        ...currentFormData,
+        hasVariants: true,
+      }));
+    }
+
+    await loadProducts();
+  }, [loadProducts, setModalFormData]);
 
   const handleSelectImageFiles = useCallback((files) => {
     const fileList = Array.from(files || []);
@@ -328,6 +354,7 @@ const Product = () => {
     setFormData(EMPTY_FORM);
     setFormError("");
     setPendingImageFiles([]);
+    setVariantsOpen(false);
   };
 
   const handleSubmit = async () => {
@@ -590,12 +617,15 @@ const Product = () => {
         categoryRows={categoryRows}
         productStatuses={PRODUCT_STATUSES}
         getHierarchyColor={getHierarchyColor}
+        variantsOpen={variantsOpen}
         onClose={handleCloseDialog}
         onClear={handleClearForm}
         onChange={handleFormChange}
+        onHasVariantsChange={handleHasVariantsChange}
         onImagesChange={handleImagesChange}
         onAttributesChange={handleAttributesChange}
         onSelectImageFiles={handleSelectImageFiles}
+        onVariantsChanged={handleVariantsChanged}
         onSubmit={handleSubmit}
       />
 

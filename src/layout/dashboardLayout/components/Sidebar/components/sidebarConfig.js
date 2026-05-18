@@ -3,7 +3,6 @@
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import CategoryIcon from "@mui/icons-material/Category";
 import Inventory2Icon from "@mui/icons-material/Inventory2";
-import TuneIcon from "@mui/icons-material/Tune";
 import WarehouseIcon from "@mui/icons-material/Warehouse";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
@@ -27,19 +26,8 @@ export const SIDEBAR_ITEMS = [
   },
   {
     name: "Product",
+    path: ROUTES.PRODUCT,
     icon: Inventory2Icon,
-    children: [
-      {
-        name: "Product",
-        path: ROUTES.PRODUCT,
-        icon: Inventory2Icon,
-      },
-      {
-        name: "Product Variant",
-        path: "/product-variant",
-        icon: TuneIcon,
-      },
-    ],
   },
   {
     name: "Inventory",

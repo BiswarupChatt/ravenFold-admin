@@ -32,6 +32,7 @@ import StarIcon from "@mui/icons-material/Star";
 import StarBorderIcon from "@mui/icons-material/StarBorder";
 
 import { splitCommaSeparatedValues } from "@/lib/utils/adminShared";
+import ProductVariantsPanel from "./ProductVariantsPanel";
 
 const statusColors = {
   active: "success",
@@ -187,12 +188,15 @@ const AddEditViewProductModal = ({
   categoryRows,
   productStatuses,
   getHierarchyColor,
+  variantsOpen,
   onClose,
   onClear,
   onChange,
+  onHasVariantsChange,
   onImagesChange,
   onAttributesChange,
   onSelectImageFiles,
+  onVariantsChanged,
   onSubmit,
 }) => {
   const [detailsEditable, setDetailsEditable] = useState(true);
@@ -954,7 +958,13 @@ const AddEditViewProductModal = ({
 
                     <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                       <FormControlLabel
-                        control={<Switch checked={formData.hasVariants} onChange={onChange} name="hasVariants" />}
+                        control={(
+                          <Switch
+                            checked={formData.hasVariants}
+                            onChange={onHasVariantsChange}
+                            name="hasVariants"
+                          />
+                        )}
                         label="Has variants"
                       />
                       <FormControlLabel
@@ -1104,6 +1114,24 @@ const AddEditViewProductModal = ({
                   <ReadOnlyField label="Attributes" value="-" />
                 )}
               </DetailPanel>
+
+              {formData.hasVariants || variantsOpen ? (
+                <DetailPanel title="Variants">
+                  {isEditingProduct ? (
+                    <ProductVariantsPanel
+                      open={open && (formData.hasVariants || variantsOpen)}
+                      productId={editingProduct.id}
+                      editable={editable}
+                      disabled={busy}
+                      onVariantsChanged={onVariantsChanged}
+                    />
+                  ) : (
+                    <Alert severity="info">
+                      Save the product first, then add variant options and combinations.
+                    </Alert>
+                  )}
+                </DetailPanel>
+              ) : null}
             </Stack>
           </Box>
         </Stack>
