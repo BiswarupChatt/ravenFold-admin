@@ -32,6 +32,11 @@ import {
 import { useToast } from "@/hooks/ToastContext";
 import ROUTES from "@/routes/routes";
 import ProductDetailsForm from "./components/ProductDetailsForm";
+import {
+  PRODUCT_FORM_SECTION_FIELDS,
+  PRODUCT_FORM_SECTION_IDS,
+  PRODUCT_FORM_SECTION_LABELS,
+} from "./productFormSections";
 
 const EMPTY_FORM = {
   name: "",
@@ -129,6 +134,210 @@ const buildPayload = (formData) => {
   return payload;
 };
 
+const buildDetailsPayload = (formData) => {
+  const payload = {
+    name: normalizeText(formData.name),
+    sku: normalizeText(formData.sku),
+    basePrice: formData.basePrice,
+    salePrice: formData.salePrice === "" ? null : formData.salePrice,
+    shortDescription: normalizeText(formData.shortDescription),
+    description: normalizeText(formData.description),
+  };
+  const slug = normalizeText(formData.slug);
+
+  if (slug) {
+    payload.slug = slug;
+  }
+
+  return payload;
+};
+
+const buildSettingsPayload = (formData) => ({
+  status: formData.status,
+  hasVariants: Boolean(formData.hasVariants),
+  isFeatured: Boolean(formData.isFeatured),
+});
+
+const buildOrganizationPayload = (formData) => {
+  const payload = {
+    categoryId: formData.categoryId,
+    tags: splitCommaSeparatedValues(formData.tags),
+  };
+  const slug = normalizeText(formData.slug);
+
+  if (slug) {
+    payload.slug = slug;
+  }
+
+  return payload;
+};
+
+const buildMediaPayload = (formData) => ({
+  images: splitLines(formData.imageUrls),
+});
+
+const buildShippingPayload = (formData) => ({
+  shipping: {
+    requiresShipping: Boolean(formData.shippingRequiresShipping),
+    weight: {
+      value: formData.shippingWeightValue === "" ? null : formData.shippingWeightValue,
+      unit: formData.shippingWeightUnit,
+    },
+    dimensions: {
+      length: formData.shippingLength === "" ? null : formData.shippingLength,
+      width: formData.shippingWidth === "" ? null : formData.shippingWidth,
+      height: formData.shippingHeight === "" ? null : formData.shippingHeight,
+      unit: formData.shippingDimensionUnit,
+    },
+    shippingClass: normalizeText(formData.shippingClass),
+    isFreeShippingEligible: Boolean(formData.shippingFreeShippingEligible),
+  },
+});
+
+const buildAttributesPayload = (formData) => ({
+  attributes: normalizeAttributes(formData.attributes),
+});
+
+const buildSeoPayload = (formData) => ({
+  seo: {
+    title: normalizeText(formData.seoTitle),
+    description: normalizeText(formData.seoDescription),
+    keywords: splitCommaSeparatedValues(formData.seoKeywords),
+    canonicalUrl: normalizeText(formData.seoCanonicalUrl),
+    noIndex: Boolean(formData.seoNoIndex),
+  },
+  metaTitle: normalizeText(formData.seoTitle),
+  metaDescription: normalizeText(formData.seoDescription),
+});
+
+const buildSectionPayload = (sectionId, formData) => {
+  switch (sectionId) {
+    case PRODUCT_FORM_SECTION_IDS.DETAILS:
+      return buildDetailsPayload(formData);
+    case PRODUCT_FORM_SECTION_IDS.SETTINGS:
+      return buildSettingsPayload(formData);
+    case PRODUCT_FORM_SECTION_IDS.ORGANIZATION:
+      return buildOrganizationPayload(formData);
+    case PRODUCT_FORM_SECTION_IDS.MEDIA:
+      return buildMediaPayload(formData);
+    case PRODUCT_FORM_SECTION_IDS.SHIPPING:
+      return buildShippingPayload(formData);
+    case PRODUCT_FORM_SECTION_IDS.ATTRIBUTES:
+      return buildAttributesPayload(formData);
+    case PRODUCT_FORM_SECTION_IDS.SEO:
+      return buildSeoPayload(formData);
+    default:
+      return {};
+  }
+};
+
+const mergeFormDataSection = (currentFormData, savedFormData, sectionId) => {
+  const sectionFields = PRODUCT_FORM_SECTION_FIELDS[sectionId] || [];
+
+  return sectionFields.reduce((nextFormData, field) => ({
+    ...nextFormData,
+    [field]: savedFormData[field] ?? EMPTY_FORM[field],
+  }), currentFormData);
+};
+
+const validateProductDetailsPayload = (payload) => {
+  const basePrice = Number(payload.basePrice);
+  const salePrice = payload.salePrice === null ? null : Number(payload.salePrice);
+
+  if (!payload.name) {
+    return "Product name is required.";
+  }
+
+  if (!payload.sku) {
+    return "SKU is required.";
+  }
+
+  if (!Number.isFinite(basePrice) || basePrice < 0) {
+    return "Base price must be a valid non-negative number.";
+  }
+
+  if (salePrice !== null && (!Number.isFinite(salePrice) || salePrice < 0)) {
+    return "Sale price must be a valid non-negative number.";
+  }
+
+  if (salePrice !== null && salePrice > basePrice) {
+    return "Sale price cannot be greater than base price.";
+  }
+
+  return "";
+};
+
+const validateOrganizationPayload = (payload) => {
+  if (!payload.categoryId) {
+    return "Category is required.";
+  }
+
+  return "";
+};
+
+const validateAttributesPayload = (payload) => {
+  const attributes = Array.isArray(payload.attributes) ? payload.attributes : [];
+  const incompleteAttribute = attributes.find((attribute) => !attribute.name || !attribute.value);
+
+  if (incompleteAttribute) {
+    return "Each attribute needs both a name and value.";
+  }
+
+  const attributeNames = attributes.map((attribute) => attribute.name.toLowerCase());
+  const hasDuplicateAttributeNames = new Set(attributeNames).size !== attributeNames.length;
+
+  if (hasDuplicateAttributeNames) {
+    return "Attribute names must be unique.";
+  }
+
+  return "";
+};
+
+const validateShippingPayload = (payload) => {
+  const optionalShippingNumbers = [
+    ["Shipping weight", payload.shipping?.weight?.value],
+    ["Shipping length", payload.shipping?.dimensions?.length],
+    ["Shipping width", payload.shipping?.dimensions?.width],
+    ["Shipping height", payload.shipping?.dimensions?.height],
+  ];
+
+  for (const [label, value] of optionalShippingNumbers) {
+    if (value === null || value === undefined || value === "") {
+      continue;
+    }
+
+    const numberValue = Number(value);
+
+    if (!Number.isFinite(numberValue) || numberValue < 0) {
+      return `${label} must be a valid non-negative number.`;
+    }
+  }
+
+  return "";
+};
+
+const validatePayload = (payload) => (
+  validateProductDetailsPayload(payload) ||
+  validateOrganizationPayload(payload) ||
+  validateAttributesPayload(payload) ||
+  validateShippingPayload(payload)
+);
+
+const validateSectionPayload = (sectionId, payload) => {
+  switch (sectionId) {
+    case PRODUCT_FORM_SECTION_IDS.DETAILS:
+      return validateProductDetailsPayload(payload);
+    case PRODUCT_FORM_SECTION_IDS.ORGANIZATION:
+      return validateOrganizationPayload(payload);
+    case PRODUCT_FORM_SECTION_IDS.ATTRIBUTES:
+      return validateAttributesPayload(payload);
+    case PRODUCT_FORM_SECTION_IDS.SHIPPING:
+      return validateShippingPayload(payload);
+    default:
+      return "";
+  }
+};
+
 const getProductFromResponse = (response) => response?.data || null;
 
 const getProductId = (product) => product?.id || product?._id || "";
@@ -219,13 +428,19 @@ const ProductDetailsPage = ({ mode }) => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(mode !== "create");
   const [saving, setSaving] = useState(false);
+  const [savingSection, setSavingSection] = useState("");
   const [uploadingImages, setUploadingImages] = useState(false);
   const [pendingImageFiles, setPendingImageFiles] = useState([]);
+  const [imageQueueResetKey, setImageQueueResetKey] = useState(0);
   const [variantsOpen, setVariantsOpen] = useState(false);
   const isCreateMode = mode === "create";
   const isViewMode = mode === "view";
 
   const categoryRows = useMemo(() => flattenCategoryTree(categoryTree), [categoryTree]);
+  const persistedFormData = useMemo(
+    () => (editingProduct ? productToFormData(editingProduct) : EMPTY_FORM),
+    [editingProduct]
+  );
 
   const loadCategoryTree = useCallback(async () => {
     try {
@@ -279,14 +494,14 @@ const ProductDetailsPage = ({ mode }) => {
     ));
   }, []);
 
-  const handleFormChange = (event) => {
+  const handleFormChange = useCallback((event) => {
     const { checked, name, type, value } = event.target;
 
     setPageFormData((currentFormData) => ({
       ...currentFormData,
       [name]: type === "checkbox" ? checked : value,
     }));
-  };
+  }, [setPageFormData]);
 
   const handleHasVariantsChange = useCallback((event) => {
     const { checked } = event.target;
@@ -344,11 +559,12 @@ const ProductDetailsPage = ({ mode }) => {
   const handleClearForm = () => {
     setFormData(EMPTY_FORM);
     setPendingImageFiles([]);
+    setImageQueueResetKey((currentKey) => currentKey + 1);
     setVariantsOpen(false);
   };
 
   const handleClose = () => {
-    if (saving || uploadingImages) {
+    if (saving || savingSection || uploadingImages) {
       return;
     }
 
@@ -380,92 +596,90 @@ const ProductDetailsPage = ({ mode }) => {
     await loadProduct();
   }, [loadProduct, setPageFormData]);
 
-  const validatePayload = (payload) => {
-    const basePrice = Number(payload.basePrice);
-    const salePrice = payload.salePrice === null ? null : Number(payload.salePrice);
-    const optionalShippingNumbers = [
-      ["Shipping weight", payload.shipping?.weight?.value],
-      ["Shipping length", payload.shipping?.dimensions?.length],
-      ["Shipping width", payload.shipping?.dimensions?.width],
-      ["Shipping height", payload.shipping?.dimensions?.height],
-    ];
-
-    if (!payload.name) {
-      return "Product name is required.";
+  const uploadPendingImages = useCallback(async () => {
+    if (pendingImageFiles.length === 0) {
+      return [];
     }
 
-    if (!payload.categoryId) {
-      return "Category is required.";
+    setUploadingImages(true);
+
+    try {
+      const uploadedImages = await uploadProductImages(authToken, pendingImageFiles);
+
+      return uploadedImages.map((image) => image.url).filter(Boolean);
+    } finally {
+      setUploadingImages(false);
+    }
+  }, [authToken, pendingImageFiles]);
+
+  const handleSectionSubmit = useCallback(async (sectionId, sectionFormData) => {
+    if (!editingProduct?.id || savingSection || !sectionFormData) {
+      return;
     }
 
-    if (!payload.sku) {
-      return "SKU is required.";
-    }
-
-    if (!Number.isFinite(basePrice) || basePrice < 0) {
-      return "Base price must be a valid non-negative number.";
-    }
-
-    if (salePrice !== null && (!Number.isFinite(salePrice) || salePrice < 0)) {
-      return "Sale price must be a valid non-negative number.";
-    }
-
-    if (salePrice !== null && salePrice > basePrice) {
-      return "Sale price cannot be greater than base price.";
-    }
-
-    const incompleteAttribute = payload.attributes.find((attribute) => !attribute.name || !attribute.value);
-
-    if (incompleteAttribute) {
-      return "Each attribute needs both a name and value.";
-    }
-
-    const attributeNames = payload.attributes.map((attribute) => attribute.name.toLowerCase());
-    const hasDuplicateAttributeNames = new Set(attributeNames).size !== attributeNames.length;
-
-    if (hasDuplicateAttributeNames) {
-      return "Attribute names must be unique.";
-    }
-
-    for (const [label, value] of optionalShippingNumbers) {
-      if (value === null || value === undefined || value === "") {
-        continue;
-      }
-
-      const numberValue = Number(value);
-
-      if (!Number.isFinite(numberValue) || numberValue < 0) {
-        return `${label} must be a valid non-negative number.`;
-      }
-    }
-
-    return "";
-  };
-
-  const handleSubmit = async () => {
-    const payload = buildPayload(formData);
-    const validationError = validatePayload(payload);
+    const payload = buildSectionPayload(sectionId, sectionFormData);
+    const validationError = validateSectionPayload(sectionId, payload);
 
     if (validationError) {
       toast.error(validationError);
       return;
     }
 
-    const uploadPendingImages = async () => {
-      if (pendingImageFiles.length === 0) {
-        return [];
+    setSavingSection(sectionId);
+
+    try {
+      if (sectionId === PRODUCT_FORM_SECTION_IDS.MEDIA) {
+        const uploadedUrls = await uploadPendingImages();
+
+        payload.images = [
+          ...payload.images,
+          ...uploadedUrls,
+        ];
       }
 
-      setUploadingImages(true);
+      const updateResponse = await updateProduct(authToken, editingProduct.id, payload);
+      const updatedProduct = getProductFromResponse(updateResponse);
 
-      try {
-        const uploadedImages = await uploadProductImages(authToken, pendingImageFiles);
+      if (updatedProduct) {
+        const updatedFormData = productToFormData(updatedProduct);
 
-        return uploadedImages.map((image) => image.url).filter(Boolean);
-      } finally {
-        setUploadingImages(false);
+        setEditingProduct(updatedProduct);
+        setFormData((currentFormData) => (
+          mergeFormDataSection(currentFormData, updatedFormData, sectionId)
+        ));
+
+        if (sectionId === PRODUCT_FORM_SECTION_IDS.SETTINGS) {
+          setVariantsOpen(Boolean(updatedProduct.hasVariants));
+        }
       }
-    };
+
+      if (sectionId === PRODUCT_FORM_SECTION_IDS.MEDIA) {
+        setPendingImageFiles([]);
+        setImageQueueResetKey((currentKey) => currentKey + 1);
+      }
+
+      toast.success(`${PRODUCT_FORM_SECTION_LABELS[sectionId] || "Product section"} updated.`);
+    } catch (err) {
+      toast.error(err.message || "Failed to update product section.");
+    } finally {
+      setSavingSection("");
+    }
+  }, [
+    authToken,
+    editingProduct,
+    savingSection,
+    toast,
+    uploadPendingImages,
+  ]);
+
+  const handleSubmit = async (submitFormData = formData) => {
+    const payload = buildPayload(submitFormData);
+    const validationError = validatePayload(payload);
+
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
 
     setSaving(true);
 
@@ -603,7 +817,9 @@ const ProductDetailsPage = ({ mode }) => {
       <ProductDetailsForm
         initialEditable={!isViewMode}
         formData={formData}
+        persistedFormData={persistedFormData}
         saving={saving}
+        savingSection={savingSection}
         uploadingImages={uploadingImages}
         editingProduct={editingProduct}
         categoryRows={categoryRows}
@@ -619,8 +835,10 @@ const ProductDetailsPage = ({ mode }) => {
         onSelectImageFiles={handleSelectImageFiles}
         onVariantsChanged={handleVariantsChanged}
         onEditModeToggle={handleEditModeToggle}
+        imageQueueResetKey={imageQueueResetKey}
         hideSubmitWhenReadOnly
         onSubmit={handleSubmit}
+        onSubmitSection={handleSectionSubmit}
       />
     </Box>
   );

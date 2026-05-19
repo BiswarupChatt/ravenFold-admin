@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import {
   Alert,
@@ -1125,4 +1125,4 @@ const ProductVariantsPanel = ({
   );
 };
 
-export default ProductVariantsPanel;
+export default memo(ProductVariantsPanel);

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   Box,
   Button,
@@ -150,6 +151,7 @@ const ProductImageSection = ({
   imageUrls,
   localImagePreviews,
   localImageUploadFailed,
+  saveAction,
   uploadingImages,
   onFileInputChange,
   onImageDrop,
@@ -159,166 +161,176 @@ const ProductImageSection = ({
   onSetPrimaryImage,
   onUploadDragOver,
   onUploadDrop,
-}) => (
-  <DetailPanel
-    title="Media"
-    accentColor="warning"
-    action={editable ? (
-      <Button component="label" variant="outlined" color="warning" size="small" startIcon={<AddIcon />} disabled={busy}>
-        Add media
-        <Box
-          component="input"
-          type="file"
-          accept="image/*"
-          multiple
-          hidden
-          onChange={onFileInputChange}
-        />
-      </Button>
-    ) : null}
-  >
-    <Stack spacing={1.5}>
-      {uploadingImages ? <LinearProgress /> : null}
+}) => {
+  const addMediaAction = editable ? (
+    <Button component="label" variant="outlined" color="warning" size="small" startIcon={<AddIcon />} disabled={busy}>
+      Add media
       <Box
-        onDragOver={onUploadDragOver}
-        onDrop={onUploadDrop}
-        sx={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(118px, 1fr))",
-          gap: 1,
-        }}
-      >
-        {imageUrls.map((imageUrl, index) => (
-          <ProductImageTile
-            key={`${imageUrl}-${index}`}
-            busy={busy}
-            draggedImageIndex={draggedImageIndex}
-            editable={editable}
-            imageUrl={imageUrl}
-            index={index}
-            isPrimary={index === 0}
-            totalImages={imageUrls.length}
-            onImageDrop={onImageDrop}
-            onMoveImage={onMoveImage}
-            onRemoveImage={onRemoveImage}
-            onSetDraggedImageIndex={onSetDraggedImageIndex}
-            onSetPrimaryImage={onSetPrimaryImage}
-          />
-        ))}
+        component="input"
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={onFileInputChange}
+      />
+    </Button>
+  ) : null;
+  const panelAction = addMediaAction || saveAction ? (
+    <Stack direction="row" spacing={1} alignItems="center">
+      {addMediaAction}
+      {saveAction}
+    </Stack>
+  ) : null;
 
-        {localImagePreviews.map((preview) => (
-          <Box
-            key={preview.id}
-            sx={{
-              border: "1px solid",
-              borderColor: localImageUploadFailed ? "error.main" : "divider",
-              borderRadius: 1,
-              bgcolor: "background.paper",
-              minWidth: 0,
-              overflow: "hidden",
-            }}
-          >
-            <Box sx={{ position: "relative", aspectRatio: "1 / 1", bgcolor: "action.hover" }}>
-              <Box
-                component="img"
-                src={preview.url}
-                alt=""
-                sx={{
-                  display: "block",
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
-              />
-              <Chip
-                label={localImageUploadFailed ? "Not queued" : uploadingImages ? "Uploading" : "Queued"}
-                size="small"
-                sx={{
-                  ...imageStatusChipSx,
-                  bgcolor: localImageUploadFailed
-                    ? "error.main"
-                    : uploadingImages
-                      ? "info.main"
-                      : "warning.main",
-                  color: localImageUploadFailed
-                    ? "error.contrastText"
-                    : uploadingImages
-                      ? "info.contrastText"
-                      : "warning.contrastText",
-                }}
-              />
-            </Box>
-            <Typography variant="caption" noWrap sx={{ display: "block", px: 1, py: 0.75 }}>
-              {preview.name}
-            </Typography>
-          </Box>
-        ))}
-
-        {editable ? (
-          <Button
-            component="label"
-            variant="outlined"
-            color="warning"
-            disabled={busy}
-            sx={{
-              borderStyle: "dashed",
-              minHeight: 118,
-              aspectRatio: "1 / 1",
-              color: "text.secondary",
-            }}
-          >
-            <Stack spacing={0.75} alignItems="center">
-              <CloudUploadIcon fontSize="small" />
-              <Typography variant="caption">Add media</Typography>
-            </Stack>
-            <Box
-              component="input"
-              type="file"
-              accept="image/*"
-              multiple
-              hidden
-              onChange={onFileInputChange}
+  return (
+    <DetailPanel
+      title="Media"
+      accentColor="warning"
+      action={panelAction}
+    >
+      <Stack spacing={1.5}>
+        {uploadingImages ? <LinearProgress /> : null}
+        <Box
+          onDragOver={onUploadDragOver}
+          onDrop={onUploadDrop}
+          sx={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(118px, 1fr))",
+            gap: 1,
+          }}
+        >
+          {imageUrls.map((imageUrl, index) => (
+            <ProductImageTile
+              key={`${imageUrl}-${index}`}
+              busy={busy}
+              draggedImageIndex={draggedImageIndex}
+              editable={editable}
+              imageUrl={imageUrl}
+              index={index}
+              isPrimary={index === 0}
+              totalImages={imageUrls.length}
+              onImageDrop={onImageDrop}
+              onMoveImage={onMoveImage}
+              onRemoveImage={onRemoveImage}
+              onSetDraggedImageIndex={onSetDraggedImageIndex}
+              onSetPrimaryImage={onSetPrimaryImage}
             />
-          </Button>
-        ) : null}
-      </Box>
+          ))}
 
-      {imageUrls.length === 0 && localImagePreviews.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">
-          No media added yet.
-        </Typography>
-      ) : null}
-
-      {editable && imageUrls.length > 0 ? (
-        <Stack spacing={0.75}>
-          <Typography variant="caption" color="text.secondary">
-            Image URLs
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {imageUrls.map((imageUrl, index) => (
-              <Tooltip title={imageUrl} key={`${imageUrl}-${index}`}>
-                <Chip
-                  label={`${index === 0 ? "Primary: " : ""}${imageUrl}`}
-                  color={index === 0 ? "primary" : "default"}
-                  variant={index === 0 ? "filled" : "outlined"}
-                  onDelete={() => onRemoveImage(index)}
-                  disabled={busy}
+          {localImagePreviews.map((preview) => (
+            <Box
+              key={preview.id}
+              sx={{
+                border: "1px solid",
+                borderColor: localImageUploadFailed ? "error.main" : "divider",
+                borderRadius: 1,
+                bgcolor: "background.paper",
+                minWidth: 0,
+                overflow: "hidden",
+              }}
+            >
+              <Box sx={{ position: "relative", aspectRatio: "1 / 1", bgcolor: "action.hover" }}>
+                <Box
+                  component="img"
+                  src={preview.url}
+                  alt=""
                   sx={{
-                    maxWidth: "100%",
-                    "& .MuiChip-label": {
-                      display: "block",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    },
+                    display: "block",
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
                   }}
                 />
-              </Tooltip>
-            ))}
-          </Stack>
-        </Stack>
-      ) : null}
-    </Stack>
-  </DetailPanel>
-);
+                <Chip
+                  label={localImageUploadFailed ? "Not queued" : uploadingImages ? "Uploading" : "Queued"}
+                  size="small"
+                  sx={{
+                    ...imageStatusChipSx,
+                    bgcolor: localImageUploadFailed
+                      ? "error.main"
+                      : uploadingImages
+                        ? "info.main"
+                        : "warning.main",
+                    color: localImageUploadFailed
+                      ? "error.contrastText"
+                      : uploadingImages
+                        ? "info.contrastText"
+                        : "warning.contrastText",
+                  }}
+                />
+              </Box>
+              <Typography variant="caption" noWrap sx={{ display: "block", px: 1, py: 0.75 }}>
+                {preview.name}
+              </Typography>
+            </Box>
+          ))}
 
-export default ProductImageSection;
+          {editable ? (
+            <Button
+              component="label"
+              variant="outlined"
+              color="warning"
+              disabled={busy}
+              sx={{
+                borderStyle: "dashed",
+                minHeight: 118,
+                aspectRatio: "1 / 1",
+                color: "text.secondary",
+              }}
+            >
+              <Stack spacing={0.75} alignItems="center">
+                <CloudUploadIcon fontSize="small" />
+                <Typography variant="caption">Add media</Typography>
+              </Stack>
+              <Box
+                component="input"
+                type="file"
+                accept="image/*"
+                multiple
+                hidden
+                onChange={onFileInputChange}
+              />
+            </Button>
+          ) : null}
+        </Box>
+
+        {imageUrls.length === 0 && localImagePreviews.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            No media added yet.
+          </Typography>
+        ) : null}
+
+        {editable && imageUrls.length > 0 ? (
+          <Stack spacing={0.75}>
+            <Typography variant="caption" color="text.secondary">
+              Image URLs
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {imageUrls.map((imageUrl, index) => (
+                <Tooltip title={imageUrl} key={`${imageUrl}-${index}`}>
+                  <Chip
+                    label={`${index === 0 ? "Primary: " : ""}${imageUrl}`}
+                    color={index === 0 ? "primary" : "default"}
+                    variant={index === 0 ? "filled" : "outlined"}
+                    onDelete={() => onRemoveImage(index)}
+                    disabled={busy}
+                    sx={{
+                      maxWidth: "100%",
+                      "& .MuiChip-label": {
+                        display: "block",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      },
+                    }}
+                  />
+                </Tooltip>
+              ))}
+            </Stack>
+          </Stack>
+        ) : null}
+      </Stack>
+    </DetailPanel>
+  );
+};
+
+export default memo(ProductImageSection);

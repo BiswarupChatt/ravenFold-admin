@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   Chip,
   FormControlLabel,
@@ -25,9 +26,10 @@ const ProductShippingPanel = ({
   busy,
   editable,
   formData,
+  saveAction,
   onChange,
 }) => (
-  <DetailPanel title="Shipping" accentColor="secondary">
+  <DetailPanel title="Shipping" action={saveAction} accentColor="secondary">
     {editable ? (
       <Stack spacing={2}>
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
@@ -180,4 +182,4 @@ const ProductShippingPanel = ({
   </DetailPanel>
 );
 
-export default ProductShippingPanel;
+export default memo(ProductShippingPanel);

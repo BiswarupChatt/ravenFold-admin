@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   Box,
   Button,
@@ -17,88 +18,99 @@ const ProductAttributesPanel = ({
   attributeRows,
   busy,
   editable,
+  saveAction,
   visibleAttributeRows,
   onAddAttribute,
   onAttributeChange,
   onRemoveAttribute,
-}) => (
-  <DetailPanel
-    title="Attributes"
-    accentColor="secondary"
-    action={editable ? (
-      <Button
-        size="small"
-        variant="outlined"
-        color="secondary"
-        startIcon={<AddIcon />}
-        onClick={onAddAttribute}
-        disabled={busy}
-      >
-        Add Attributes
-      </Button>
-    ) : null}
-  >
-    {editable ? (
-      <Stack spacing={1.5}>
-        {attributeRows.length > 0 ? (
-          attributeRows.map((attribute, index) => (
-            <Stack
-              key={index}
-              direction={{ xs: "column", sm: "row" }}
-              spacing={1}
-              alignItems={{ xs: "stretch", sm: "flex-start" }}
-            >
-              <TextField
-                label="Name"
-                value={attribute.name || ""}
-                onChange={(event) => onAttributeChange(index, "name", event.target.value)}
-                fullWidth
-                size="small"
-                disabled={busy}
-              />
-              <TextField
-                label="Value"
-                value={attribute.value || ""}
-                onChange={(event) => onAttributeChange(index, "value", event.target.value)}
-                fullWidth
-                size="small"
-                disabled={busy}
-              />
-              <Tooltip title="Remove attribute">
-                <span>
-                  <IconButton
-                    color="error"
-                    size="small"
-                    onClick={() => onRemoveAttribute(index)}
-                    disabled={busy}
-                    sx={{ mt: { xs: 0, sm: 0.5 }, alignSelf: { xs: "flex-end", sm: "auto" } }}
-                  >
-                    <DeleteOutlineIcon fontSize="small" />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Stack>
-          ))
-        ) : (
-          <Typography variant="body2" color="text.secondary">
-            No attributes added yet.
-          </Typography>
-        )}
-      </Stack>
-    ) : visibleAttributeRows.length > 0 ? (
-      <Box>
-        {visibleAttributeRows.map((attribute, index) => (
-          <ReadOnlyField
-            key={`${attribute.name}-${index}`}
-            label={attribute.name}
-            value={attribute.value}
-          />
-        ))}
-      </Box>
-    ) : (
-      <ReadOnlyField label="Attributes" value="-" />
-    )}
-  </DetailPanel>
-);
+}) => {
+  const addAction = editable ? (
+    <Button
+      size="small"
+      variant="outlined"
+      color="secondary"
+      startIcon={<AddIcon />}
+      onClick={onAddAttribute}
+      disabled={busy}
+    >
+      Add Attributes
+    </Button>
+  ) : null;
+  const panelAction = addAction || saveAction ? (
+    <Stack direction="row" spacing={1} alignItems="center">
+      {addAction}
+      {saveAction}
+    </Stack>
+  ) : null;
 
-export default ProductAttributesPanel;
+  return (
+    <DetailPanel
+      title="Attributes"
+      accentColor="secondary"
+      action={panelAction}
+    >
+      {editable ? (
+        <Stack spacing={1.5}>
+          {attributeRows.length > 0 ? (
+            attributeRows.map((attribute, index) => (
+              <Stack
+                key={index}
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "stretch", sm: "flex-start" }}
+              >
+                <TextField
+                  label="Name"
+                  value={attribute.name || ""}
+                  onChange={(event) => onAttributeChange(index, "name", event.target.value)}
+                  fullWidth
+                  size="small"
+                  disabled={busy}
+                />
+                <TextField
+                  label="Value"
+                  value={attribute.value || ""}
+                  onChange={(event) => onAttributeChange(index, "value", event.target.value)}
+                  fullWidth
+                  size="small"
+                  disabled={busy}
+                />
+                <Tooltip title="Remove attribute">
+                  <span>
+                    <IconButton
+                      color="error"
+                      size="small"
+                      onClick={() => onRemoveAttribute(index)}
+                      disabled={busy}
+                      sx={{ mt: { xs: 0, sm: 0.5 }, alignSelf: { xs: "flex-end", sm: "auto" } }}
+                    >
+                      <DeleteOutlineIcon fontSize="small" />
+                    </IconButton>
+                  </span>
+                </Tooltip>
+              </Stack>
+            ))
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No attributes added yet.
+            </Typography>
+          )}
+        </Stack>
+      ) : visibleAttributeRows.length > 0 ? (
+        <Box>
+          {visibleAttributeRows.map((attribute, index) => (
+            <ReadOnlyField
+              key={`${attribute.name}-${index}`}
+              label={attribute.name}
+              value={attribute.value}
+            />
+          ))}
+        </Box>
+      ) : (
+        <ReadOnlyField label="Attributes" value="-" />
+      )}
+    </DetailPanel>
+  );
+};
+
+export default memo(ProductAttributesPanel);

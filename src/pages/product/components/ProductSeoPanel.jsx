@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   Chip,
   FormControlLabel,
@@ -15,12 +16,13 @@ const ProductSeoPanel = ({
   busy,
   editable,
   formData,
+  saveAction,
   onChange,
 }) => {
   const keywords = splitCommaSeparatedValues(formData.seoKeywords);
 
   return (
-    <DetailPanel title="SEO" accentColor="info">
+    <DetailPanel title="SEO" action={saveAction} accentColor="info">
       {editable ? (
         <Stack spacing={2}>
           <TextField
@@ -107,4 +109,4 @@ const ProductSeoPanel = ({
   );
 };
 
-export default ProductSeoPanel;
+export default memo(ProductSeoPanel);
