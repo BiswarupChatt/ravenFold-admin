@@ -540,8 +540,6 @@ const ProductDetailsPage = ({ mode }) => {
       ) : null}
 
       <ProductDetailsForm
-        open
-        pageMode
         initialEditable={!isViewMode}
         formData={formData}
         formError=""

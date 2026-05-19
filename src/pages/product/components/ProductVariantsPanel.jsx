@@ -166,7 +166,6 @@ const ProductVariantsPanel = ({
   disabled = false,
   editable = false,
   onVariantsChanged,
-  open,
   productId,
 }) => {
   const authToken = useAtomValue(authTokenAtom);
@@ -216,7 +215,7 @@ const ProductVariantsPanel = ({
   }, [variantSearch, variants]);
 
   const loadVariantData = useCallback(async () => {
-    if (!open || !productId) {
+    if (!productId) {
       return;
     }
 
@@ -238,26 +237,24 @@ const ProductVariantsPanel = ({
     } finally {
       setLoading(false);
     }
-  }, [authToken, open, productId]);
+  }, [authToken, productId]);
 
   useEffect(() => {
     loadVariantData();
   }, [loadVariantData]);
 
   useEffect(() => {
-    if (!open) {
-      setOptionForm(EMPTY_OPTION_FORM);
-      setValueDrafts({});
-      setVariantForm(EMPTY_VARIANT_FORM);
-      setOptionFormOpen(false);
-      setVariantFormOpen(false);
-      setVariantSearch("");
-      setEditingOptionId("");
-      setEditingOptionName("");
-      setEditingValue(EMPTY_VALUE_EDIT);
-      setError("");
-    }
-  }, [open]);
+    setOptionForm(EMPTY_OPTION_FORM);
+    setValueDrafts({});
+    setVariantForm(EMPTY_VARIANT_FORM);
+    setOptionFormOpen(false);
+    setVariantFormOpen(false);
+    setVariantSearch("");
+    setEditingOptionId("");
+    setEditingOptionName("");
+    setEditingValue(EMPTY_VALUE_EDIT);
+    setError("");
+  }, [productId]);
 
   const handleOptionFormChange = (field, value) => {
     setOptionForm((currentForm) => ({
