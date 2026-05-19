@@ -54,6 +54,8 @@ const ProductImageTile = ({
     sx={{
       border: "1px solid",
       borderColor: draggedImageIndex === index || isPrimary ? "primary.main" : "divider",
+      borderTop: isPrimary ? "3px solid" : "1px solid",
+      borderTopColor: isPrimary ? "warning.main" : "divider",
       borderRadius: 1,
       bgcolor: "background.paper",
       cursor: editable && !busy ? "grab" : "default",
@@ -160,8 +162,9 @@ const ProductImageSection = ({
 }) => (
   <DetailPanel
     title="Media"
+    accentColor="warning"
     action={editable ? (
-      <Button component="label" variant="outlined" size="small" startIcon={<AddIcon />} disabled={busy}>
+      <Button component="label" variant="outlined" color="warning" size="small" startIcon={<AddIcon />} disabled={busy}>
         Add media
         <Box
           component="input"
@@ -255,6 +258,7 @@ const ProductImageSection = ({
           <Button
             component="label"
             variant="outlined"
+            color="warning"
             disabled={busy}
             sx={{
               borderStyle: "dashed",

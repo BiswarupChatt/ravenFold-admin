@@ -24,11 +24,12 @@ const ProductAttributesPanel = ({
 }) => (
   <DetailPanel
     title="Attributes"
+    accentColor="secondary"
     action={editable ? (
       <Button
         size="small"
-                        variant="outlined"
-
+        variant="outlined"
+        color="secondary"
         startIcon={<AddIcon />}
         onClick={onAddAttribute}
         disabled={busy}

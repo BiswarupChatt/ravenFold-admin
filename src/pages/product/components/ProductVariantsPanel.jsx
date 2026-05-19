@@ -70,6 +70,8 @@ const EMPTY_VARIANT_FORM = {
 const cardSx = {
   border: "1px solid",
   borderColor: "divider",
+  borderTop: "3px solid",
+  borderTopColor: "secondary.main",
   borderRadius: 1,
   bgcolor: "background.paper",
   overflow: "hidden",
@@ -656,7 +658,13 @@ const ProductVariantsPanel = ({
           spacing={1}
           alignItems="center"
           justifyContent="space-between"
-          sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
+          sx={(theme) => ({
+            px: 2,
+            py: 1.5,
+            borderBottom: "1px solid",
+            borderColor: "divider",
+            bgcolor: `${theme.palette.secondary.main}0F`,
+          })}
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
@@ -666,6 +674,7 @@ const ProductVariantsPanel = ({
           {editable ? (
             <Button
               variant="outlined"
+              color="secondary"
               size="small"
               startIcon={<AddIcon />}
               onClick={() => {
@@ -689,7 +698,16 @@ const ProductVariantsPanel = ({
           ) : null}
 
           {editable && variantFormOpen ? (
-            <Stack spacing={1.5} sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1, p: 1.5 }}>
+            <Stack
+              spacing={1.5}
+              sx={(theme) => ({
+                border: "1px solid",
+                borderColor: "secondary.light",
+                borderRadius: 1,
+                p: 1.5,
+                bgcolor: `${theme.palette.secondary.main}08`,
+              })}
+            >
               <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
                 <Typography variant="subtitle2" fontWeight={700}>
                   {isEditingVariant ? "Edit variant" : "Add variant"}
@@ -908,7 +926,7 @@ const ProductVariantsPanel = ({
 
           <TableContainer sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1 }}>
             <Table size="small" sx={{ minWidth: 780 }}>
-              <TableHead sx={{ bgcolor: "action.hover" }}>
+              <TableHead sx={(theme) => ({ bgcolor: `${theme.palette.secondary.main}0F` })}>
                 <TableRow>
                   <TableCell sx={{ width: 96 }} />
                   <TableCell sx={{ fontWeight: 700, color: "text.secondary" }}>
@@ -942,7 +960,7 @@ const ProductVariantsPanel = ({
                           width: 74,
                           height: 74,
                           border: "1px dashed",
-                          borderColor: "divider",
+                          borderColor: variant.images?.[0] ? "secondary.light" : "divider",
                           borderRadius: 1,
                           bgcolor: "background.default",
                           display: "grid",
@@ -986,11 +1004,11 @@ const ProductVariantsPanel = ({
                       <Box
                         sx={{
                           border: "1px solid",
-                          borderColor: "divider",
+                          borderColor: "success.light",
                           borderRadius: 1,
                           px: 1.5,
                           py: 1,
-                          bgcolor: "background.paper",
+                          bgcolor: (theme) => `${theme.palette.success.main}0A`,
                           minHeight: 42,
                         }}
                       >

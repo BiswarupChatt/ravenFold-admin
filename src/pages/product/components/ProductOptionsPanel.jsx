@@ -39,6 +39,8 @@ export const EMPTY_VALUE_EDIT = {
 const cardSx = {
   border: "1px solid",
   borderColor: "divider",
+  borderTop: "3px solid",
+  borderTopColor: "info.main",
   borderRadius: 1,
   bgcolor: "background.paper",
   overflow: "hidden",
@@ -46,8 +48,8 @@ const cardSx = {
 
 const valuePillSx = {
   borderRadius: 1,
-  bgcolor: (theme) => `${theme.palette.primary.main}12`,
-  color: "primary.dark",
+  bgcolor: (theme) => `${theme.palette.info.main}14`,
+  color: "info.dark",
   minHeight: 32,
   px: 1,
 };
@@ -86,7 +88,13 @@ const ProductOptionsPanel = ({
       spacing={1}
       alignItems={{ xs: "stretch", sm: "center" }}
       justifyContent="space-between"
-      sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
+      sx={(theme) => ({
+        px: 2,
+        py: 1.5,
+        borderBottom: "1px solid",
+        borderColor: "divider",
+        bgcolor: `${theme.palette.info.main}0F`,
+      })}
     >
       <Box>
         <Typography variant="subtitle1" fontWeight={700}>
@@ -97,6 +105,7 @@ const ProductOptionsPanel = ({
         {editable ? (
           <Button
             variant="outlined"
+            color="info"
             size="small"
             startIcon={<AddIcon />}
             onClick={onAddOptionClick}
@@ -118,6 +127,9 @@ const ProductOptionsPanel = ({
                 p: 1.5,
                 borderBottom: "1px solid",
                 borderColor: "divider",
+                borderLeft: "3px solid",
+                borderLeftColor: "info.main",
+                bgcolor: (theme) => `${theme.palette.info.main}06`,
                 "&:last-of-type": {
                   borderBottom: 0,
                 },

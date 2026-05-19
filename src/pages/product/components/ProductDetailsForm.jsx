@@ -344,6 +344,7 @@ const ProductDetailsForm = ({
             <DetailPanel
               title={editable ? "Product details" : displayName}
               action={renderEditModeToggle()}
+              accentColor="primary"
             >
               {editable ? (
                 <Stack spacing={2}>
@@ -435,7 +436,7 @@ const ProductDetailsForm = ({
               )}
             </DetailPanel>
 
-            <DetailPanel title="Product settings">
+            <DetailPanel title="Product settings" accentColor="success">
               <Stack spacing={2}>
                 <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "flex-start" }}>
                   <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -518,7 +519,7 @@ const ProductDetailsForm = ({
               </Stack>
             </DetailPanel>
 
-            <DetailPanel title="Product organization">
+            <DetailPanel title="Product organization" accentColor="info">
               {editable ? (
                 <Stack spacing={2}>
                   <TextField
@@ -633,7 +634,7 @@ const ProductDetailsForm = ({
                   onVariantsChanged={onVariantsChanged}
                 />
               ) : (
-                <DetailPanel title="Variants">
+                <DetailPanel title="Variants" accentColor="secondary">
                   <Alert severity="info">
                     Save the product first, then add variant options and combinations.
                   </Alert>
