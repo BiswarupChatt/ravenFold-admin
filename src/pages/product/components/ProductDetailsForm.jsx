@@ -396,324 +396,315 @@ const ProductDetailsForm = ({
 
   return (
     <Box ref={formRootRef} sx={{ pb: showActionBar ? 8 : 0 }}>
-        <Stack spacing={2.5}>
-          <Stack spacing={2}>
-            <DetailPanel
-              title={editable ? "Product details" : displayName}
-              action={renderEditModeToggle()}
-              accentColor="primary"
-            >
-              {editable ? (
-                <Stack spacing={2}>
-                  <TextField
-                    label="Title"
-                    name="name"
-                    value={formData.name}
-                    onChange={onChange}
-                    required
-                    fullWidth
-                  />
-                  <TextField
-                    label="Description"
-                    name="description"
-                    value={formData.description}
-                    onChange={onChange}
-                    fullWidth
-                    multiline
-                    minRows={4}
-                  />
-                  <TextField
-                    label="Short Description"
-                    name="shortDescription"
-                    value={formData.shortDescription}
-                    onChange={onChange}
-                    fullWidth
-                    multiline
-                    minRows={2}
-                  />
-                  <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                    <TextField
-                      label="Base Price"
-                      name="basePrice"
-                      type="number"
-                      value={formData.basePrice}
-                      onChange={onChange}
-                      required
-                      fullWidth
-                      inputProps={{ min: 0, step: "0.01" }}
-                    />
-                    <TextField
-                      label="Sale Price"
-                      name="salePrice"
-                      type="number"
-                      value={formData.salePrice}
-                      onChange={onChange}
-                      fullWidth
-                      inputProps={{ min: 0, step: "0.01" }}
-                    />
-                    <TextField
-                      label="SKU"
-                      name="sku"
-                      value={formData.sku}
-                      onChange={onChange}
-                      required
-                      fullWidth
-                    />
-                  </Stack>
-                </Stack>
-              ) : (
-                <Stack spacing={2}>
-                  <ReadOnlyField label="Description" value={formData.description} multiline />
-                  <ReadOnlyField label="Short Description" value={formData.shortDescription} multiline />
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Base Price
-                      </Typography>
-                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                        <Typography variant="h6" fontWeight={800}>
-                          {formatMoney(formData.basePrice)}
-                        </Typography>
-                        {discountPercent !== null ? (
-                          <Chip label={`${discountPercent}% off`} color="success" size="small" />
-                        ) : null}
-                      </Stack>
-                    </Box>
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Sale Price
-                      </Typography>
-                      <Typography variant="h6" fontWeight={800} color="success.main">
-                        {formatMoney(formData.salePrice)}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                  <ReadOnlyField label="SKU" value={formData.sku} />
-                </Stack>
-              )}
-            </DetailPanel>
-
-            <DetailPanel title="Product settings" accentColor="success">
+      <Stack spacing={2.5}>
+        <Stack spacing={2}>
+          <DetailPanel
+            title={editable ? "Product details" : displayName}
+            action={renderEditModeToggle()}
+            accentColor="primary"
+          >
+            {editable ? (
               <Stack spacing={2}>
-                <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "flex-start" }}>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
-                      Status
-                    </Typography>
-                    {editable ? (
-                      <TextField
-                        select
-                        label="Status"
-                        name="status"
-                        value={formData.status}
-                        onChange={onChange}
-                        fullWidth
-                        size="small"
-                      >
-                        {productStatuses.map((status) => (
-                          <MenuItem key={status} value={status}>
-                            {status}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    ) : (
-                      <Chip
-                        label={displayStatus}
-                        color={statusColors[displayStatus] || "default"}
-                        size="small"
-                        variant={displayStatus === "draft" ? "outlined" : "filled"}
-                      />
-                    )}
-                  </Box>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
-                      Publishing
-                    </Typography>
-                    {editable ? (
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
-                        <FormControlLabel
-                          control={<Switch checked={formData.isFeatured} onChange={onChange} name="isFeatured" />}
-                          label="Featured"
-                        />
-                        <FormControlLabel
-                          control={(
-                            <Switch
-                              checked={formData.hasVariants}
-                              onChange={onHasVariantsChange}
-                              name="hasVariants"
-                            />
-                          )}
-                          label="Has variants"
-                        />
-                      </Stack>
-                    ) : (
-                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                        <Chip label="Online Store" size="small" />
-                        <Chip
-                          label={formData.isFeatured ? "Featured" : "Not featured"}
-                          color={formData.isFeatured ? "primary" : "default"}
-                          size="small"
-                          variant={formData.isFeatured ? "filled" : "outlined"}
-                        />
-                        <Chip
-                          label={formData.hasVariants ? "Has variants" : "No variants"}
-                          color={formData.hasVariants ? "primary" : "default"}
-                          size="small"
-                          variant={formData.hasVariants ? "filled" : "outlined"}
-                        />
-                      </Stack>
-                    )}
-                  </Box>
-                </Stack>
-                <Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                    Sales
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    No recent sales of this product
-                  </Typography>
-                </Box>
-              </Stack>
-            </DetailPanel>
-
-            <DetailPanel title="Product organization" accentColor="info">
-              {editable ? (
-                <Stack spacing={2}>
+                <TextField
+                  label="Title"
+                  name="name"
+                  value={formData.name}
+                  onChange={onChange}
+                  required
+                  fullWidth
+                />
+                <TextField
+                  label="Description"
+                  name="description"
+                  value={formData.description}
+                  onChange={onChange}
+                  fullWidth
+                  multiline
+                  minRows={4}
+                />
+                <TextField
+                  label="Short Description"
+                  name="shortDescription"
+                  value={formData.shortDescription}
+                  onChange={onChange}
+                  fullWidth
+                  multiline
+                  minRows={2}
+                />
+                <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                   <TextField
-                    select
-                    label="Category"
-                    name="categoryId"
-                    value={formData.categoryId}
+                    label="Base Price"
+                    name="basePrice"
+                    type="number"
+                    value={formData.basePrice}
                     onChange={onChange}
                     required
                     fullWidth
-                    size="small"
-                  >
-                    <MenuItem value="" disabled>
-                      Select category
-                    </MenuItem>
-                    {categoryRows.map((category) => (
-                      <MenuItem
-                        key={category.id}
-                        value={category.id}
-                        sx={{ pl: 2 + category.depth * 2 }}
-                      >
-                        <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
-                          <Box
-                            sx={{
-                              width: 10,
-                              height: 10,
-                              borderRadius: "50%",
-                              bgcolor: getHierarchyColor(category.depth),
-                              boxShadow: `0 0 0 3px ${getHierarchyColor(category.depth)}22`,
-                              flexShrink: 0,
-                            }}
-                          />
-                          <Typography variant="body2" noWrap>
-                            {category.name}
-                          </Typography>
-                        </Stack>
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-                    <TextField
-                      label="Slug"
-                      name="slug"
-                      value={formData.slug}
-                      onChange={onChange}
-                      fullWidth
-                      size="small"
-                      helperText="Leave blank to generate it from the name."
-                    />
-                    <TextField
-                      label="Tags"
-                      name="tags"
-                      value={formData.tags}
-                      onChange={onChange}
-                      fullWidth
-                      size="small"
-                      helperText="Separate tags with commas."
-                    />
-                  </Stack>
+                    inputProps={{ min: 0, step: "0.01" }}
+                  />
+                  <TextField
+                    label="Sale Price"
+                    name="salePrice"
+                    type="number"
+                    value={formData.salePrice}
+                    onChange={onChange}
+                    fullWidth
+                    inputProps={{ min: 0, step: "0.01" }}
+                  />
+                  <TextField
+                    label="SKU"
+                    name="sku"
+                    value={formData.sku}
+                    onChange={onChange}
+                    required
+                    fullWidth
+                  />
                 </Stack>
-              ) : (
-                <Stack spacing={1.25}>
-                  <ReadOnlyField label="Category" value={displayCategory} />
-                  <ReadOnlyField label="Slug" value={formData.slug} />
-                  {tagValues.length > 0 ? (
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                      {tagValues.map((tag) => (
-                        <Chip key={tag} label={tag} size="small" />
+              </Stack>
+            ) : (
+              <Stack spacing={2}>
+                <ReadOnlyField label="Description" value={formData.description} multiline />
+                <ReadOnlyField label="Short Description" value={formData.shortDescription} multiline />
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Base Price
+                    </Typography>
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <Typography variant="h6" fontWeight={800}>
+                        {formatMoney(formData.basePrice)}
+                      </Typography>
+                      {discountPercent !== null ? (
+                        <Chip label={`${discountPercent}% off`} color="success" size="small" />
+                      ) : null}
+                    </Stack>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Sale Price
+                    </Typography>
+                    <Typography variant="h6" fontWeight={800} color="success.main">
+                      {formatMoney(formData.salePrice)}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <ReadOnlyField label="SKU" value={formData.sku} />
+              </Stack>
+            )}
+          </DetailPanel>
+
+          <DetailPanel title="Product settings" accentColor="success">
+            <Stack spacing={2}>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems={{ md: "flex-start" }}>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                    Status
+                  </Typography>
+                  {editable ? (
+                    <TextField
+                      select
+                      label="Status"
+                      name="status"
+                      value={formData.status}
+                      onChange={onChange}
+                      fullWidth
+                      size="small"
+                    >
+                      {productStatuses.map((status) => (
+                        <MenuItem key={status} value={status}>
+                          {status}
+                        </MenuItem>
                       ))}
+                    </TextField>
+                  ) : (
+                    <Chip
+                      label={displayStatus}
+                      color={statusColors[displayStatus] || "default"}
+                      size="small"
+                      variant={displayStatus === "draft" ? "outlined" : "filled"}
+                    />
+                  )}
+                </Box>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 0.75 }}>
+                    Publishing
+                  </Typography>
+                  {editable ? (
+                    <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
+                      <FormControlLabel
+                        control={<Switch checked={formData.isFeatured} onChange={onChange} name="isFeatured" />}
+                        label="Featured"
+                      />
+                      <FormControlLabel
+                        control={(
+                          <Switch
+                            checked={formData.hasVariants}
+                            onChange={onHasVariantsChange}
+                            name="hasVariants"
+                          />
+                        )}
+                        label="Has variants"
+                      />
                     </Stack>
                   ) : (
-                    <ReadOnlyField label="Tags" value="-" />
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      <Chip
+                        label={formData.isFeatured ? "Featured" : "Not featured"}
+                        color={formData.isFeatured ? "primary" : "default"}
+                        size="small"
+                        variant={formData.isFeatured ? "filled" : "outlined"}
+                      />
+                      <Chip
+                        label={formData.hasVariants ? "Has variants" : "No variants"}
+                        color={formData.hasVariants ? "primary" : "default"}
+                        size="small"
+                        variant={formData.hasVariants ? "filled" : "outlined"}
+                      />
+                    </Stack>
                   )}
+                </Box>
+              </Stack>
+            </Stack>
+          </DetailPanel>
+
+          <DetailPanel title="Product organization" accentColor="info">
+            {editable ? (
+              <Stack spacing={2}>
+                <TextField
+                  select
+                  label="Category"
+                  name="categoryId"
+                  value={formData.categoryId}
+                  onChange={onChange}
+                  required
+                  fullWidth
+                  size="small"
+                >
+                  <MenuItem value="" disabled>
+                    Select category
+                  </MenuItem>
+                  {categoryRows.map((category) => (
+                    <MenuItem
+                      key={category.id}
+                      value={category.id}
+                      sx={{ pl: 2 + category.depth * 2 }}
+                    >
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+                        <Box
+                          sx={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            bgcolor: getHierarchyColor(category.depth),
+                            boxShadow: `0 0 0 3px ${getHierarchyColor(category.depth)}22`,
+                            flexShrink: 0,
+                          }}
+                        />
+                        <Typography variant="body2" noWrap>
+                          {category.name}
+                        </Typography>
+                      </Stack>
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+                  <TextField
+                    label="Slug"
+                    name="slug"
+                    value={formData.slug}
+                    onChange={onChange}
+                    fullWidth
+                    size="small"
+                    helperText="Leave blank to generate it from the name."
+                  />
+                  <TextField
+                    label="Tags"
+                    name="tags"
+                    value={formData.tags}
+                    onChange={onChange}
+                    fullWidth
+                    size="small"
+                    helperText="Separate tags with commas."
+                  />
                 </Stack>
-              )}
-            </DetailPanel>
+              </Stack>
+            ) : (
+              <Stack spacing={1.25}>
+                <ReadOnlyField label="Category" value={displayCategory} />
+                <ReadOnlyField label="Slug" value={formData.slug} />
+                {tagValues.length > 0 ? (
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                    {tagValues.map((tag) => (
+                      <Chip key={tag} label={tag} size="small" />
+                    ))}
+                  </Stack>
+                ) : (
+                  <ReadOnlyField label="Tags" value="-" />
+                )}
+              </Stack>
+            )}
+          </DetailPanel>
 
-            <ProductImageSection
-              busy={busy}
-              draggedImageIndex={draggedImageIndex}
-              editable={editable}
-              imageUrls={imageUrls}
-              localImagePreviews={localImagePreviews}
-              localImageUploadFailed={localImageUploadFailed}
-              uploadingImages={uploadingImages}
-              onFileInputChange={handleFileInputChange}
-              onImageDrop={handleImageDrop}
-              onMoveImage={handleMoveImage}
-              onRemoveImage={handleRemoveImage}
-              onSetDraggedImageIndex={setDraggedImageIndex}
-              onSetPrimaryImage={handleSetPrimaryImage}
-              onUploadDragOver={handleUploadDragOver}
-              onUploadDrop={handleUploadDrop}
-            />
+          <ProductImageSection
+            busy={busy}
+            draggedImageIndex={draggedImageIndex}
+            editable={editable}
+            imageUrls={imageUrls}
+            localImagePreviews={localImagePreviews}
+            localImageUploadFailed={localImageUploadFailed}
+            uploadingImages={uploadingImages}
+            onFileInputChange={handleFileInputChange}
+            onImageDrop={handleImageDrop}
+            onMoveImage={handleMoveImage}
+            onRemoveImage={handleRemoveImage}
+            onSetDraggedImageIndex={setDraggedImageIndex}
+            onSetPrimaryImage={handleSetPrimaryImage}
+            onUploadDragOver={handleUploadDragOver}
+            onUploadDrop={handleUploadDrop}
+          />
 
-            <ProductShippingPanel
-              busy={busy}
-              editable={editable}
-              formData={formData}
-              onChange={onChange}
-            />
+          <ProductShippingPanel
+            busy={busy}
+            editable={editable}
+            formData={formData}
+            onChange={onChange}
+          />
 
-            <ProductAttributesPanel
-              attributeRows={attributeRows}
-              busy={busy}
-              editable={editable}
-              visibleAttributeRows={visibleAttributeRows}
-              onAddAttribute={handleAddAttribute}
-              onAttributeChange={handleAttributeChange}
-              onRemoveAttribute={handleRemoveAttribute}
-            />
+          <ProductAttributesPanel
+            attributeRows={attributeRows}
+            busy={busy}
+            editable={editable}
+            visibleAttributeRows={visibleAttributeRows}
+            onAddAttribute={handleAddAttribute}
+            onAttributeChange={handleAttributeChange}
+            onRemoveAttribute={handleRemoveAttribute}
+          />
 
-            <ProductSeoPanel
-              busy={busy}
-              editable={editable}
-              formData={formData}
-              onChange={onChange}
-            />
+          <ProductSeoPanel
+            busy={busy}
+            editable={editable}
+            formData={formData}
+            onChange={onChange}
+          />
 
-            {formData.hasVariants || variantsOpen ? (
-              isEditingProduct ? (
-                <ProductVariantsPanel
-                  productId={editingProduct.id}
-                  editable={editable}
-                  disabled={busy}
-                  onVariantsChanged={onVariantsChanged}
-                />
-              ) : (
-                <DetailPanel title="Variants" accentColor="secondary">
-                  <Alert severity="info">
-                    Save the product first, then add variant options and combinations.
-                  </Alert>
-                </DetailPanel>
-              )
-            ) : null}
-          </Stack>
+          {formData.hasVariants || variantsOpen ? (
+            isEditingProduct ? (
+              <ProductVariantsPanel
+                productId={editingProduct.id}
+                editable={editable}
+                disabled={busy}
+                onVariantsChanged={onVariantsChanged}
+              />
+            ) : (
+              <DetailPanel title="Variants" accentColor="secondary">
+                <Alert severity="info">
+                  Save the product first, then add variant options and combinations.
+                </Alert>
+              </DetailPanel>
+            )
+          ) : null}
         </Stack>
+      </Stack>
 
       {showActionBar ? (
         <Box
