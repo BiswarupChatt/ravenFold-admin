@@ -172,6 +172,9 @@ const ProductVariantsPanel = ({
 }) => {
   const authToken = useAtomValue(authTokenAtom);
   const toast = useToast();
+  const showError = useCallback((message) => {
+    toast.error(message);
+  }, [toast]);
   const [options, setOptions] = useState([]);
   const [variants, setVariants] = useState([]);
   const [optionForm, setOptionForm] = useState(EMPTY_OPTION_FORM);
@@ -185,7 +188,6 @@ const ProductVariantsPanel = ({
   const [editingValue, setEditingValue] = useState(EMPTY_VALUE_EDIT);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
   const busy = disabled || saving;
   const isEditingVariant = Boolean(variantForm.id);
 
@@ -222,7 +224,6 @@ const ProductVariantsPanel = ({
     }
 
     setLoading(true);
-    setError("");
 
     try {
       const [nextOptions, variantList] = await Promise.all([
@@ -233,13 +234,13 @@ const ProductVariantsPanel = ({
       setOptions(nextOptions);
       setVariants(variantList.items);
     } catch (err) {
-      setError(err.message || "Failed to load variants.");
+      showError(err.message || "Failed to load variants.");
       setOptions([]);
       setVariants([]);
     } finally {
       setLoading(false);
     }
-  }, [authToken, productId]);
+  }, [authToken, productId, showError]);
 
   useEffect(() => {
     loadVariantData();
@@ -255,7 +256,6 @@ const ProductVariantsPanel = ({
     setEditingOptionId("");
     setEditingOptionName("");
     setEditingValue(EMPTY_VALUE_EDIT);
-    setError("");
   }, [productId]);
 
   const handleOptionFormChange = (field, value) => {
@@ -277,12 +277,11 @@ const ProductVariantsPanel = ({
     const name = optionForm.name.trim();
 
     if (!name) {
-      setError("Option name is required.");
+      showError("Option name is required.");
       return;
     }
 
     setSaving(true);
-    setError("");
 
     try {
       await createProductOption(authToken, productId, {
@@ -294,7 +293,7 @@ const ProductVariantsPanel = ({
       toast.success("Product option created.");
       await loadVariantData();
     } catch (err) {
-      setError(err.message || "Failed to create product option.");
+      showError(err.message || "Failed to create product option.");
     } finally {
       setSaving(false);
     }
@@ -310,12 +309,11 @@ const ProductVariantsPanel = ({
     const name = editingOptionName.trim();
 
     if (!name) {
-      setError("Option name is required.");
+      showError("Option name is required.");
       return;
     }
 
     setSaving(true);
-    setError("");
 
     try {
       await updateProductOption(authToken, productId, editingOptionId, { name });
@@ -324,7 +322,7 @@ const ProductVariantsPanel = ({
       toast.success("Product option updated.");
       await loadVariantData();
     } catch (err) {
-      setError(err.message || "Failed to update product option.");
+      showError(err.message || "Failed to update product option.");
     } finally {
       setSaving(false);
     }
@@ -332,7 +330,6 @@ const ProductVariantsPanel = ({
 
   const handleDeleteOption = async (optionId) => {
     setSaving(true);
-    setError("");
 
     try {
       await deleteProductOption(authToken, productId, optionId);
@@ -343,7 +340,7 @@ const ProductVariantsPanel = ({
       toast.success("Product option deleted.");
       await loadVariantData();
     } catch (err) {
-      setError(err.message || "Failed to delete product option.");
+      showError(err.message || "Failed to delete product option.");
     } finally {
       setSaving(false);
     }
@@ -360,12 +357,11 @@ const ProductVariantsPanel = ({
     const value = (valueDrafts[optionId] || "").trim();
 
     if (!value) {
-      setError("Option value is required.");
+      showError("Option value is required.");
       return;
     }
 
     setSaving(true);
-    setError("");
 
     try {
       await createProductOptionValue(authToken, productId, optionId, { value });
@@ -376,7 +372,7 @@ const ProductVariantsPanel = ({
       toast.success("Option value added.");
       await loadVariantData();
     } catch (err) {
-      setError(err.message || "Failed to add option value.");
+      showError(err.message || "Failed to add option value.");
     } finally {
       setSaving(false);
     }
@@ -396,12 +392,11 @@ const ProductVariantsPanel = ({
     const value = editingValue.value.trim();
 
     if (!value) {
-      setError("Option value is required.");
+      showError("Option value is required.");
       return;
     }
 
     setSaving(true);
-    setError("");
 
     try {
       await updateProductOptionValue(authToken, productId, editingValue.optionId, editingValue.valueId, { value });
@@ -409,7 +404,7 @@ const ProductVariantsPanel = ({
       toast.success("Option value updated.");
       await loadVariantData();
     } catch (err) {
-      setError(err.message || "Failed to update option value.");
+      showError(err.message || "Failed to update option value.");
     } finally {
       setSaving(false);
     }
@@ -417,7 +412,6 @@ const ProductVariantsPanel = ({
 
   const handleDeleteOptionValue = async (optionId, valueId) => {
     setSaving(true);
-    setError("");
 
     try {
       await deleteProductOptionValue(authToken, productId, optionId, valueId);
@@ -427,7 +421,7 @@ const ProductVariantsPanel = ({
       toast.success("Option value deleted.");
       await loadVariantData();
     } catch (err) {
-      setError(err.message || "Failed to delete option value.");
+      showError(err.message || "Failed to delete option value.");
     } finally {
       setSaving(false);
     }
@@ -521,12 +515,11 @@ const ProductVariantsPanel = ({
     const validationError = validateVariantPayload(payload);
 
     if (validationError) {
-      setError(validationError);
+      showError(validationError);
       return;
     }
 
     setSaving(true);
-    setError("");
 
     try {
       if (isEditingVariant) {
@@ -542,7 +535,7 @@ const ProductVariantsPanel = ({
       await loadVariantData();
       await onVariantsChanged?.({ hasVariants: true });
     } catch (err) {
-      setError(err.message || "Failed to save product variant.");
+      showError(err.message || "Failed to save product variant.");
     } finally {
       setSaving(false);
     }
@@ -555,7 +548,6 @@ const ProductVariantsPanel = ({
 
   const handleToggleVariantActive = async (variant) => {
     setSaving(true);
-    setError("");
 
     try {
       await updateProductVariant(
@@ -568,7 +560,7 @@ const ProductVariantsPanel = ({
       await loadVariantData();
       await onVariantsChanged?.();
     } catch (err) {
-      setError(err.message || "Failed to update variant availability.");
+      showError(err.message || "Failed to update variant availability.");
     } finally {
       setSaving(false);
     }
@@ -576,7 +568,6 @@ const ProductVariantsPanel = ({
 
   const handleDeleteVariant = async (variantId) => {
     setSaving(true);
-    setError("");
 
     try {
       await deleteProductVariant(authToken, productId, variantId);
@@ -588,7 +579,7 @@ const ProductVariantsPanel = ({
       await loadVariantData();
       await onVariantsChanged?.();
     } catch (err) {
-      setError(err.message || "Failed to delete product variant.");
+      showError(err.message || "Failed to delete product variant.");
     } finally {
       setSaving(false);
     }
@@ -604,7 +595,6 @@ const ProductVariantsPanel = ({
 
   return (
     <Stack spacing={2}>
-      {error ? <Alert severity="error" onClose={() => setError("")}>{error}</Alert> : null}
       {loading ? (
         <Stack direction="row" spacing={1} alignItems="center">
           <CircularProgress size={18} />

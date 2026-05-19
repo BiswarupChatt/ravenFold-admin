@@ -101,7 +101,6 @@ const getCategoryLabel = (categoryRows, categoryId) => {
 const ProductDetailsForm = ({
   initialEditable,
   formData,
-  formError,
   saving,
   uploadingImages,
   editingProduct,
@@ -338,8 +337,6 @@ const ProductDetailsForm = ({
   return (
     <Box sx={{ pb: showActionBar ? 8 : 0 }}>
         <Stack spacing={2.5}>
-          {formError && <Alert severity="error">{formError}</Alert>}
-
           <Stack spacing={2}>
             <DetailPanel
               title={editable ? "Product details" : displayName}

@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import {
-  Alert,
   Box,
   Button,
   Chip,
@@ -154,7 +153,6 @@ const ProductDetailsPage = ({ mode }) => {
   const toast = useToast();
   const [categoryTree, setCategoryTree] = useState([]);
   const [formData, setFormData] = useState(EMPTY_FORM);
-  const [formError, setFormError] = useState("");
   const [editingProduct, setEditingProduct] = useState(null);
   const [loading, setLoading] = useState(mode !== "create");
   const [saving, setSaving] = useState(false);
@@ -170,10 +168,10 @@ const ProductDetailsPage = ({ mode }) => {
     try {
       setCategoryTree(await fetchAdminCategoryTree(authToken));
     } catch (err) {
-      setFormError(err.message || "Failed to load product categories.");
+      toast.error(err.message || "Failed to load product categories.");
       setCategoryTree([]);
     }
-  }, [authToken]);
+  }, [authToken, toast]);
 
   const loadProduct = useCallback(async () => {
     if (isCreateMode || !productId) {
@@ -186,7 +184,6 @@ const ProductDetailsPage = ({ mode }) => {
     }
 
     setLoading(true);
-    setFormError("");
 
     try {
       const product = await fetchAdminProduct(authToken, productId);
@@ -196,12 +193,12 @@ const ProductDetailsPage = ({ mode }) => {
       setVariantsOpen(Boolean(product?.hasVariants));
       setPendingImageFiles([]);
     } catch (err) {
-      setFormError(err.message || "Failed to load product.");
+      toast.error(err.message || "Failed to load product.");
       setEditingProduct(null);
     } finally {
       setLoading(false);
     }
-  }, [authToken, isCreateMode, productId]);
+  }, [authToken, isCreateMode, productId, toast]);
 
   useEffect(() => {
     loadCategoryTree();
@@ -263,7 +260,7 @@ const ProductDetailsPage = ({ mode }) => {
     if (imageFiles.length === 0) {
       const message = "Only image files can be uploaded.";
 
-      setFormError(message);
+      toast.error(message);
       throw new Error(message);
     }
 
@@ -271,7 +268,6 @@ const ProductDetailsPage = ({ mode }) => {
       toast.warning("Non-image files were skipped.");
     }
 
-    setFormError("");
     setPendingImageFiles((currentFiles) => [...currentFiles, ...imageFiles]);
     toast.success(
       imageFiles.length === 1
@@ -284,7 +280,6 @@ const ProductDetailsPage = ({ mode }) => {
 
   const handleClearForm = () => {
     setFormData(EMPTY_FORM);
-    setFormError("");
     setPendingImageFiles([]);
     setVariantsOpen(false);
   };
@@ -371,7 +366,7 @@ const ProductDetailsPage = ({ mode }) => {
     const validationError = validatePayload(payload);
 
     if (validationError) {
-      setFormError(validationError);
+      toast.error(validationError);
       return;
     }
 
@@ -392,7 +387,6 @@ const ProductDetailsPage = ({ mode }) => {
     };
 
     setSaving(true);
-    setFormError("");
 
     try {
       if (editingProduct) {
@@ -446,7 +440,7 @@ const ProductDetailsPage = ({ mode }) => {
         replace: true,
       });
     } catch (err) {
-      setFormError(err.message || "Failed to save product.");
+      toast.error(err.message || "Failed to save product.");
     } finally {
       setSaving(false);
     }
@@ -494,11 +488,6 @@ const ProductDetailsPage = ({ mode }) => {
             </Typography>
           </Box>
         </Stack>
-        {formError ? (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFormError("")}>
-            {formError}
-          </Alert>
-        ) : null}
         <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate(ROUTES.PRODUCT)}>
           Products
         </Button>
@@ -533,16 +522,9 @@ const ProductDetailsPage = ({ mode }) => {
         </Stack>
       </Stack>
 
-      {formError ? (
-        <Alert severity="error" sx={{ mb: 2 }} onClose={() => setFormError("")}>
-          {formError}
-        </Alert>
-      ) : null}
-
       <ProductDetailsForm
         initialEditable={!isViewMode}
         formData={formData}
-        formError=""
         saving={saving}
         uploadingImages={uploadingImages}
         editingProduct={editingProduct}

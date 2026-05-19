@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAtomValue } from "jotai";
 import {
-  Alert,
   Box,
   Button,
   Divider,
@@ -57,7 +56,6 @@ const Product = () => {
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -76,7 +74,6 @@ const Product = () => {
 
   const loadProducts = useCallback(async () => {
     setLoading(true);
-    setError("");
 
     try {
       const productList = await fetchAdminProducts(authToken, tableParams);
@@ -84,7 +81,7 @@ const Product = () => {
       setProducts(productList.items);
       setPagination(productList.pagination);
     } catch (err) {
-      setError(err.message || "Failed to load products.");
+      toast.error(err.message || "Failed to load products.");
       setProducts([]);
       setPagination({
         ...DEFAULT_PAGINATION,
@@ -94,16 +91,16 @@ const Product = () => {
     } finally {
       setLoading(false);
     }
-  }, [authToken, tableParams]);
+  }, [authToken, tableParams, toast]);
 
   const loadCategoryTree = useCallback(async () => {
     try {
       setCategoryTree(await fetchAdminCategoryTree(authToken));
     } catch (err) {
-      setError(err.message || "Failed to load product categories.");
+      toast.error(err.message || "Failed to load product categories.");
       setCategoryTree([]);
     }
-  }, [authToken]);
+  }, [authToken, toast]);
 
   useEffect(() => {
     loadProducts();
@@ -150,7 +147,6 @@ const Product = () => {
     }
 
     setDeleting(true);
-    setError("");
 
     try {
       await deleteProduct(authToken, deletingProduct.id);
@@ -158,7 +154,7 @@ const Product = () => {
       setDeletingProduct(null);
       await loadProducts();
     } catch (err) {
-      setError(err.message || "Failed to delete product.");
+      toast.error(err.message || "Failed to delete product.");
     } finally {
       setDeleting(false);
     }
@@ -246,16 +242,9 @@ const Product = () => {
         <Divider />
 
         <Box sx={{ p: 2 }}>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-              {error}
-            </Alert>
-          )}
-
           <ProductTable
             rows={productRows}
             loading={loading}
-            error={error}
             pagination={pagination}
             onView={handleViewProduct}
             onDelete={setDeletingProduct}

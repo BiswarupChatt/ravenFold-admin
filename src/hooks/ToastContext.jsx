@@ -1,5 +1,5 @@
 import GlobalToast from "@/components/GlobalToast";
-import { createContext, useContext, useState, useCallback } from "react";
+import { createContext, useCallback, useContext, useMemo, useState } from "react";
 
 const ToastContext = createContext(null);
 
@@ -14,15 +14,16 @@ export const ToastProvider = ({ children }) => {
         setToast({ open: true, message, severity });
     }, []);
 
-    const success = (msg) => show(msg, "success");
-    const error = (msg) => show(msg, "error");
-    const warning = (msg) => show(msg, "warning");
-    const info = (msg) => show(msg, "info");
+    const success = useCallback((msg) => show(msg, "success"), [show]);
+    const error = useCallback((msg) => show(msg, "error"), [show]);
+    const warning = useCallback((msg) => show(msg, "warning"), [show]);
+    const info = useCallback((msg) => show(msg, "info"), [show]);
+    const value = useMemo(() => ({ success, error, warning, info }), [error, info, success, warning]);
 
     const close = () => setToast((t) => ({ ...t, open: false }));
 
     return (
-        <ToastContext.Provider value={{ success, error, warning, info }}>
+        <ToastContext.Provider value={value}>
             {children}
             {/* global toast viewer */}
             <GlobalToast toast={toast} close={close} />
