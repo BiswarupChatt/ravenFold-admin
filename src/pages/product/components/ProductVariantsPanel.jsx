@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import {
   Alert,
@@ -42,11 +42,13 @@ import {
   updateProductOption,
   updateProductOptionValue,
   updateProductVariant,
+  uploadProductImages,
 } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
 import { joinLines, splitCommaSeparatedValues, splitLines } from "@/lib/utils/adminShared";
 import ProductOptionsPanel, { EMPTY_OPTION_FORM, EMPTY_VALUE_EDIT } from "./ProductOptionsPanel";
+import VariantMediaField from "./VariantMediaField";
 
 const EMPTY_VARIANT_FORM = {
   id: "",
@@ -102,6 +104,37 @@ const getVariantLabel = (variant = {}) => {
 
   return optionLabel || variant.sku || "Variant";
 };
+
+const moveImage = (imageUrls, fromIndex, toIndex) => {
+  if (fromIndex === toIndex) {
+    return imageUrls;
+  }
+
+  const nextImageUrls = [...imageUrls];
+  const [movedImage] = nextImageUrls.splice(fromIndex, 1);
+
+  nextImageUrls.splice(toIndex, 0, movedImage);
+
+  return nextImageUrls;
+};
+
+const createLocalImagePreviews = (files = []) => {
+  return Array.from(files)
+    .filter((file) => file.type?.startsWith("image/"))
+    .map((file, index) => ({
+      id: `${file.name}-${file.lastModified}-${file.size}-${index}-${Date.now()}`,
+      name: file.name,
+      url: URL.createObjectURL(file),
+    }));
+};
+
+const revokeLocalImagePreviews = (previews = []) => {
+  previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+};
+
+const getVariantFromResponse = (response) => response?.data || null;
+
+const getVariantId = (variant) => variant?.id || variant?._id || "";
 
 const buildVariantFormFromVariant = (variant = {}) => {
   const optionValues = {};
@@ -188,8 +221,14 @@ const ProductVariantsPanel = ({
   const [editingValue, setEditingValue] = useState(EMPTY_VALUE_EDIT);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const busy = disabled || saving;
+  const [variantImageFiles, setVariantImageFiles] = useState([]);
+  const [variantImagePreviews, setVariantImagePreviews] = useState([]);
+  const [variantUploadingImages, setVariantUploadingImages] = useState(false);
+  const [draggedVariantImageIndex, setDraggedVariantImageIndex] = useState(null);
+  const variantImagePreviewsRef = useRef([]);
+  const busy = disabled || saving || variantUploadingImages;
   const isEditingVariant = Boolean(variantForm.id);
+  const variantImageUrls = useMemo(() => splitLines(variantForm.images), [variantForm.images]);
 
   const valueCount = useMemo(() => {
     return options.reduce((count, option) => count + (option.values?.length || 0), 0);
@@ -242,6 +281,23 @@ const ProductVariantsPanel = ({
     }
   }, [authToken, productId, showError]);
 
+  const clearVariantImageQueue = useCallback(() => {
+    setVariantImageFiles([]);
+    setDraggedVariantImageIndex(null);
+    setVariantImagePreviews((currentPreviews) => {
+      revokeLocalImagePreviews(currentPreviews);
+      return [];
+    });
+  }, []);
+
+  useEffect(() => {
+    variantImagePreviewsRef.current = variantImagePreviews;
+  }, [variantImagePreviews]);
+
+  useEffect(() => {
+    return () => revokeLocalImagePreviews(variantImagePreviewsRef.current);
+  }, []);
+
   useEffect(() => {
     loadVariantData();
   }, [loadVariantData]);
@@ -256,7 +312,8 @@ const ProductVariantsPanel = ({
     setEditingOptionId("");
     setEditingOptionName("");
     setEditingValue(EMPTY_VALUE_EDIT);
-  }, [productId]);
+    clearVariantImageQueue();
+  }, [clearVariantImageQueue, productId]);
 
   const handleOptionFormChange = (field, value) => {
     setOptionForm((currentForm) => ({
@@ -444,6 +501,96 @@ const ProductVariantsPanel = ({
     }));
   };
 
+  const handleVariantImagesChange = (imageUrls) => {
+    handleVariantFormChange("images", joinLines(imageUrls));
+  };
+
+  const queueVariantImageFiles = (files) => {
+    const fileList = Array.from(files || []);
+    const imageFiles = fileList.filter((file) => file.type?.startsWith("image/"));
+
+    if (fileList.length === 0) {
+      return [];
+    }
+
+    if (imageFiles.length === 0) {
+      showError("Only image files can be uploaded.");
+      return [];
+    }
+
+    if (imageFiles.length !== fileList.length) {
+      toast.warning("Non-image files were skipped.");
+    }
+
+    setVariantImageFiles((currentFiles) => [...currentFiles, ...imageFiles]);
+    setVariantImagePreviews((currentPreviews) => [
+      ...currentPreviews,
+      ...createLocalImagePreviews(imageFiles),
+    ]);
+    toast.success(
+      imageFiles.length === 1
+        ? "Variant image queued. It will upload after saving."
+        : `${imageFiles.length} variant images queued. They will upload after saving.`
+    );
+
+    return imageFiles;
+  };
+
+  const handleVariantFileInputChange = (event) => {
+    queueVariantImageFiles(event.target.files);
+    event.target.value = "";
+  };
+
+  const handleVariantUploadDragOver = (event) => {
+    if (editable && canCreateVariant) {
+      event.preventDefault();
+    }
+  };
+
+  const handleVariantUploadDrop = (event) => {
+    event.preventDefault();
+
+    if (!busy && editable && canCreateVariant) {
+      queueVariantImageFiles(event.dataTransfer.files);
+    }
+  };
+
+  const handleRemoveVariantImage = (index) => {
+    const nextImageUrls = [...variantImageUrls];
+
+    nextImageUrls.splice(index, 1);
+    handleVariantImagesChange(nextImageUrls);
+  };
+
+  const handleMoveVariantImage = (index, offset) => {
+    const targetIndex = index + offset;
+
+    if (targetIndex < 0 || targetIndex >= variantImageUrls.length) {
+      return;
+    }
+
+    handleVariantImagesChange(moveImage(variantImageUrls, index, targetIndex));
+  };
+
+  const handleSetPrimaryVariantImage = (index) => {
+    if (index === 0) {
+      return;
+    }
+
+    handleVariantImagesChange(moveImage(variantImageUrls, index, 0));
+  };
+
+  const handleVariantImageDrop = (event, targetIndex) => {
+    event.preventDefault();
+
+    if (!editable || draggedVariantImageIndex === null) {
+      return;
+    }
+
+    handleVariantImagesChange(moveImage(variantImageUrls, draggedVariantImageIndex, targetIndex));
+    setDraggedVariantImageIndex(null);
+  };
+
   const buildVariantPayload = () => {
     return {
       sku: variantForm.sku.trim(),
@@ -510,6 +657,22 @@ const ProductVariantsPanel = ({
     return "";
   };
 
+  const uploadQueuedVariantImages = async () => {
+    if (variantImageFiles.length === 0) {
+      return [];
+    }
+
+    setVariantUploadingImages(true);
+
+    try {
+      const uploadedImages = await uploadProductImages(authToken, variantImageFiles);
+
+      return uploadedImages.map((image) => image.url).filter(Boolean);
+    } finally {
+      setVariantUploadingImages(false);
+    }
+  };
+
   const handleSubmitVariant = async () => {
     const payload = buildVariantPayload();
     const validationError = validateVariantPayload(payload);
@@ -523,11 +686,47 @@ const ProductVariantsPanel = ({
 
     try {
       if (isEditingVariant) {
-        await updateProductVariant(authToken, productId, variantForm.id, payload);
+        const uploadedUrls = await uploadQueuedVariantImages();
+
+        await updateProductVariant(authToken, productId, variantForm.id, {
+          ...payload,
+          images: [
+            ...payload.images,
+            ...uploadedUrls,
+          ],
+        });
         toast.success("Product variant updated.");
+        clearVariantImageQueue();
       } else {
-        await createProductVariant(authToken, productId, payload);
+        const createResponse = await createProductVariant(authToken, productId, payload);
+        const createdVariant = getVariantFromResponse(createResponse);
+        const createdVariantId = getVariantId(createdVariant);
+
+        if (variantImageFiles.length > 0) {
+          if (!createdVariantId) {
+            toast.warning("Product variant created, but image upload was skipped.");
+          } else {
+            try {
+              const uploadedUrls = await uploadQueuedVariantImages();
+
+              await updateProductVariant(authToken, productId, createdVariantId, {
+                images: [
+                  ...payload.images,
+                  ...uploadedUrls,
+                ],
+              });
+            } catch (err) {
+              toast.warning(
+                err.message
+                  ? `Product variant created, but image upload failed: ${err.message}`
+                  : "Product variant created, but image upload failed."
+              );
+            }
+          }
+        }
+
         toast.success("Product variant created.");
+        clearVariantImageQueue();
       }
 
       setVariantForm(EMPTY_VARIANT_FORM);
@@ -543,6 +742,7 @@ const ProductVariantsPanel = ({
 
   const handleEditVariant = (variant) => {
     setVariantForm(buildVariantFormFromVariant(variant));
+    clearVariantImageQueue();
     setVariantFormOpen(true);
   };
 
@@ -574,6 +774,7 @@ const ProductVariantsPanel = ({
       toast.success("Product variant deleted.");
       if (variantForm.id === variantId) {
         setVariantForm(EMPTY_VARIANT_FORM);
+        clearVariantImageQueue();
         setVariantFormOpen(false);
       }
       await loadVariantData();
@@ -669,6 +870,7 @@ const ProductVariantsPanel = ({
               startIcon={<AddIcon />}
               onClick={() => {
                 setVariantForm(EMPTY_VARIANT_FORM);
+                clearVariantImageQueue();
                 setVariantFormOpen(true);
               }}
               disabled={busy || !canCreateVariant}
@@ -706,6 +908,7 @@ const ProductVariantsPanel = ({
                   size="small"
                   onClick={() => {
                     setVariantForm(EMPTY_VARIANT_FORM);
+                    clearVariantImageQueue();
                     setVariantFormOpen(false);
                   }}
                   disabled={busy}
@@ -766,16 +969,21 @@ const ProductVariantsPanel = ({
                 ))}
               </Stack>
 
-              <TextField
-                label="Variant image URLs"
-                value={variantForm.images}
-                onChange={(event) => handleVariantFormChange("images", event.target.value)}
-                disabled={busy || !canCreateVariant}
-                fullWidth
-                multiline
-                minRows={2}
-                size="small"
-                helperText="One image URL per line."
+              <VariantMediaField
+                busy={busy || !canCreateVariant}
+                draggedImageIndex={draggedVariantImageIndex}
+                editable={editable && canCreateVariant}
+                imageUrls={variantImageUrls}
+                localImagePreviews={variantImagePreviews}
+                uploadingImages={variantUploadingImages}
+                onFileInputChange={handleVariantFileInputChange}
+                onImageDrop={handleVariantImageDrop}
+                onMoveImage={handleMoveVariantImage}
+                onRemoveImage={handleRemoveVariantImage}
+                onSetDraggedImageIndex={setDraggedVariantImageIndex}
+                onSetPrimaryImage={handleSetPrimaryVariantImage}
+                onUploadDragOver={handleVariantUploadDragOver}
+                onUploadDrop={handleVariantUploadDrop}
               />
 
               <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
@@ -896,6 +1104,7 @@ const ProductVariantsPanel = ({
                   startIcon={<CloseIcon />}
                   onClick={() => {
                     setVariantForm(EMPTY_VARIANT_FORM);
+                    clearVariantImageQueue();
                     setVariantFormOpen(false);
                   }}
                   disabled={busy}

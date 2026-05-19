@@ -125,6 +125,8 @@ const ProductDetailsForm = ({
   const [draggedImageIndex, setDraggedImageIndex] = useState(null);
   const [localImagePreviews, setLocalImagePreviews] = useState([]);
   const [localImageUploadFailed, setLocalImageUploadFailed] = useState(false);
+  const [actionBarBounds, setActionBarBounds] = useState(null);
+  const formRootRef = useRef(null);
   const openIdentityRef = useRef("");
   const localImagePreviewsRef = useRef([]);
   const imageUrls = useMemo(() => splitImageUrls(formData.imageUrls), [formData.imageUrls]);
@@ -181,6 +183,62 @@ const ProductDetailsForm = ({
   useEffect(() => {
     return () => revokeLocalImagePreviews(localImagePreviewsRef.current);
   }, []);
+
+  useEffect(() => {
+    if (!showActionBar || !formRootRef.current) {
+      setActionBarBounds(null);
+      return undefined;
+    }
+
+    let frameId = 0;
+
+    const updateActionBarBounds = () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+
+      frameId = requestAnimationFrame(() => {
+        const rect = formRootRef.current?.getBoundingClientRect();
+
+        if (!rect) {
+          return;
+        }
+
+        const left = Math.max(rect.left, 0);
+        const width = Math.min(rect.width, window.innerWidth - left);
+
+        setActionBarBounds((currentBounds) => {
+          if (
+            currentBounds &&
+            Math.abs(currentBounds.left - left) < 0.5 &&
+            Math.abs(currentBounds.width - width) < 0.5
+          ) {
+            return currentBounds;
+          }
+
+          return { left, width };
+        });
+      });
+    };
+
+    updateActionBarBounds();
+
+    const resizeObserver = typeof ResizeObserver === "undefined"
+      ? null
+      : new ResizeObserver(updateActionBarBounds);
+
+    resizeObserver?.observe(formRootRef.current);
+    window.addEventListener("resize", updateActionBarBounds);
+
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateActionBarBounds);
+    };
+  }, [showActionBar]);
 
   const toggleEditing = () => {
     if (!busy && isEditingProduct) {
@@ -335,7 +393,7 @@ const ProductDetailsForm = ({
   };
 
   return (
-    <Box sx={{ pb: showActionBar ? 8 : 0 }}>
+    <Box ref={formRootRef} sx={{ pb: showActionBar ? 8 : 0 }}>
         <Stack spacing={2.5}>
           <Stack spacing={2}>
             <DetailPanel
@@ -647,19 +705,24 @@ const ProductDetailsForm = ({
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            px: 2,
+            px: { xs: 2, md: 4 },
             py: 1,
             bgcolor: "background.paper",
             border: "1px solid",
+            borderLeft: 0,
+            borderRight: 0,
+            borderBottom: 0,
             borderColor: "divider",
-            borderRadius: 1,
+            borderRadius: 0,
             position: "fixed",
-            right: { xs: 16, md: 32 },
-            bottom: 25,
-            left: { xs: 16, md: "auto" },
-            width: { xs: "auto", md: "min(960px, calc(100vw - 64px))" },
+            left: actionBarBounds ? `${actionBarBounds.left}px` : 0,
+            bottom: 30,
+            width: actionBarBounds ? `${actionBarBounds.width}px` : "100%",
+            boxSizing: "border-box",
             zIndex: 10,
-            boxShadow: 2,
+            boxShadow: 6,
+            gap: 1,
+            visibility: actionBarBounds ? "visible" : "hidden",
           }}
         >
           <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
@@ -673,7 +736,7 @@ const ProductDetailsForm = ({
             ) : null}
           </Stack>
 
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} sx={{ flexShrink: 0 }}>
             <Button onClick={onClose} size="small" disabled={busy}>
               Cancel
             </Button>
@@ -683,6 +746,7 @@ const ProductDetailsForm = ({
               size="small"
               disabled={busy || (isEditingProduct && !hasChangesToSave)}
               startIcon={saving ? <CircularProgress color="inherit" size={16} /> : null}
+              sx={{ minWidth: 128, whiteSpace: "nowrap" }}
             >
               {isEditingProduct ? "Save Changes" : "Create Product"}
             </Button>
