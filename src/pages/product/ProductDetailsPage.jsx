@@ -46,6 +46,20 @@ const EMPTY_FORM = {
   imageUrls: "",
   tags: "",
   attributes: [],
+  shippingRequiresShipping: true,
+  shippingWeightValue: "",
+  shippingWeightUnit: "kg",
+  shippingLength: "",
+  shippingWidth: "",
+  shippingHeight: "",
+  shippingDimensionUnit: "cm",
+  shippingClass: "",
+  shippingFreeShippingEligible: false,
+  seoTitle: "",
+  seoDescription: "",
+  seoKeywords: "",
+  seoCanonicalUrl: "",
+  seoNoIndex: false,
   hasVariants: false,
   isFeatured: false,
 };
@@ -78,6 +92,30 @@ const buildPayload = (formData) => {
     images: splitLines(formData.imageUrls),
     tags: splitCommaSeparatedValues(formData.tags),
     attributes: normalizeAttributes(formData.attributes),
+    shipping: {
+      requiresShipping: Boolean(formData.shippingRequiresShipping),
+      weight: {
+        value: formData.shippingWeightValue === "" ? null : formData.shippingWeightValue,
+        unit: formData.shippingWeightUnit,
+      },
+      dimensions: {
+        length: formData.shippingLength === "" ? null : formData.shippingLength,
+        width: formData.shippingWidth === "" ? null : formData.shippingWidth,
+        height: formData.shippingHeight === "" ? null : formData.shippingHeight,
+        unit: formData.shippingDimensionUnit,
+      },
+      shippingClass: normalizeText(formData.shippingClass),
+      isFreeShippingEligible: Boolean(formData.shippingFreeShippingEligible),
+    },
+    seo: {
+      title: normalizeText(formData.seoTitle),
+      description: normalizeText(formData.seoDescription),
+      keywords: splitCommaSeparatedValues(formData.seoKeywords),
+      canonicalUrl: normalizeText(formData.seoCanonicalUrl),
+      noIndex: Boolean(formData.seoNoIndex),
+    },
+    metaTitle: normalizeText(formData.seoTitle),
+    metaDescription: normalizeText(formData.seoDescription),
     hasVariants: Boolean(formData.hasVariants),
     isFeatured: Boolean(formData.isFeatured),
   };
@@ -96,6 +134,9 @@ const getProductFromResponse = (response) => response?.data || null;
 const getProductId = (product) => product?.id || product?._id || "";
 
 const productToFormData = (product) => {
+  const shipping = product.shipping || {};
+  const seo = product.seo || {};
+
   return {
     name: product.name || "",
     slug: product.slug || "",
@@ -113,6 +154,28 @@ const productToFormData = (product) => {
     imageUrls: Array.isArray(product.images) ? product.images.join("\n") : "",
     tags: Array.isArray(product.tags) ? product.tags.join(", ") : "",
     attributes: normalizeAttributes(product.attributes),
+    shippingRequiresShipping: shipping.requiresShipping !== false,
+    shippingWeightValue: shipping.weight?.value === null || shipping.weight?.value === undefined
+      ? ""
+      : String(shipping.weight.value),
+    shippingWeightUnit: shipping.weight?.unit || "kg",
+    shippingLength: shipping.dimensions?.length === null || shipping.dimensions?.length === undefined
+      ? ""
+      : String(shipping.dimensions.length),
+    shippingWidth: shipping.dimensions?.width === null || shipping.dimensions?.width === undefined
+      ? ""
+      : String(shipping.dimensions.width),
+    shippingHeight: shipping.dimensions?.height === null || shipping.dimensions?.height === undefined
+      ? ""
+      : String(shipping.dimensions.height),
+    shippingDimensionUnit: shipping.dimensions?.unit || "cm",
+    shippingClass: shipping.shippingClass || "",
+    shippingFreeShippingEligible: Boolean(shipping.isFreeShippingEligible),
+    seoTitle: seo.title || product.metaTitle || "",
+    seoDescription: seo.description || product.metaDescription || "",
+    seoKeywords: Array.isArray(seo.keywords) ? seo.keywords.join(", ") : "",
+    seoCanonicalUrl: seo.canonicalUrl || "",
+    seoNoIndex: Boolean(seo.noIndex),
     hasVariants: Boolean(product.hasVariants),
     isFeatured: Boolean(product.isFeatured),
   };
@@ -320,6 +383,12 @@ const ProductDetailsPage = ({ mode }) => {
   const validatePayload = (payload) => {
     const basePrice = Number(payload.basePrice);
     const salePrice = payload.salePrice === null ? null : Number(payload.salePrice);
+    const optionalShippingNumbers = [
+      ["Shipping weight", payload.shipping?.weight?.value],
+      ["Shipping length", payload.shipping?.dimensions?.length],
+      ["Shipping width", payload.shipping?.dimensions?.width],
+      ["Shipping height", payload.shipping?.dimensions?.height],
+    ];
 
     if (!payload.name) {
       return "Product name is required.";
@@ -356,6 +425,18 @@ const ProductDetailsPage = ({ mode }) => {
 
     if (hasDuplicateAttributeNames) {
       return "Attribute names must be unique.";
+    }
+
+    for (const [label, value] of optionalShippingNumbers) {
+      if (value === null || value === undefined || value === "") {
+        continue;
+      }
+
+      const numberValue = Number(value);
+
+      if (!Number.isFinite(numberValue) || numberValue < 0) {
+        return `${label} must be a valid non-negative number.`;
+      }
     }
 
     return "";

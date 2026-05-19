@@ -20,6 +20,8 @@ import EditIcon from "@mui/icons-material/Edit";
 import { splitCommaSeparatedValues } from "@/lib/utils/adminShared";
 import ProductAttributesPanel from "./ProductAttributesPanel";
 import ProductImageSection from "./ProductImageSection";
+import ProductSeoPanel from "./ProductSeoPanel";
+import ProductShippingPanel from "./ProductShippingPanel";
 import ReadOnlyField from "./ReadOnlyField";
 import ProductVariantsPanel from "./ProductVariantsPanel";
 import DetailPanel from "./DetailPanel";
@@ -670,6 +672,13 @@ const ProductDetailsForm = ({
               onUploadDrop={handleUploadDrop}
             />
 
+            <ProductShippingPanel
+              busy={busy}
+              editable={editable}
+              formData={formData}
+              onChange={onChange}
+            />
+
             <ProductAttributesPanel
               attributeRows={attributeRows}
               busy={busy}
@@ -678,6 +687,13 @@ const ProductDetailsForm = ({
               onAddAttribute={handleAddAttribute}
               onAttributeChange={handleAttributeChange}
               onRemoveAttribute={handleRemoveAttribute}
+            />
+
+            <ProductSeoPanel
+              busy={busy}
+              editable={editable}
+              formData={formData}
+              onChange={onChange}
             />
 
             {formData.hasVariants || variantsOpen ? (

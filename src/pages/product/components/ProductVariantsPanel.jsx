@@ -58,15 +58,6 @@ const EMPTY_VARIANT_FORM = {
   salePrice: "",
   images: "",
   isActive: true,
-  requiresShipping: true,
-  weightValue: "",
-  weightUnit: "kg",
-  length: "",
-  width: "",
-  height: "",
-  dimensionUnit: "cm",
-  shippingClass: "",
-  isFreeShippingEligible: false,
 };
 
 const cardSx = {
@@ -152,23 +143,6 @@ const buildVariantFormFromVariant = (variant = {}) => {
     salePrice: variant.salePrice === null || variant.salePrice === undefined ? "" : String(variant.salePrice),
     images: Array.isArray(variant.images) ? joinLines(variant.images) : "",
     isActive: variant.isActive !== false,
-    requiresShipping: variant.shipping?.requiresShipping !== false,
-    weightValue: variant.shipping?.weight?.value === null || variant.shipping?.weight?.value === undefined
-      ? ""
-      : String(variant.shipping.weight.value),
-    weightUnit: variant.shipping?.weight?.unit || "kg",
-    length: variant.shipping?.dimensions?.length === null || variant.shipping?.dimensions?.length === undefined
-      ? ""
-      : String(variant.shipping.dimensions.length),
-    width: variant.shipping?.dimensions?.width === null || variant.shipping?.dimensions?.width === undefined
-      ? ""
-      : String(variant.shipping.dimensions.width),
-    height: variant.shipping?.dimensions?.height === null || variant.shipping?.dimensions?.height === undefined
-      ? ""
-      : String(variant.shipping.dimensions.height),
-    dimensionUnit: variant.shipping?.dimensions?.unit || "cm",
-    shippingClass: variant.shipping?.shippingClass || "",
-    isFreeShippingEligible: Boolean(variant.shipping?.isFreeShippingEligible),
   };
 };
 
@@ -179,21 +153,6 @@ const buildVariantPayloadFromVariant = (variant = {}, changes = {}) => ({
   salePrice: variant.salePrice === undefined ? null : variant.salePrice,
   images: Array.isArray(variant.images) ? variant.images : [],
   isActive: variant.isActive !== false,
-  shipping: {
-    requiresShipping: variant.shipping?.requiresShipping !== false,
-    weight: {
-      value: variant.shipping?.weight?.value ?? null,
-      unit: variant.shipping?.weight?.unit || "kg",
-    },
-    dimensions: {
-      length: variant.shipping?.dimensions?.length ?? null,
-      width: variant.shipping?.dimensions?.width ?? null,
-      height: variant.shipping?.dimensions?.height ?? null,
-      unit: variant.shipping?.dimensions?.unit || "cm",
-    },
-    shippingClass: variant.shipping?.shippingClass || "",
-    isFreeShippingEligible: Boolean(variant.shipping?.isFreeShippingEligible),
-  },
   ...changes,
 });
 
@@ -604,21 +563,6 @@ const ProductVariantsPanel = ({
       salePrice: variantForm.salePrice === "" ? null : variantForm.salePrice,
       images: splitLines(variantForm.images),
       isActive: Boolean(variantForm.isActive),
-      shipping: {
-        requiresShipping: Boolean(variantForm.requiresShipping),
-        weight: {
-          value: variantForm.weightValue === "" ? null : variantForm.weightValue,
-          unit: variantForm.weightUnit,
-        },
-        dimensions: {
-          length: variantForm.length === "" ? null : variantForm.length,
-          width: variantForm.width === "" ? null : variantForm.width,
-          height: variantForm.height === "" ? null : variantForm.height,
-          unit: variantForm.dimensionUnit,
-        },
-        shippingClass: variantForm.shippingClass.trim(),
-        isFreeShippingEligible: Boolean(variantForm.isFreeShippingEligible),
-      },
     };
   };
 
@@ -997,106 +941,6 @@ const ProductVariantsPanel = ({
                   )}
                   label="Available"
                 />
-                <FormControlLabel
-                  control={(
-                    <Switch
-                      checked={variantForm.requiresShipping}
-                      onChange={(event) => handleVariantFormChange("requiresShipping", event.target.checked)}
-                      disabled={busy || !canCreateVariant}
-                    />
-                  )}
-                  label="Requires shipping"
-                />
-                <FormControlLabel
-                  control={(
-                    <Switch
-                      checked={variantForm.isFreeShippingEligible}
-                      onChange={(event) => handleVariantFormChange("isFreeShippingEligible", event.target.checked)}
-                      disabled={busy || !canCreateVariant}
-                    />
-                  )}
-                  label="Free shipping"
-                />
-              </Stack>
-
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-                <TextField
-                  label="Weight"
-                  type="number"
-                  value={variantForm.weightValue}
-                  onChange={(event) => handleVariantFormChange("weightValue", event.target.value)}
-                  disabled={busy || !canCreateVariant}
-                  fullWidth
-                  size="small"
-                  inputProps={{ min: 0, step: "0.01" }}
-                />
-                <TextField
-                  select
-                  label="Weight Unit"
-                  value={variantForm.weightUnit}
-                  onChange={(event) => handleVariantFormChange("weightUnit", event.target.value)}
-                  disabled={busy || !canCreateVariant}
-                  fullWidth
-                  size="small"
-                >
-                  {["kg", "g", "lb", "oz"].map((unit) => (
-                    <MenuItem key={unit} value={unit}>{unit}</MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  label="Shipping Class"
-                  value={variantForm.shippingClass}
-                  onChange={(event) => handleVariantFormChange("shippingClass", event.target.value)}
-                  disabled={busy || !canCreateVariant}
-                  fullWidth
-                  size="small"
-                />
-              </Stack>
-
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1}>
-                <TextField
-                  label="Length"
-                  type="number"
-                  value={variantForm.length}
-                  onChange={(event) => handleVariantFormChange("length", event.target.value)}
-                  disabled={busy || !canCreateVariant}
-                  fullWidth
-                  size="small"
-                  inputProps={{ min: 0, step: "0.01" }}
-                />
-                <TextField
-                  label="Width"
-                  type="number"
-                  value={variantForm.width}
-                  onChange={(event) => handleVariantFormChange("width", event.target.value)}
-                  disabled={busy || !canCreateVariant}
-                  fullWidth
-                  size="small"
-                  inputProps={{ min: 0, step: "0.01" }}
-                />
-                <TextField
-                  label="Height"
-                  type="number"
-                  value={variantForm.height}
-                  onChange={(event) => handleVariantFormChange("height", event.target.value)}
-                  disabled={busy || !canCreateVariant}
-                  fullWidth
-                  size="small"
-                  inputProps={{ min: 0, step: "0.01" }}
-                />
-                <TextField
-                  select
-                  label="Unit"
-                  value={variantForm.dimensionUnit}
-                  onChange={(event) => handleVariantFormChange("dimensionUnit", event.target.value)}
-                  disabled={busy || !canCreateVariant}
-                  fullWidth
-                  size="small"
-                >
-                  {["cm", "in"].map((unit) => (
-                    <MenuItem key={unit} value={unit}>{unit}</MenuItem>
-                  ))}
-                </TextField>
               </Stack>
 
               <Stack direction="row" spacing={1} justifyContent="flex-end">
