@@ -6,16 +6,12 @@ import {
   Chip,
   CircularProgress,
   FormControlLabel,
-  IconButton,
   MenuItem,
   Stack,
   Switch,
   TextField,
-  Tooltip,
   Typography,
 } from "@mui/material";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import EditIcon from "@mui/icons-material/Edit";
 import SaveIcon from "@mui/icons-material/Save";
 
 import { splitCommaSeparatedValues } from "@/lib/utils/adminShared";
@@ -108,14 +104,13 @@ const getCategoryLabel = (categoryRows, categoryId) => {
 const ProductDetailsPanel = memo(function ProductDetailsPanel({
   action,
   discountPercent,
-  displayName,
   editable,
   formData,
   onChange,
 }) {
   return (
     <DetailPanel
-      title={editable ? "Product details" : displayName}
+      title="Product details"
       action={action}
       accentColor="primary"
     >
@@ -179,6 +174,7 @@ const ProductDetailsPanel = memo(function ProductDetailsPanel({
         </Stack>
       ) : (
         <Stack spacing={2}>
+          <ReadOnlyField label="Title" value={formData.name} />
           <ReadOnlyField label="Description" value={formData.description} multiline />
           <ReadOnlyField label="Short Description" value={formData.shortDescription} multiline />
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -416,7 +412,6 @@ const ProductDetailsForm = ({
   onAttributesChange,
   onSelectImageFiles,
   onVariantsChanged,
-  onEditModeToggle,
   imageQueueResetKey,
   hideSubmitWhenReadOnly = false,
   onSubmit,
@@ -642,7 +637,6 @@ const ProductDetailsForm = ({
   const footerWarningLabel = hasQueuedImages
     ? `${localImagePreviews.length} image${localImagePreviews.length === 1 ? "" : "s"} queued for upload`
     : "Unsaved changes";
-  const displayName = detailsFormData.name || "Untitled product";
   const displayStatus = settingsFormData.status || "draft";
   const displayCategory = getCategoryLabel(categoryRows, organizationFormData.categoryId);
   const discountPercent = getDiscountPercent(detailsFormData.basePrice, detailsFormData.salePrice);
@@ -739,39 +733,6 @@ const ProductDetailsForm = ({
     };
   }, [showActionBar]);
 
-  const toggleEditing = useCallback(() => {
-    if (!busy && isEditingProduct) {
-      if (onEditModeToggle) {
-        onEditModeToggle();
-        return;
-      }
-
-      setDetailsEditable((currentValue) => !currentValue);
-    }
-  }, [busy, isEditingProduct, onEditModeToggle]);
-
-  const editModeToggleAction = useMemo(() => {
-    if (!isEditingProduct) {
-      return null;
-    }
-
-    return (
-      <Tooltip title={editable ? "View product" : "Edit product"}>
-        <span>
-          <IconButton
-            size="small"
-            onClick={toggleEditing}
-            disabled={busy}
-            aria-label={editable ? "View product" : "Edit product"}
-            sx={{ flexShrink: 0 }}
-          >
-            {editable ? <VisibilityIcon fontSize="small" /> : <EditIcon fontSize="small" />}
-          </IconButton>
-        </span>
-      </Tooltip>
-    );
-  }, [busy, editable, isEditingProduct, toggleEditing]);
-
   const getSectionSaveButton = useCallback((sectionId, sectionHasChanges) => {
     if (!isEditingProduct || !editable || !onSubmitSection) {
       return null;
@@ -821,19 +782,6 @@ const ProductDetailsForm = ({
     () => getSectionSaveButton(PRODUCT_FORM_SECTION_IDS.SEO, seoDirty),
     [getSectionSaveButton, seoDirty]
   );
-
-  const detailPanelAction = useMemo(() => {
-    if (!editModeToggleAction && !detailsSaveAction) {
-      return null;
-    }
-
-    return (
-      <Stack direction="row" spacing={1} alignItems="center">
-        {editModeToggleAction}
-        {detailsSaveAction}
-      </Stack>
-    );
-  }, [detailsSaveAction, editModeToggleAction]);
 
   const uploadFilesWithLocalPreviews = useCallback(async (files) => {
     const fileList = Array.from(files || []);
@@ -959,9 +907,8 @@ const ProductDetailsForm = ({
       <Stack spacing={2.5}>
         <Stack spacing={2}>
           <ProductDetailsPanel
-            action={detailPanelAction}
+            action={detailsSaveAction}
             discountPercent={discountPercent}
-            displayName={displayName}
             editable={editable}
             formData={detailsFormData}
             onChange={onChange}

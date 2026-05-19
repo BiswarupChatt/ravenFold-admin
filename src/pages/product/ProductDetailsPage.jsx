@@ -11,6 +11,8 @@ import {
   Typography,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import EditIcon from "@mui/icons-material/Edit";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import { fetchAdminCategoryTree } from "@/lib/api/categoryApi";
 import {
@@ -406,18 +408,6 @@ const getPageTitle = (mode, product) => {
   return product?.name || "Product Details";
 };
 
-const getModeLabel = (mode) => {
-  if (mode === "create") {
-    return "New product";
-  }
-
-  if (mode === "edit") {
-    return "Editing";
-  }
-
-  return "Viewing";
-};
-
 const ProductDetailsPage = ({ mode }) => {
   const { productId } = useParams();
   const navigate = useNavigate();
@@ -808,10 +798,20 @@ const ProductDetailsPage = ({ mode }) => {
               <Typography variant="h5" fontWeight={800} noWrap>
                 {getPageTitle(mode, editingProduct)}
               </Typography>
-              <Chip label={getModeLabel(mode)} size="small" />
             </Stack>
           </Box>
         </Stack>
+        {!isCreateMode && editingProduct?.id ? (
+          <Button
+            variant="outlined"
+            startIcon={isViewMode ? <EditIcon /> : <VisibilityIcon />}
+            onClick={handleEditModeToggle}
+            disabled={saving || Boolean(savingSection) || uploadingImages}
+            sx={{ alignSelf: { xs: "flex-end", sm: "center" }, whiteSpace: "nowrap" }}
+          >
+            {isViewMode ? "Edit" : "View"}
+          </Button>
+        ) : null}
       </Stack>
 
       <ProductDetailsForm
@@ -834,7 +834,6 @@ const ProductDetailsPage = ({ mode }) => {
         onAttributesChange={handleAttributesChange}
         onSelectImageFiles={handleSelectImageFiles}
         onVariantsChanged={handleVariantsChanged}
-        onEditModeToggle={handleEditModeToggle}
         imageQueueResetKey={imageQueueResetKey}
         hideSubmitWhenReadOnly
         onSubmit={handleSubmit}
