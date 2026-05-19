@@ -596,9 +596,6 @@ const ProductDetailsPage = ({ mode }) => {
               </Typography>
               <Chip label={getModeLabel(mode)} size="small" />
             </Stack>
-            <Typography variant="body2" color="text.secondary">
-              Manage product details, media, organization, and variants.
-            </Typography>
           </Box>
         </Stack>
       </Stack>
