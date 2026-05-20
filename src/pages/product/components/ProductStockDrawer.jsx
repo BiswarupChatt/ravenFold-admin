@@ -325,6 +325,7 @@ const ProductStockDrawer = ({
       setAdjustmentForm(EMPTY_ADJUSTMENT_FORM);
       toast.success("Inventory adjusted.");
       onCreated?.();
+      onClose();
     } catch (err) {
       setError(err.message || "Failed to adjust inventory.");
     } finally {
@@ -360,6 +361,7 @@ const ProductStockDrawer = ({
       setStockForm(buildStockFormFromStock(updatedStock));
       toast.success("Inventory stock updated.");
       onCreated?.();
+      onClose();
     } catch (err) {
       setError(err.message || "Failed to update inventory stock.");
     } finally {

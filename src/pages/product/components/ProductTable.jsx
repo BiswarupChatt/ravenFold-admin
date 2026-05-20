@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Chip,
   IconButton,
   Stack,
@@ -8,7 +7,7 @@ import {
   Typography,
 } from "@mui/material";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import Inventory2Icon from "@mui/icons-material/Inventory2";
+import AddBusinessIcon from '@mui/icons-material/AddBusiness';
 
 import DataTable from "@/components/DataTable";
 
@@ -191,17 +190,14 @@ const ProductTable = ({
       id: "actions",
       header: "Actions",
       align: "right",
-      minWidth: 210,
+      minWidth: 130,
       render: (product) => (
         <Stack direction="row" spacing={0.75} justifyContent="flex-end" alignItems="center">
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<Inventory2Icon fontSize="small" />}
-            onClick={() => onAddStock(product)}
-          >
-            Add stock
-          </Button>
+          <Tooltip title="Add stock">
+            <IconButton size="small" color="primary" aria-label="Add stock" onClick={() => onAddStock(product)}>
+              <AddBusinessIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
           <Tooltip title="Delete product">
             <IconButton size="small" color="error" onClick={() => onDelete(product)}>
               <DeleteOutlineIcon fontSize="small" />
@@ -220,7 +216,7 @@ const ProductTable = ({
       error={error}
       loadingMessage="Loading products..."
       emptyMessage="No products found."
-      minWidth={1380}
+      minWidth={1300}
       pagination={{
         ...pagination,
         onPageChange,
