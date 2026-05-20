@@ -14,6 +14,33 @@ import SyncAltIcon from "@mui/icons-material/SyncAlt";
 import DataTable from "@/components/DataTable";
 import { formatDateTime, formatNumber, getVariantLabel } from "./inventoryFormatters";
 
+const getStockStatus = (stock) => {
+  if (!stock.trackInventory) {
+    return { label: "Untracked", color: "default" };
+  }
+
+  if (stock.isLowStock) {
+    return { label: "Low stock", color: "warning" };
+  }
+
+  if (Number(stock.availableQuantity || 0) <= 0) {
+    return { label: stock.allowBackorder ? "Backorder" : "Out of stock", color: "error" };
+  }
+
+  return { label: "Healthy", color: "success" };
+};
+
+const getAvailabilityPercent = (stock) => {
+  const stockOnHand = Number(stock.stockOnHand || 0);
+  const availableQuantity = Number(stock.availableQuantity || 0);
+
+  if (stockOnHand <= 0) {
+    return 0;
+  }
+
+  return Math.min(Math.max((availableQuantity / stockOnHand) * 100, 0), 100);
+};
+
 const InventoryTable = ({
   rows,
   loading,
@@ -29,33 +56,76 @@ const InventoryTable = ({
     {
       id: "target",
       header: "Item",
-      minWidth: 280,
+      minWidth: 320,
       render: (stock) => (
-        <Box sx={{ minWidth: 0 }}>
+        <Stack spacing={0.75} sx={{ minWidth: 0 }}>
           <Typography variant="body2" fontWeight={700}>
             {stock.product?.name || stock.productId || "-"}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {stock.variant ? getVariantLabel(stock.variant) : stock.product?.sku || "Simple product"}
-          </Typography>
-        </Box>
+          <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
+            <Typography variant="caption" color="text.secondary">
+              {stock.variant ? getVariantLabel(stock.variant) : stock.product?.sku || "Simple product"}
+            </Typography>
+          </Stack>
+        </Stack>
       ),
     },
     {
-      id: "stock",
-      header: "Stock",
-      minWidth: 220,
+      id: "availability",
+      header: "Availability",
+      minWidth: 240,
+      render: (stock) => {
+        const percent = getAvailabilityPercent(stock);
+        const barColor = stock.isLowStock ? "warning.main" : "success.main";
+
+        return (
+          <Stack spacing={0.75}>
+            <Stack direction="row" justifyContent="space-between" alignItems="baseline" spacing={1}>
+              <Typography variant="body2" fontWeight={700}>
+                {formatNumber(stock.availableQuantity)}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                available
+              </Typography>
+            </Stack>
+            <Box sx={{ height: 6, borderRadius: 999, bgcolor: "action.hover", overflow: "hidden" }}>
+              <Box
+                sx={{
+                  width: `${percent}%`,
+                  minWidth: percent > 0 ? 8 : 0,
+                  height: "100%",
+                  borderRadius: 999,
+                  bgcolor: barColor,
+                }}
+              />
+            </Box>
+            <Typography variant="caption" color="text.secondary">
+              {formatNumber(stock.stockOnHand)} on hand
+            </Typography>
+          </Stack>
+        );
+      },
+    },
+    {
+      id: "stockOnHand",
+      header: "On Hand",
+      align: "right",
+      minWidth: 110,
       render: (stock) => (
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          <Chip size="small" label={`On hand ${formatNumber(stock.stockOnHand)}`} />
-          <Chip size="small" label={`Reserved ${formatNumber(stock.reservedQuantity)}`} variant="outlined" />
-          <Chip
-            size="small"
-            label={`Available ${formatNumber(stock.availableQuantity)}`}
-            color={stock.isLowStock ? "warning" : "success"}
-            variant={stock.isLowStock ? "filled" : "outlined"}
-          />
-        </Stack>
+        <Typography variant="body2" fontWeight={700}>
+          {formatNumber(stock.stockOnHand)}
+        </Typography>
+      ),
+    },
+    {
+      id: "reserved",
+      header: "Reserved",
+      align: "right",
+      minWidth: 110,
+      render: (stock) => (
+        <Typography variant="body2" color={stock.reservedQuantity > 0 ? "warning.main" : "text.primary"}>
+          {formatNumber(stock.reservedQuantity)}
+        </Typography>
       ),
     },
     {
@@ -66,20 +136,28 @@ const InventoryTable = ({
       render: (stock) => formatNumber(stock.lowStockThreshold),
     },
     {
-      id: "tracking",
-      header: "Tracking",
-      minWidth: 160,
-      render: (stock) => (
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
-          <Chip
-            size="small"
-            label={stock.trackInventory ? "Tracked" : "Untracked"}
-            color={stock.trackInventory ? "primary" : "default"}
-            variant={stock.trackInventory ? "filled" : "outlined"}
-          />
-          {stock.allowBackorder ? <Chip size="small" label="Backorder" color="warning" /> : null}
-        </Stack>
-      ),
+      id: "status",
+      header: "Status",
+      minWidth: 130,
+      render: (stock) => {
+        const status = getStockStatus(stock);
+
+        return (
+          <Stack spacing={0.75} alignItems="flex-start">
+            <Chip
+              size="small"
+              label={status.label}
+              color={status.color}
+              variant={status.color === "default" ? "outlined" : "filled"}
+            />
+            {stock.allowBackorder && status.label !== "Backorder" ? (
+              <Typography variant="caption" color="text.secondary">
+                Backorder allowed
+              </Typography>
+            ) : null}
+          </Stack>
+        );
+      },
     },
     {
       id: "updatedAt",
@@ -133,7 +211,7 @@ const InventoryTable = ({
       loading={loading}
       loadingMessage="Loading inventory..."
       emptyMessage="No inventory stock records found."
-      minWidth={1220}
+      minWidth={1360}
       pagination={{
         ...pagination,
         onPageChange,
