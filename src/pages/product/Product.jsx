@@ -29,6 +29,7 @@ import {
 import { useToast } from "@/hooks/ToastContext";
 import ROUTES from "@/routes/routes";
 import DeleteProductModal from "./components/DeleteProductModal";
+import ProductStockDrawer from "./components/ProductStockDrawer";
 import ProductTable from "./components/ProductTable";
 
 const flattenCategoryTree = (items = [], depth = 0) => {
@@ -56,6 +57,7 @@ const Product = () => {
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
+  const [stockProduct, setStockProduct] = useState(null);
   const [deletingProduct, setDeletingProduct] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -247,12 +249,20 @@ const Product = () => {
             loading={loading}
             pagination={pagination}
             onView={handleViewProduct}
+            onAddStock={setStockProduct}
             onDelete={setDeletingProduct}
             onPageChange={handleTablePageChange}
             onRowsPerPageChange={handleRowsPerPageChange}
           />
         </Box>
       </Paper>
+
+      <ProductStockDrawer
+        authToken={authToken}
+        open={Boolean(stockProduct)}
+        product={stockProduct}
+        onClose={() => setStockProduct(null)}
+      />
 
       <DeleteProductModal
         open={Boolean(deletingProduct)}

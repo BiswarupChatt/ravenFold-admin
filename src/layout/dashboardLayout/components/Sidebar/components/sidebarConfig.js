@@ -31,7 +31,7 @@ export const SIDEBAR_ITEMS = [
   },
   {
     name: "Inventory",
-    path: "/inventory",
+    path: ROUTES.INVENTORY,
     icon: WarehouseIcon,
   },
   {
