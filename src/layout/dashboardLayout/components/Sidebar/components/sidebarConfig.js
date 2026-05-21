@@ -36,7 +36,7 @@ export const SIDEBAR_ITEMS = [
   },
   {
     name: "Cart",
-    path: "/cart",
+    path: ROUTES.CART,
     icon: ShoppingCartIcon,
   },
   {

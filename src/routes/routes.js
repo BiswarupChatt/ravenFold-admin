@@ -8,6 +8,7 @@ const ROUTES = {
   CATEGORY: "/category",
   PRODUCT: "/product",
   INVENTORY: "/inventory",
+  CART: "/cart",
   CUSTOMER: "/customer",
 
   NOT_FOUND: "*",

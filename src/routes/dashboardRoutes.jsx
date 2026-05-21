@@ -10,6 +10,7 @@ import Category from "../pages/category/Category";
 import Product from "../pages/product/Product";
 import ProductDetailsPage from "../pages/product/ProductDetailsPage";
 import Inventory from "../pages/inventory/Inventory";
+import Cart from "../pages/cart/Cart";
 import Customer from "../pages/customer/Customer";
 import NotFound from "../pages/NotFound";
 
@@ -33,6 +34,7 @@ export const appRoutes = [
       { path: `${ROUTES.PRODUCT.slice(1)}/:productId`, element: <ProductDetailsPage mode="view" /> },
       { path: ROUTES.PRODUCT.slice(1), element: <Product /> },
       { path: ROUTES.INVENTORY.slice(1), element: <Inventory /> },
+      { path: ROUTES.CART.slice(1), element: <Cart /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },
       { path: ROUTES.SETTINGS.slice(1), element: <Settings /> },
