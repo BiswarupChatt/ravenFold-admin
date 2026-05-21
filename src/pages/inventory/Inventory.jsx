@@ -4,11 +4,17 @@ import {
   Box,
   Divider,
   FormControlLabel,
+  IconButton,
+  InputAdornment,
   Paper,
   Stack,
   Switch,
+  TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
+import ClearIcon from "@mui/icons-material/Clear";
+import SearchIcon from "@mui/icons-material/Search";
 
 import SectionHeader from "@/components/SectionHeader";
 import {
@@ -19,7 +25,7 @@ import {
   updateInventoryStock,
 } from "@/lib/api/inventoryApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
-import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS } from "@/lib/utils/adminShared";
+import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, SEARCH_DEBOUNCE_MS } from "@/lib/utils/adminShared";
 import { useToast } from "@/hooks/ToastContext";
 import AdjustStockDialog from "./components/AdjustStockDialog";
 import DeleteInventoryStockDialog from "./components/DeleteInventoryStockDialog";
@@ -63,6 +69,7 @@ const Inventory = () => {
   const [stocks, setStocks] = useState([]);
   const [tableParams, setTableParams] = useState(DEFAULT_TABLE_PARAMS);
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
+  const [searchInput, setSearchInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [editingStock, setEditingStock] = useState(null);
@@ -133,6 +140,33 @@ const Inventory = () => {
   useEffect(() => {
     loadInventoryStocks();
   }, [loadInventoryStocks]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const search = searchInput.trim();
+
+      setTableParams((currentParams) => {
+        if ((currentParams.search || "") === search) {
+          return currentParams;
+        }
+
+        const nextParams = {
+          ...currentParams,
+          page: 1,
+        };
+
+        if (search) {
+          nextParams.search = search;
+        } else {
+          delete nextParams.search;
+        }
+
+        return nextParams;
+      });
+    }, SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchInput]);
 
   useEffect(() => {
     loadStockMovements();
@@ -381,6 +415,33 @@ const Inventory = () => {
           </Box>
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
+            <TextField
+              size="small"
+              placeholder="Search inventory"
+              value={searchInput}
+              onChange={(event) => setSearchInput(event.target.value)}
+              sx={{ minWidth: { xs: "100%", sm: 280 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+                endAdornment: searchInput ? (
+                  <InputAdornment position="end">
+                    <Tooltip title="Clear search">
+                      <IconButton
+                        edge="end"
+                        size="small"
+                        onClick={() => setSearchInput("")}
+                      >
+                        <ClearIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  </InputAdornment>
+                ) : null,
+              }}
+            />
             <FormControlLabel
               control={(
                 <Switch
