@@ -47,7 +47,11 @@ import {
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
 import { joinLines, splitCommaSeparatedValues, splitLines } from "@/lib/utils/adminShared";
-import ProductOptionsPanel, { EMPTY_OPTION_FORM, EMPTY_VALUE_EDIT } from "./ProductOptionsPanel";
+import ProductOptionsPanel, {
+  EMPTY_OPTION_FORM,
+  EMPTY_VALUE_DRAFT,
+  EMPTY_VALUE_EDIT,
+} from "./ProductOptionsPanel";
 import VariantMediaField from "./VariantMediaField";
 
 const EMPTY_VARIANT_FORM = {
@@ -127,11 +131,33 @@ const getVariantFromResponse = (response) => response?.data || null;
 
 const getVariantId = (variant) => variant?.id || variant?._id || "";
 
-const buildVariantFormFromVariant = (variant = {}) => {
+const getOptionDraftFromOption = (option = {}) => ({
+  displayStyle: option.displayStyle || (option.optionType === "color" ? "swatch" : "button"),
+  name: option.name || "",
+  optionType: option.optionType || "other",
+  sizeGuideImageUrl: option.sizeGuideImageUrl || "",
+  sortOrder: option.sortOrder === null || option.sortOrder === undefined ? "" : String(option.sortOrder),
+  values: "",
+});
+
+const getDisplayStyleForType = (optionType, displayStyle = "") => {
+  if (displayStyle) {
+    return displayStyle;
+  }
+
+  return optionType === "color" ? "swatch" : "button";
+};
+
+const buildVariantFormFromVariant = (variant = {}, options = []) => {
   const optionValues = {};
 
   (variant.optionValues || []).forEach((optionValue) => {
-    optionValues[optionValue.optionName] = optionValue.value;
+    const matchedOption = options.find((option) => (
+      option.id === optionValue.optionId || option.name === optionValue.optionName
+    ));
+    const key = optionValue.optionId || matchedOption?.id || optionValue.optionName;
+
+    optionValues[key] = optionValue.valueId || optionValue.value;
   });
 
   return {
@@ -176,8 +202,10 @@ const ProductVariantsPanel = ({
   const [variantFormOpen, setVariantFormOpen] = useState(false);
   const [variantSearch, setVariantSearch] = useState("");
   const [editingOptionId, setEditingOptionId] = useState("");
-  const [editingOptionName, setEditingOptionName] = useState("");
+  const [editingOptionDraft, setEditingOptionDraft] = useState(EMPTY_OPTION_FORM);
   const [editingValue, setEditingValue] = useState(EMPTY_VALUE_EDIT);
+  const [optionFormSizeGuideUploading, setOptionFormSizeGuideUploading] = useState(false);
+  const [editingOptionSizeGuideUploading, setEditingOptionSizeGuideUploading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [variantImageFiles, setVariantImageFiles] = useState([]);
@@ -198,6 +226,10 @@ const ProductVariantsPanel = ({
   }, [options]);
 
   const canCreateVariant = options.length > 0 && everyOptionHasValue;
+  const editingValueOption = useMemo(
+    () => options.find((option) => option.id === editingValue.optionId) || null,
+    [editingValue.optionId, options],
+  );
 
   const filteredVariants = useMemo(() => {
     const search = variantSearch.trim().toLowerCase();
@@ -269,7 +301,7 @@ const ProductVariantsPanel = ({
     setVariantFormOpen(false);
     setVariantSearch("");
     setEditingOptionId("");
-    setEditingOptionName("");
+    setEditingOptionDraft(EMPTY_OPTION_FORM);
     setEditingValue(EMPTY_VALUE_EDIT);
     clearVariantImageQueue();
   }, [clearVariantImageQueue, productId]);
@@ -278,15 +310,65 @@ const ProductVariantsPanel = ({
     setOptionForm((currentForm) => ({
       ...currentForm,
       [field]: value,
+      ...(field === "optionType"
+        ? { displayStyle: getDisplayStyleForType(value) }
+        : {}),
     }));
   };
 
   const openOptionForm = (optionName = "") => {
     setOptionForm({
+      ...EMPTY_OPTION_FORM,
       name: optionName,
-      values: "",
     });
     setOptionFormOpen(true);
+  };
+
+  const uploadSingleOptionImage = async (file) => {
+    const [uploadedImage] = await uploadProductImages(authToken, [file]);
+    const imageUrl = uploadedImage?.url || "";
+
+    if (!imageUrl) {
+      throw new Error("Image upload did not return a URL.");
+    }
+
+    return imageUrl;
+  };
+
+  const handleOptionFormSizeGuideUpload = async (file) => {
+    setOptionFormSizeGuideUploading(true);
+
+    try {
+      const imageUrl = await uploadSingleOptionImage(file);
+
+      setOptionForm((currentForm) => ({
+        ...currentForm,
+        sizeGuideImageUrl: imageUrl,
+      }));
+      toast.success("Size guide image uploaded.");
+    } catch (err) {
+      showError(err.message || "Failed to upload size guide image.");
+    } finally {
+      setOptionFormSizeGuideUploading(false);
+    }
+  };
+
+  const handleEditingOptionSizeGuideUpload = async (file) => {
+    setEditingOptionSizeGuideUploading(true);
+
+    try {
+      const imageUrl = await uploadSingleOptionImage(file);
+
+      setEditingOptionDraft((currentDraft) => ({
+        ...currentDraft,
+        sizeGuideImageUrl: imageUrl,
+      }));
+      toast.success("Size guide image uploaded.");
+    } catch (err) {
+      showError(err.message || "Failed to upload size guide image.");
+    } finally {
+      setEditingOptionSizeGuideUploading(false);
+    }
   };
 
   const handleCreateOption = async () => {
@@ -301,7 +383,11 @@ const ProductVariantsPanel = ({
 
     try {
       await createProductOption(authToken, productId, {
+        displayStyle: optionForm.displayStyle,
         name,
+        optionType: optionForm.optionType,
+        sizeGuideImageUrl: optionForm.optionType === "size" ? optionForm.sizeGuideImageUrl : "",
+        sortOrder: optionForm.sortOrder,
         values: splitCommaSeparatedValues(optionForm.values),
       });
       setOptionForm(EMPTY_OPTION_FORM);
@@ -317,12 +403,12 @@ const ProductVariantsPanel = ({
 
   const handleStartEditOption = (option) => {
     setEditingOptionId(option.id);
-    setEditingOptionName(option.name);
+    setEditingOptionDraft(getOptionDraftFromOption(option));
     setEditingValue(EMPTY_VALUE_EDIT);
   };
 
   const handleUpdateOption = async () => {
-    const name = editingOptionName.trim();
+    const name = editingOptionDraft.name.trim();
 
     if (!name) {
       showError("Option name is required.");
@@ -332,9 +418,17 @@ const ProductVariantsPanel = ({
     setSaving(true);
 
     try {
-      await updateProductOption(authToken, productId, editingOptionId, { name });
+      await updateProductOption(authToken, productId, editingOptionId, {
+        displayStyle: editingOptionDraft.displayStyle,
+        name,
+        optionType: editingOptionDraft.optionType,
+        sizeGuideImageUrl: editingOptionDraft.optionType === "size"
+          ? editingOptionDraft.sizeGuideImageUrl
+          : "",
+        sortOrder: editingOptionDraft.sortOrder,
+      });
       setEditingOptionId("");
-      setEditingOptionName("");
+      setEditingOptionDraft(EMPTY_OPTION_FORM);
       toast.success("Product option updated.");
       await loadVariantData();
     } catch (err) {
@@ -351,7 +445,7 @@ const ProductVariantsPanel = ({
       await deleteProductOption(authToken, productId, optionId);
       if (editingOptionId === optionId) {
         setEditingOptionId("");
-        setEditingOptionName("");
+        setEditingOptionDraft(EMPTY_OPTION_FORM);
       }
       toast.success("Product option deleted.");
       await loadVariantData();
@@ -362,15 +456,27 @@ const ProductVariantsPanel = ({
     }
   };
 
-  const handleValueDraftChange = (optionId, value) => {
+  const handleValueDraftChange = (optionId, field, value) => {
     setValueDrafts((currentDrafts) => ({
       ...currentDrafts,
-      [optionId]: value,
+      [optionId]: {
+        ...EMPTY_VALUE_DRAFT,
+        ...(typeof currentDrafts[optionId] === "string"
+          ? { value: currentDrafts[optionId] }
+          : currentDrafts[optionId]),
+        [field]: value,
+      },
     }));
   };
 
   const handleAddOptionValue = async (optionId) => {
-    const value = (valueDrafts[optionId] || "").trim();
+    const draft = {
+      ...EMPTY_VALUE_DRAFT,
+      ...(typeof valueDrafts[optionId] === "string"
+        ? { value: valueDrafts[optionId] }
+        : valueDrafts[optionId]),
+    };
+    const value = draft.value.trim();
 
     if (!value) {
       showError("Option value is required.");
@@ -380,10 +486,15 @@ const ProductVariantsPanel = ({
     setSaving(true);
 
     try {
-      await createProductOptionValue(authToken, productId, optionId, { value });
+      await createProductOptionValue(authToken, productId, optionId, {
+        colorHex: draft.colorHex,
+        label: draft.label,
+        sortOrder: draft.sortOrder,
+        value,
+      });
       setValueDrafts((currentDrafts) => ({
         ...currentDrafts,
-        [optionId]: "",
+        [optionId]: EMPTY_VALUE_DRAFT,
       }));
       toast.success("Option value added.");
       await loadVariantData();
@@ -398,10 +509,15 @@ const ProductVariantsPanel = ({
     setEditingValue({
       optionId,
       valueId: optionValue.id,
+      colorHex: optionValue.colorHex || EMPTY_VALUE_DRAFT.colorHex,
+      label: optionValue.label || "",
+      sortOrder: optionValue.sortOrder === null || optionValue.sortOrder === undefined
+        ? ""
+        : String(optionValue.sortOrder),
       value: optionValue.value,
     });
     setEditingOptionId("");
-    setEditingOptionName("");
+    setEditingOptionDraft(EMPTY_OPTION_FORM);
   };
 
   const handleUpdateOptionValue = async () => {
@@ -415,7 +531,12 @@ const ProductVariantsPanel = ({
     setSaving(true);
 
     try {
-      await updateProductOptionValue(authToken, productId, editingValue.optionId, editingValue.valueId, { value });
+      await updateProductOptionValue(authToken, productId, editingValue.optionId, editingValue.valueId, {
+        colorHex: editingValue.colorHex,
+        label: editingValue.label,
+        sortOrder: editingValue.sortOrder,
+        value,
+      });
       setEditingValue(EMPTY_VALUE_EDIT);
       toast.success("Option value updated.");
       await loadVariantData();
@@ -450,12 +571,12 @@ const ProductVariantsPanel = ({
     }));
   };
 
-  const handleVariantOptionChange = (optionName, value) => {
+  const handleVariantOptionChange = (optionId, value) => {
     setVariantForm((currentForm) => ({
       ...currentForm,
       optionValues: {
         ...currentForm.optionValues,
-        [optionName]: value,
+        [optionId]: value,
       },
     }));
   };
@@ -554,11 +675,20 @@ const ProductVariantsPanel = ({
     return {
       sku: variantForm.sku.trim(),
       optionValues: options
-        .map((option) => ({
-          optionName: option.name,
-          value: variantForm.optionValues[option.name] || "",
-        }))
-        .filter((optionValue) => optionValue.value),
+        .map((option) => {
+          const selectedValueKey = variantForm.optionValues[option.id] || variantForm.optionValues[option.name] || "";
+          const selectedValue = (option.values || []).find((optionValue) => (
+            optionValue.id === selectedValueKey || optionValue.value === selectedValueKey
+          ));
+
+          return {
+            optionId: option.id,
+            optionName: option.name,
+            value: selectedValue?.value || selectedValueKey,
+            valueId: selectedValue?.id || "",
+          };
+        })
+        .filter((optionValue) => optionValue.value || optionValue.valueId),
       price: variantForm.price,
       salePrice: variantForm.salePrice === "" ? null : variantForm.salePrice,
       images: splitLines(variantForm.images),
@@ -685,7 +815,7 @@ const ProductVariantsPanel = ({
   };
 
   const handleEditVariant = (variant) => {
-    setVariantForm(buildVariantFormFromVariant(variant));
+    setVariantForm(buildVariantFormFromVariant(variant, options));
     clearVariantImageQueue();
     setVariantFormOpen(true);
   };
@@ -752,11 +882,14 @@ const ProductVariantsPanel = ({
       <ProductOptionsPanel
         busy={busy}
         editable={editable}
+        editingOptionDraft={editingOptionDraft}
         editingOptionId={editingOptionId}
-        editingOptionName={editingOptionName}
+        editingOptionSizeGuideUploading={editingOptionSizeGuideUploading}
         editingValue={editingValue}
+        editingValueOption={editingValueOption}
         optionForm={optionForm}
         optionFormOpen={optionFormOpen}
+        optionFormSizeGuideUploading={optionFormSizeGuideUploading}
         options={options}
         valueCount={valueCount}
         valueDrafts={valueDrafts}
@@ -764,7 +897,7 @@ const ProductVariantsPanel = ({
         onAddOptionValue={handleAddOptionValue}
         onCancelEditOption={() => {
           setEditingOptionId("");
-          setEditingOptionName("");
+          setEditingOptionDraft(EMPTY_OPTION_FORM);
         }}
         onCancelEditValue={() => setEditingValue(EMPTY_VALUE_EDIT)}
         onCancelOptionForm={() => {
@@ -774,12 +907,20 @@ const ProductVariantsPanel = ({
         onCreateOption={handleCreateOption}
         onDeleteOption={handleDeleteOption}
         onDeleteOptionValue={handleDeleteOptionValue}
-        onEditingOptionNameChange={setEditingOptionName}
-        onEditingValueChange={(value) => setEditingValue((current) => ({
+        onEditingOptionChange={(field, value) => setEditingOptionDraft((current) => ({
           ...current,
-          value,
+          [field]: value,
+          ...(field === "optionType"
+            ? { displayStyle: getDisplayStyleForType(value) }
+            : {}),
+        }))}
+        onEditingOptionSizeGuideUpload={handleEditingOptionSizeGuideUpload}
+        onEditingValueChange={(field, value) => setEditingValue((current) => ({
+          ...current,
+          [field]: value,
         }))}
         onOptionFormChange={handleOptionFormChange}
+        onOptionFormSizeGuideUpload={handleOptionFormSizeGuideUpload}
         onStartEditOption={handleStartEditOption}
         onStartEditValue={handleStartEditValue}
         onUpdateOption={handleUpdateOption}
@@ -898,15 +1039,15 @@ const ProductVariantsPanel = ({
                     key={option.id}
                     select
                     label={option.name}
-                    value={variantForm.optionValues[option.name] || ""}
-                    onChange={(event) => handleVariantOptionChange(option.name, event.target.value)}
+                    value={variantForm.optionValues[option.id] || variantForm.optionValues[option.name] || ""}
+                    onChange={(event) => handleVariantOptionChange(option.id, event.target.value)}
                     disabled={busy || !canCreateVariant || (option.values || []).length === 0}
                     fullWidth
                     size="small"
                   >
                     {(option.values || []).map((optionValue) => (
-                      <MenuItem key={optionValue.id} value={optionValue.value}>
-                        {optionValue.value}
+                      <MenuItem key={optionValue.id} value={optionValue.id}>
+                        {optionValue.label || optionValue.value}
                       </MenuItem>
                     ))}
                   </TextField>
