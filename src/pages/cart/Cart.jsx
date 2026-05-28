@@ -19,7 +19,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import SectionHeader from "@/components/SectionHeader";
 import { fetchAdminCart, fetchAdminCarts } from "@/lib/api/cartApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
-import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, SEARCH_DEBOUNCE_MS } from "@/lib/utils/adminShared";
+import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, SEARCH_DEBOUNCE_MS } from "@/lib/utils/utils";
 import { useToast } from "@/hooks/ToastContext";
 import CartDetailsDialog from "./components/CartDetailsDialog";
 import CartTable from "./components/CartTable";

@@ -8,7 +8,7 @@ import {
   Tooltip,
 } from "@mui/material";
 
-import { splitCommaSeparatedValues } from "@/lib/utils/adminShared";
+import { splitCommaSeparatedValues } from "@/lib/utils/utils";
 import DetailPanel from "./DetailPanel";
 import ReadOnlyField from "./ReadOnlyField";
 

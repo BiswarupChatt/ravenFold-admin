@@ -1,3 +1,5 @@
+import { formatCurrency, formatDateTime } from "@/lib/utils/utils";
+
 export const CART_STATUS_OPTIONS = [
   { value: "all", label: "All" },
   { value: "active", label: "Active" },
@@ -16,27 +18,11 @@ export const getCartStatusMeta = (status = "active") => {
 };
 
 export const formatCartMoney = (value, currency = "INR") => {
-  const amount = Number(value || 0);
-
-  return new Intl.NumberFormat(undefined, {
-    style: "currency",
-    currency: currency || "INR",
-    maximumFractionDigits: 2,
-  }).format(amount);
+  return formatCurrency(value, currency);
 };
 
 export const formatCartDateTime = (value) => {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return formatDateTime(value);
 };
 
 export const getCustomerName = (cart) => {

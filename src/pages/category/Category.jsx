@@ -30,9 +30,10 @@ import {
   CATEGORY_DEFAULT_PAGINATION as DEFAULT_PAGINATION,
   CATEGORY_TABLE_PARAMS as DEFAULT_TABLE_PARAMS,
   SEARCH_DEBOUNCE_MS,
+  flattenCategoryTree,
   getHierarchyColor,
   normalizeText,
-} from "@/lib/utils/adminShared";
+} from "@/lib/utils/utils";
 import { useToast } from "@/hooks/ToastContext";
 import AddEditCategoryModal from "./components/AddEditCategoryModal";
 import CategoryTable from "./components/CategoryTable";
@@ -44,23 +45,6 @@ const EMPTY_FORM = {
   parentCategoryId: "",
   image: "",
   isActive: true,
-};
-
-const flattenCategoryTree = (items = [], depth = 0, parentName = "Root") => {
-  return items.flatMap((category) => {
-    const children = Array.isArray(category.children) ? category.children : [];
-    const row = {
-      ...category,
-      depth,
-      parentName,
-      childCount: children.length,
-    };
-
-    return [
-      row,
-      ...flattenCategoryTree(children, depth + 1, category.name),
-    ];
-  });
 };
 
 const collectDescendantIds = (category) => {

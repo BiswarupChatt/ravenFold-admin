@@ -46,7 +46,16 @@ import {
 } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
-import { joinLines, splitCommaSeparatedValues, splitLines } from "@/lib/utils/adminShared";
+import {
+  createLocalImagePreviews,
+  formatMoney,
+  getVariantLabel as getSharedVariantLabel,
+  joinLines,
+  moveArrayItem as moveImage,
+  revokeLocalImagePreviews,
+  splitCommaSeparatedValues,
+  splitLines,
+} from "@/lib/utils/utils";
 import ProductOptionsPanel, {
   EMPTY_OPTION_FORM,
   EMPTY_VALUE_DRAFT,
@@ -74,57 +83,13 @@ const cardSx = {
   overflow: "hidden",
 };
 
-const formatMoney = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return "-";
-  }
-
-  const numberValue = Number(value);
-
-  if (!Number.isFinite(numberValue)) {
-    return "-";
-  }
-
-  return numberValue.toLocaleString(undefined, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  });
-};
-
 const getVariantLabel = (variant = {}) => {
-  const optionLabel = (variant.optionValues || [])
-    .map((optionValue) => optionValue.value)
-    .filter(Boolean)
-    .join(" / ");
-
-  return optionLabel || variant.sku || "Variant";
-};
-
-const moveImage = (imageUrls, fromIndex, toIndex) => {
-  if (fromIndex === toIndex) {
-    return imageUrls;
-  }
-
-  const nextImageUrls = [...imageUrls];
-  const [movedImage] = nextImageUrls.splice(fromIndex, 1);
-
-  nextImageUrls.splice(toIndex, 0, movedImage);
-
-  return nextImageUrls;
-};
-
-const createLocalImagePreviews = (files = []) => {
-  return Array.from(files)
-    .filter((file) => file.type?.startsWith("image/"))
-    .map((file, index) => ({
-      id: `${file.name}-${file.lastModified}-${file.size}-${index}-${Date.now()}`,
-      name: file.name,
-      url: URL.createObjectURL(file),
-    }));
-};
-
-const revokeLocalImagePreviews = (previews = []) => {
-  previews.forEach((preview) => URL.revokeObjectURL(preview.url));
+  return getSharedVariantLabel(variant, {
+    fallback: variant.sku || "Variant",
+    includeSku: false,
+    separator: " / ",
+    valueOnly: true,
+  });
 };
 
 const getVariantFromResponse = (response) => response?.data || null;

@@ -25,7 +25,14 @@ import {
   updateInventoryStock,
 } from "@/lib/api/inventoryApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
-import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, SEARCH_DEBOUNCE_MS } from "@/lib/utils/adminShared";
+import {
+  DEFAULT_PAGINATION,
+  DEFAULT_TABLE_PARAMS,
+  SEARCH_DEBOUNCE_MS,
+  buildStockFormFromStock,
+  isNonNegativeInteger,
+  isNonZeroInteger,
+} from "@/lib/utils/utils";
 import { useToast } from "@/hooks/ToastContext";
 import AdjustStockDialog from "./components/AdjustStockDialog";
 import DeleteInventoryStockDialog from "./components/DeleteInventoryStockDialog";
@@ -50,18 +57,6 @@ const MOVEMENT_TABLE_PARAMS = {
   page: 1,
   limit: 10,
 };
-
-const isNonNegativeInteger = (value) => Number.isInteger(Number(value)) && Number(value) >= 0;
-
-const isNonZeroInteger = (value) => Number.isInteger(Number(value)) && Number(value) !== 0;
-
-const buildStockFormFromStock = (stock) => ({
-  stockOnHand: String(stock?.stockOnHand ?? 0),
-  reservedQuantity: String(stock?.reservedQuantity ?? 0),
-  lowStockThreshold: String(stock?.lowStockThreshold ?? 5),
-  trackInventory: stock?.trackInventory !== false,
-  allowBackorder: Boolean(stock?.allowBackorder),
-});
 
 const Inventory = () => {
   const authToken = useAtomValue(authTokenAtom);

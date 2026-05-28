@@ -14,7 +14,15 @@ import {
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 
-import { splitCommaSeparatedValues } from "@/lib/utils/adminShared";
+import {
+  createLocalImagePreviews,
+  formatMoney,
+  getDiscountPercent,
+  moveArrayItem as moveImage,
+  revokeLocalImagePreviews,
+  splitCommaSeparatedValues,
+  splitLines as splitImageUrls,
+} from "@/lib/utils/utils";
 import {
   PRODUCT_FORM_SECTION_IDS,
   getProductFormSectionSignature,
@@ -31,68 +39,6 @@ const statusColors = {
   active: "success",
   draft: "default",
   inactive: "warning",
-};
-
-const splitImageUrls = (value = "") => {
-  return value
-    .split(/\r?\n/)
-    .map((item) => item.trim())
-    .filter(Boolean);
-};
-
-const moveImage = (imageUrls, fromIndex, toIndex) => {
-  if (fromIndex === toIndex) {
-    return imageUrls;
-  }
-
-  const nextImageUrls = [...imageUrls];
-  const [movedImage] = nextImageUrls.splice(fromIndex, 1);
-
-  nextImageUrls.splice(toIndex, 0, movedImage);
-
-  return nextImageUrls;
-};
-
-const createLocalImagePreviews = (files = []) => {
-  return Array.from(files)
-    .filter((file) => file.type?.startsWith("image/"))
-    .map((file, index) => ({
-      id: `${file.name}-${file.lastModified}-${file.size}-${index}`,
-      name: file.name,
-      url: URL.createObjectURL(file),
-    }));
-};
-
-const revokeLocalImagePreviews = (previews = []) => {
-  previews.forEach((preview) => URL.revokeObjectURL(preview.url));
-};
-
-const formatMoney = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return "-";
-  }
-
-  return Number(value).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-const getDiscountPercent = (basePrice, salePrice) => {
-  const basePriceValue = Number(basePrice);
-  const salePriceValue = Number(salePrice);
-
-  if (
-    !Number.isFinite(basePriceValue) ||
-    !Number.isFinite(salePriceValue) ||
-    basePriceValue <= 0 ||
-    salePriceValue < 0 ||
-    salePriceValue >= basePriceValue
-  ) {
-    return null;
-  }
-
-  return Math.round(((basePriceValue - salePriceValue) / basePriceValue) * 100);
 };
 
 const getCategoryLabel = (categoryRows, categoryId) => {

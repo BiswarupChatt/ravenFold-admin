@@ -24,13 +24,14 @@ import {
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import {
   PRODUCT_STATUSES,
+  flattenCategoryTree,
   getHierarchyColor,
   joinLines,
   normalizeAttributes,
   normalizeText,
   splitCommaSeparatedValues,
   splitLines,
-} from "@/lib/utils/adminShared";
+} from "@/lib/utils/utils";
 import { useToast } from "@/hooks/ToastContext";
 import ROUTES from "@/routes/routes";
 import ProductDetailsForm from "./components/ProductDetailsForm";
@@ -69,21 +70,6 @@ const EMPTY_FORM = {
   seoNoIndex: false,
   hasVariants: false,
   isFeatured: false,
-};
-
-const flattenCategoryTree = (items = [], depth = 0) => {
-  return items.flatMap((category) => {
-    const children = Array.isArray(category.children) ? category.children : [];
-    const row = {
-      ...category,
-      depth,
-    };
-
-    return [
-      row,
-      ...flattenCategoryTree(children, depth + 1),
-    ];
-  });
 };
 
 const buildPayload = (formData) => {

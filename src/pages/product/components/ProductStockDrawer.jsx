@@ -29,6 +29,13 @@ import {
 } from "@/lib/api/inventoryApi";
 import { fetchAdminProductVariants } from "@/lib/api/productApi";
 import { useToast } from "@/hooks/ToastContext";
+import {
+  buildStockFormFromStock,
+  formatNumber,
+  getVariantLabel,
+  isNonNegativeInteger,
+  isNonZeroInteger,
+} from "@/lib/utils/utils";
 
 const EMPTY_STOCK_FORM = {
   stockOnHand: "0",
@@ -48,39 +55,6 @@ const EXISTING_STOCK_MODES = {
   ADJUST: "adjust",
   EDIT: "edit",
 };
-
-const getVariantLabel = (variant) => {
-  if (!variant) {
-    return "";
-  }
-
-  const options = Array.isArray(variant.optionValues)
-    ? variant.optionValues.map((option) => `${option.optionName}: ${option.value}`).join(", ")
-    : "";
-
-  return options ? `${variant.sku} - ${options}` : variant.sku;
-};
-
-const isNonNegativeInteger = (value) => Number.isInteger(Number(value)) && Number(value) >= 0;
-
-const isNonZeroInteger = (value) => Number.isInteger(Number(value)) && Number(value) !== 0;
-
-const formatNumber = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return "0";
-  }
-
-  return Number(value).toLocaleString();
-};
-
-const buildStockFormFromStock = (stock) => ({
-  stockOnHand: String(stock?.stockOnHand ?? 0),
-  reservedQuantity: String(stock?.reservedQuantity ?? 0),
-  lowStockThreshold: String(stock?.lowStockThreshold ?? 5),
-  trackInventory: stock?.trackInventory !== false,
-  allowBackorder: Boolean(stock?.allowBackorder),
-  note: "",
-});
 
 const ProductStockDrawer = ({
   authToken,
@@ -179,7 +153,7 @@ const ProductStockDrawer = ({
 
         if (isActive) {
           setExistingStock(stock);
-          setStockForm(buildStockFormFromStock(stock));
+          setStockForm(buildStockFormFromStock(stock, { note: "" }));
           setAdjustmentForm(EMPTY_ADJUSTMENT_FORM);
           setExistingStockMode(EXISTING_STOCK_MODES.ADJUST);
         }
@@ -321,7 +295,7 @@ const ProductStockDrawer = ({
       });
 
       setExistingStock(updatedStock);
-      setStockForm(buildStockFormFromStock(updatedStock));
+      setStockForm(buildStockFormFromStock(updatedStock, { note: "" }));
       setAdjustmentForm(EMPTY_ADJUSTMENT_FORM);
       toast.success("Inventory adjusted.");
       onCreated?.();
@@ -358,7 +332,7 @@ const ProductStockDrawer = ({
       });
 
       setExistingStock(updatedStock);
-      setStockForm(buildStockFormFromStock(updatedStock));
+      setStockForm(buildStockFormFromStock(updatedStock, { note: "" }));
       toast.success("Inventory stock updated.");
       onCreated?.();
       onClose();

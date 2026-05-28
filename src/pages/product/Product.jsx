@@ -25,27 +25,13 @@ import {
   DEFAULT_PAGINATION,
   DEFAULT_TABLE_PARAMS,
   SEARCH_DEBOUNCE_MS,
-} from "@/lib/utils/adminShared";
+  flattenCategoryTree,
+} from "@/lib/utils/utils";
 import { useToast } from "@/hooks/ToastContext";
 import ROUTES from "@/routes/routes";
 import DeleteProductModal from "./components/DeleteProductModal";
 import ProductStockDrawer from "./components/ProductStockDrawer";
 import ProductTable from "./components/ProductTable";
-
-const flattenCategoryTree = (items = [], depth = 0) => {
-  return items.flatMap((category) => {
-    const children = Array.isArray(category.children) ? category.children : [];
-    const row = {
-      ...category,
-      depth,
-    };
-
-    return [
-      row,
-      ...flattenCategoryTree(children, depth + 1),
-    ];
-  });
-};
 
 const Product = () => {
   const authToken = useAtomValue(authTokenAtom);

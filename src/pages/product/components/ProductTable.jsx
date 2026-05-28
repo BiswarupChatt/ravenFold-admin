@@ -10,34 +10,12 @@ import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import AddBusinessIcon from '@mui/icons-material/AddBusiness';
 
 import DataTable from "@/components/DataTable";
+import { formatDate, formatMoney } from "@/lib/utils/utils";
 
 const statusColors = {
   active: "success",
   draft: "default",
   inactive: "warning",
-};
-
-const formatMoney = (value) => {
-  if (value === null || value === undefined || value === "") {
-    return "-";
-  }
-
-  return Number(value).toLocaleString(undefined, {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-};
-
-const formatDate = (value) => {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat(undefined, {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
 };
 
 const ProductTable = ({
