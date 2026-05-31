@@ -41,7 +41,7 @@ export const SIDEBAR_ITEMS = [
   },
   {
     name: "Order",
-    path: "/order",
+    path: ROUTES.ORDER,
     icon: ReceiptLongIcon,
   },
   {
