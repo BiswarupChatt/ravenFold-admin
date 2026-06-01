@@ -16,6 +16,7 @@ export const PAYMENT_STATUS_OPTIONS = [
   { value: "pending", label: "Pending" },
   { value: "paid", label: "Paid" },
   { value: "failed", label: "Failed" },
+  { value: "partially_refunded", label: "Partially Refunded" },
   { value: "refunded", label: "Refunded" },
 ];
 
@@ -38,6 +39,7 @@ export const getPaymentStatusMeta = (status = "pending") => {
     pending: { label: "Pending", color: "warning" },
     paid: { label: "Paid", color: "success" },
     failed: { label: "Failed", color: "error" },
+    partially_refunded: { label: "Partially Refunded", color: "info" },
     refunded: { label: "Refunded", color: "info" },
   };
 
