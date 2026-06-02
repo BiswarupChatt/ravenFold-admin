@@ -46,7 +46,7 @@ export const SIDEBAR_ITEMS = [
   },
   {
     name: "Payment",
-    path: "/payment",
+    path: ROUTES.PAYMENT,
     icon: PaymentsIcon,
   },
   {
