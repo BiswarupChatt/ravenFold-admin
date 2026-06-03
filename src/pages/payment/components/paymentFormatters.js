@@ -1,9 +1,8 @@
 import { formatCurrency, formatDateTime } from "@/lib/utils/utils";
 
 export const PAYMENT_TABS = [
-  { label: "Payments", value: "payments" },
-  { label: "Attempts", value: "attempts" },
-  { label: "Refunds", value: "refunds" },
+  { label: "Money Ledger", value: "ledger" },
+  { label: "Provider Attempts", value: "attempts" },
 ];
 
 export const PROVIDER_OPTIONS = [
@@ -12,11 +11,14 @@ export const PROVIDER_OPTIONS = [
   { label: "Juspay", value: "juspay" },
 ];
 
-export const PAYMENT_STATUS_OPTIONS = [
-  { label: "All statuses", value: "all" },
+export const MONEY_STATUS_OPTIONS = [
+  { label: "All money states", value: "all" },
   { label: "Paid", value: "paid" },
   { label: "Partially Refunded", value: "partially_refunded" },
   { label: "Refunded", value: "refunded" },
+  { label: "Refund Pending", value: "refund_pending" },
+  { label: "Refund Processed", value: "refund_processed" },
+  { label: "Refund Failed", value: "refund_failed" },
 ];
 
 export const ATTEMPT_STATUS_OPTIONS = [

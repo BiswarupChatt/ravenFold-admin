@@ -106,12 +106,33 @@ const StatusChip = ({ status, variant = "status" }) => {
   );
 };
 
-const SummaryItem = ({ label, value }) => (
+const LabeledStatusChip = ({ label, status, variant }) => (
+  <Stack spacing={0.5} alignItems={{ xs: "flex-start", md: "flex-end" }}>
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <StatusChip status={status} variant={variant} />
+  </Stack>
+);
+
+const getRecordStatusLabel = (type) => {
+  if (type === "refunds") {
+    return "Refund status";
+  }
+
+  if (type === "attempts") {
+    return "Attempt status";
+  }
+
+  return "Payment status";
+};
+
+const SummaryItem = ({ color = "text.primary", label, value }) => (
   <Box sx={{ minWidth: 150 }}>
     <Typography variant="caption" color="text.secondary">
       {label}
     </Typography>
-    <Typography variant="h6" fontWeight={700}>
+    <Typography variant="h6" fontWeight={700} color={color}>
       {value}
     </Typography>
   </Box>
@@ -172,6 +193,18 @@ const AddressBlock = ({ address }) => {
 
 const getRecordTime = (record = {}) => record.paidAt || record.processedAt || record.createdAt;
 
+const getMoneyColor = (type) => {
+  if (type === "refunds") {
+    return "error.main";
+  }
+
+  if (type === "payments") {
+    return "success.main";
+  }
+
+  return "text.primary";
+};
+
 function PaymentRecordDialog({
   onClose,
   onRefund,
@@ -189,6 +222,7 @@ function PaymentRecordDialog({
   const canRefund = isPayment && record?.provider === "razorpay" && refundableAmount > 0;
   const orderStatus = record?.order?.status || "";
   const orderPaymentStatus = record?.order?.paymentStatus || "";
+  const moneyStatus = orderPaymentStatus || record?.status || "";
   const methodLabel = getMethodLabel(record?.paymentMethod);
   const providerLabel = getProviderLabel(record?.provider);
 
@@ -294,11 +328,13 @@ function PaymentRecordDialog({
                 <Typography variant="subtitle2" fontWeight={800}>
                   {getOrderLabel(record)}
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                  {orderStatus ? <StatusChip status={orderStatus} variant="order" /> : null}
-                  {orderPaymentStatus ? <StatusChip status={orderPaymentStatus} /> : null}
-                  <Chip size="small" label={providerLabel} variant="outlined" />
-                  <StatusChip status={record.status} />
+                <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                  {orderStatus ? (
+                    <LabeledStatusChip label="Order" status={orderStatus} variant="order" />
+                  ) : null}
+                  {moneyStatus ? (
+                    <LabeledStatusChip label="Money" status={moneyStatus} />
+                  ) : null}
                 </Stack>
               </Stack>
             </Stack>
@@ -306,10 +342,18 @@ function PaymentRecordDialog({
             <Divider />
 
             <Stack direction={{ xs: "column", sm: "row" }} spacing={2} useFlexGap flexWrap="wrap">
-              <SummaryItem label={isRefund ? "Refund amount" : "Amount"} value={formatPaymentMoney(record.amount, record.currency)} />
+              <SummaryItem
+                color={getMoneyColor(type)}
+                label={isRefund ? "Refund amount" : "Amount"}
+                value={`${isRefund ? "-" : ""}${formatPaymentMoney(record.amount, record.currency)}`}
+              />
               {isPayment ? (
                 <>
-                  <SummaryItem label="Refunded" value={formatPaymentMoney(record.refundedAmount, record.currency)} />
+                  <SummaryItem
+                    color={Number(record.refundedAmount || 0) > 0 ? "error.main" : "text.primary"}
+                    label="Refunded"
+                    value={formatPaymentMoney(record.refundedAmount, record.currency)}
+                  />
                   <SummaryItem label="Refundable" value={formatPaymentMoney(record.refundableAmount, record.currency)} />
                 </>
               ) : null}
@@ -328,6 +372,8 @@ function PaymentRecordDialog({
                     }}
                   >
                     <DetailItem label="Record ID" value={record.id} mono />
+                    <DetailItem label="Provider" value={providerLabel} />
+                    <DetailItem label={getRecordStatusLabel(type)} value={formatLabel(record.status)} />
                     <DetailItem label="Payment attempt" value={record.paymentAttemptId} mono />
                     <DetailItem label="Provider order" value={record.providerOrderId} mono />
                     <DetailItem label="Provider payment" value={record.providerPaymentId} mono />
@@ -342,11 +388,9 @@ function PaymentRecordDialog({
               <Box sx={{ flex: 0.9, minWidth: 0 }}>
                 <DetailPanel title="Order context">
                   <Stack spacing={1.25}>
-                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                      {orderStatus ? <StatusChip status={orderStatus} variant="order" /> : null}
-                      {orderPaymentStatus ? <StatusChip status={orderPaymentStatus} /> : null}
-                    </Stack>
                     <DetailItem label="Order ID" value={record.orderId} mono />
+                    <DetailItem label="Order status" value={formatLabel(orderStatus)} />
+                    <DetailItem label="Money status" value={formatLabel(orderPaymentStatus)} />
                     <DetailItem
                       label="Order total"
                       value={formatPaymentMoney(record.order?.totalPayable ?? record.amount, record.currency)}

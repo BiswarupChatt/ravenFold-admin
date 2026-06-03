@@ -33,10 +33,9 @@ import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, SEARCH_DEBOUNCE_MS } from "@/lib/utils/utils";
 import {
   ATTEMPT_STATUS_OPTIONS,
-  PAYMENT_STATUS_OPTIONS,
+  MONEY_STATUS_OPTIONS,
   PAYMENT_TABS,
   PROVIDER_OPTIONS,
-  REFUND_STATUS_OPTIONS,
   formatPaymentDate,
   formatPaymentMoney,
   getCustomerAvatar,
@@ -48,16 +47,23 @@ import {
 } from "./components/paymentFormatters";
 import PaymentRecordDialog from "./components/PaymentRecordDialog";
 
+const TAB_VALUES = {
+  ATTEMPTS: "attempts",
+  LEDGER: "ledger",
+};
+
+const RECORD_TYPES = {
+  ATTEMPT: "attempts",
+  PAYMENT: "payments",
+  REFUND: "refunds",
+};
+
 const getStatusOptions = (tab) => {
-  if (tab === "attempts") {
+  if (tab === TAB_VALUES.ATTEMPTS) {
     return ATTEMPT_STATUS_OPTIONS;
   }
 
-  if (tab === "refunds") {
-    return REFUND_STATUS_OPTIONS;
-  }
-
-  return PAYMENT_STATUS_OPTIONS;
+  return MONEY_STATUS_OPTIONS;
 };
 
 const StatusChip = ({ status }) => {
@@ -73,9 +79,45 @@ const StatusChip = ({ status }) => {
   );
 };
 
-const getRecordAmount = (record = {}) => record.order?.totalPayable ?? record.amount;
+const getRecordAmount = (record = {}) => record.amount ?? record.order?.totalPayable;
 
 const getRecordTime = (record = {}) => record.paidAt || record.processedAt || record.createdAt;
+
+const getRecordTypeLabel = (record = {}) => {
+  if (record.recordType === RECORD_TYPES.REFUND) {
+    return "Refund";
+  }
+
+  if (record.recordType === RECORD_TYPES.ATTEMPT) {
+    return "Attempt";
+  }
+
+  return "Payment";
+};
+
+const getRecordTypeColor = (record = {}) => {
+  if (record.recordType === RECORD_TYPES.REFUND) {
+    return "info";
+  }
+
+  if (record.recordType === RECORD_TYPES.ATTEMPT) {
+    return "default";
+  }
+
+  return "success";
+};
+
+const getAmountColor = (record = {}) => {
+  if (record.recordType === RECORD_TYPES.REFUND) {
+    return "error.main";
+  }
+
+  if (record.recordType === RECORD_TYPES.PAYMENT) {
+    return "success.main";
+  }
+
+  return "text.primary";
+};
 
 const getCustomerInitial = (record = {}) => {
   const customer = getCustomerLabel(record);
@@ -83,7 +125,7 @@ const getCustomerInitial = (record = {}) => {
   return customer && customer !== "-" ? customer.charAt(0).toUpperCase() : "?";
 };
 
-const getCompactColumns = ({ onView }) => [
+const getCompactColumns = ({ activeTab, onView }) => [
   {
     id: "order",
     header: "Order",
@@ -144,11 +186,33 @@ const getCompactColumns = ({ onView }) => [
     render: (record) => getCustomerPhone(record),
   },
   {
+    id: "activity",
+    header: activeTab === TAB_VALUES.ATTEMPTS ? "Log" : "Activity",
+    minWidth: 120,
+    render: (record) => (
+      <Chip
+        size="small"
+        label={getRecordTypeLabel(record)}
+        color={getRecordTypeColor(record)}
+        variant={record.recordType === RECORD_TYPES.ATTEMPT ? "outlined" : "filled"}
+      />
+    ),
+  },
+  {
     id: "amount",
-    header: "Order Amount",
+    header: "Amount",
     align: "right",
     minWidth: 130,
-    render: (record) => formatPaymentMoney(getRecordAmount(record), record.currency),
+    render: (record) => (
+      <Typography
+        variant="body2"
+        fontWeight={700}
+        color={getAmountColor(record)}
+      >
+        {record.recordType === RECORD_TYPES.REFUND ? "-" : ""}
+        {formatPaymentMoney(getRecordAmount(record), record.currency)}
+      </Typography>
+    ),
   },
   {
     id: "status",
@@ -172,21 +236,107 @@ const getCompactColumns = ({ onView }) => [
 ];
 
 const getFetcher = (tab) => {
-  if (tab === "attempts") {
+  if (tab === TAB_VALUES.ATTEMPTS) {
     return fetchAdminPaymentAttempts;
-  }
-
-  if (tab === "refunds") {
-    return fetchAdminRefunds;
   }
 
   return fetchAdminPayments;
 };
 
+const withRecordType = (items = [], recordType) => items.map((item) => ({
+  ...item,
+  recordType,
+}));
+
+const getSortTime = (record = {}) => {
+  const value = getRecordTime(record);
+
+  return value ? new Date(value).getTime() : 0;
+};
+
+const splitLedgerStatus = (status = "") => {
+  if (!status || status === "all") {
+    return {
+      paymentStatus: "",
+      refundStatus: "",
+      scope: "all",
+    };
+  }
+
+  if (status.startsWith("refund_")) {
+    return {
+      paymentStatus: "",
+      refundStatus: status.replace(/^refund_/, ""),
+      scope: "refunds",
+    };
+  }
+
+  return {
+    paymentStatus: status,
+    refundStatus: "",
+    scope: "payments",
+  };
+};
+
+const buildLedgerParams = (params = {}, status = "") => {
+  const { paymentStatus, refundStatus, scope } = splitLedgerStatus(status);
+  const ledgerLimit = Number(params.page || 1) * Number(params.limit || DEFAULT_TABLE_PARAMS.limit);
+  const baseParams = {
+    ...params,
+    limit: ledgerLimit,
+    page: 1,
+  };
+  const paymentParams = {
+    ...baseParams,
+  };
+  const refundParams = {
+    ...baseParams,
+  };
+
+  delete paymentParams.status;
+  delete refundParams.status;
+
+  if (paymentStatus) {
+    paymentParams.status = paymentStatus;
+  }
+
+  if (refundStatus) {
+    refundParams.status = refundStatus;
+  }
+
+  return {
+    paymentParams,
+    refundParams,
+    scope,
+  };
+};
+
+const normalizeLedgerResult = ({ page, limit, payments, refunds }) => {
+  const rows = [
+    ...withRecordType(payments.items, RECORD_TYPES.PAYMENT),
+    ...withRecordType(refunds.items, RECORD_TYPES.REFUND),
+  ].sort((left, right) => getSortTime(right) - getSortTime(left));
+  const startIndex = (page - 1) * limit;
+  const endIndex = startIndex + limit;
+  const total = Number(payments.pagination?.total || 0) + Number(refunds.pagination?.total || 0);
+
+  return {
+    items: rows.slice(startIndex, endIndex),
+    pagination: {
+      hasNextPage: endIndex < total,
+      hasPrevPage: page > 1,
+      limit,
+      page,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
 function Payment() {
   const authToken = useAtomValue(authTokenAtom);
   const toast = useToast();
-  const [activeTab, setActiveTab] = useState("payments");
+  const [activeTab, setActiveTab] = useState(TAB_VALUES.LEDGER);
   const [rows, setRows] = useState([]);
   const [tableParams, setTableParams] = useState(DEFAULT_TABLE_PARAMS);
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
@@ -199,9 +349,10 @@ function Payment() {
   const statusOptions = getStatusOptions(activeTab);
   const columns = useMemo(
     () => getCompactColumns({
+      activeTab,
       onView: (record) => {
         setSelectedRecord(record);
-        setSelectedRecordType(activeTab);
+        setSelectedRecordType(record.recordType || activeTab);
       },
     }),
     [activeTab],
@@ -212,8 +363,37 @@ function Payment() {
     setError("");
 
     try {
-      const fetcher = getFetcher(activeTab);
-      const result = await fetcher(authToken, tableParams);
+      let result = null;
+
+      if (activeTab === TAB_VALUES.LEDGER) {
+        const { paymentParams, refundParams, scope } = buildLedgerParams(tableParams, tableParams.status);
+        const emptyResult = {
+          items: [],
+          pagination: {
+            ...DEFAULT_PAGINATION,
+            limit: paymentParams.limit,
+            page: 1,
+          },
+        };
+        const [payments, refunds] = await Promise.all([
+          scope === "refunds" ? Promise.resolve(emptyResult) : fetchAdminPayments(authToken, paymentParams),
+          scope === "payments" ? Promise.resolve(emptyResult) : fetchAdminRefunds(authToken, refundParams),
+        ]);
+
+        result = normalizeLedgerResult({
+          limit: Number(tableParams.limit || DEFAULT_TABLE_PARAMS.limit),
+          page: Number(tableParams.page || DEFAULT_TABLE_PARAMS.page),
+          payments,
+          refunds,
+        });
+      } else {
+        const fetcher = getFetcher(activeTab);
+        result = await fetcher(authToken, tableParams);
+        result = {
+          ...result,
+          items: withRecordType(result.items, RECORD_TYPES.ATTEMPT),
+        };
+      }
 
       setRows(result.items);
       setPagination(result.pagination);
@@ -375,10 +555,10 @@ function Payment() {
         >
           <Box>
             <Typography variant="h6" fontWeight={600}>
-              Payment Operations
+              Money Ledger
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Review captured payments, checkout attempts, and refund logs.
+              Review charges and refunds first, with provider attempts kept as technical logs.
             </Typography>
           </Box>
 
@@ -389,7 +569,7 @@ function Payment() {
           >
             <TextField
               size="small"
-              placeholder="Search provider reference"
+              placeholder="Search order, customer, email, mobile, or provider ref"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
               sx={{ minWidth: { xs: "100%", md: 320 } }}
@@ -459,7 +639,7 @@ function Payment() {
             loading={loading}
             error={error}
             emptyMessage="No payment records found."
-            minWidth={980}
+            minWidth={1080}
             pagination={{
               ...pagination,
               onPageChange: handleTablePageChange,
