@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Chip,
@@ -10,23 +11,35 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
+  IconButton,
+  MenuItem,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
+import CloseIcon from "@mui/icons-material/Close";
 
 import {
   formatPaymentDate,
   formatPaymentMoney,
+  getCustomerAvatar,
+  getCustomerEmail,
   getCustomerLabel,
+  getCustomerPhone,
   getMethodLabel,
   getOrderLabel,
   getProviderLabel,
   getStatusMeta,
 } from "./paymentFormatters";
 
+const REFUND_ORDER_STATUS_OPTIONS = [
+  { label: "Cancel order", value: "cancelled" },
+  { label: "Mark returned", value: "returned" },
+];
+
 const getDefaultRefundForm = (payment = null) => ({
   amount: payment ? String(Number(payment.refundableAmount || 0).toFixed(2)) : "",
+  orderStatus: "",
   reason: "",
 });
 
@@ -42,8 +55,46 @@ const getTitle = (type) => {
   return "Payment details";
 };
 
-const StatusChip = ({ status }) => {
-  const meta = getStatusMeta(status);
+const formatLabel = (value = "") => {
+  if (!value) {
+    return "-";
+  }
+
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const getOrderStatusMeta = (status = "") => {
+  const statusMap = {
+    cancelled: { color: "error", label: "Cancelled" },
+    confirmed: { color: "info", label: "Confirmed" },
+    delivered: { color: "success", label: "Delivered" },
+    packed: { color: "primary", label: "Packed" },
+    pending: { color: "warning", label: "Pending" },
+    returned: { color: "default", label: "Returned" },
+    shipped: { color: "secondary", label: "Shipped" },
+  };
+
+  return statusMap[status] || { color: "default", label: formatLabel(status) };
+};
+
+const formatAddressLines = (address = {}) => [
+  address.fullName,
+  address.phone,
+  [address.addressLine1, address.addressLine2].filter(Boolean).join(", "),
+  [address.city, address.state, address.pincode].filter(Boolean).join(", "),
+  address.country,
+].filter(Boolean);
+
+const getCustomerInitial = (record = {}) => {
+  const customer = getCustomerLabel(record);
+
+  return customer && customer !== "-" ? customer.charAt(0).toUpperCase() : "?";
+};
+
+const StatusChip = ({ status, variant = "status" }) => {
+  const meta = variant === "order" ? getOrderStatusMeta(status) : getStatusMeta(status);
 
   return (
     <Chip
@@ -54,6 +105,17 @@ const StatusChip = ({ status }) => {
     />
   );
 };
+
+const SummaryItem = ({ label, value }) => (
+  <Box sx={{ minWidth: 150 }}>
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography variant="h6" fontWeight={700}>
+      {value}
+    </Typography>
+  </Box>
+);
 
 const DetailItem = ({ label, value, mono = false }) => (
   <Box sx={{ minWidth: 0 }}>
@@ -73,23 +135,42 @@ const DetailItem = ({ label, value, mono = false }) => (
   </Box>
 );
 
-const MoneySummary = ({ label, value, currency }) => (
+const DetailPanel = ({ children, title }) => (
   <Box
     sx={{
       border: "1px solid",
       borderColor: "divider",
-      borderRadius: 1.5,
-      p: 1.25,
+      borderRadius: 2,
+      minWidth: 0,
+      p: 1.5,
     }}
   >
-    <Typography variant="caption" color="text.secondary">
-      {label}
+    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.25 }}>
+      {title}
     </Typography>
-    <Typography variant="subtitle2" fontWeight={800}>
-      {formatPaymentMoney(value, currency)}
-    </Typography>
+    {children}
   </Box>
 );
+
+const AddressBlock = ({ address }) => {
+  const lines = formatAddressLines(address);
+
+  return lines.length > 0 ? (
+    <Stack spacing={0.25}>
+      {lines.map((line, index) => (
+        <Typography key={`${line}-${index}`} variant="body2" color="text.secondary">
+          {line}
+        </Typography>
+      ))}
+    </Stack>
+  ) : (
+    <Typography variant="body2" color="text.secondary">
+      No address saved.
+    </Typography>
+  );
+};
+
+const getRecordTime = (record = {}) => record.paidAt || record.processedAt || record.createdAt;
 
 function PaymentRecordDialog({
   onClose,
@@ -102,8 +183,14 @@ function PaymentRecordDialog({
   const [refundForm, setRefundForm] = useState(getDefaultRefundForm());
   const [refundError, setRefundError] = useState("");
   const isPayment = type === "payments";
+  const isRefund = type === "refunds";
+  const isAttempt = type === "attempts";
   const refundableAmount = Number(record?.refundableAmount || 0);
   const canRefund = isPayment && record?.provider === "razorpay" && refundableAmount > 0;
+  const orderStatus = record?.order?.status || "";
+  const orderPaymentStatus = record?.order?.paymentStatus || "";
+  const methodLabel = getMethodLabel(record?.paymentMethod);
+  const providerLabel = getProviderLabel(record?.provider);
 
   useEffect(() => {
     setRefundForm(getDefaultRefundForm(record));
@@ -135,9 +222,15 @@ function PaymentRecordDialog({
       return;
     }
 
+    if (!refundForm.orderStatus) {
+      setRefundError("Choose whether this order should be cancelled or returned.");
+      return;
+    }
+
     try {
       await onRefund({
         amount,
+        orderStatus: refundForm.orderStatus,
         payment: record,
         reason: refundForm.reason.trim(),
       });
@@ -147,132 +240,212 @@ function PaymentRecordDialog({
   };
 
   return (
-    <Dialog open={open} onClose={refundSubmitting ? undefined : onClose} fullWidth maxWidth="md">
-      <DialogTitle>{getTitle(type)}</DialogTitle>
+    <Dialog open={open} onClose={refundSubmitting ? undefined : onClose} fullWidth maxWidth="lg">
+      <DialogTitle sx={{ pr: 7 }}>
+        {getTitle(type)}
+        <IconButton
+          aria-label="Close payment details"
+          disabled={refundSubmitting}
+          onClick={onClose}
+          sx={{ position: "absolute", right: 12, top: 12 }}
+        >
+          <CloseIcon />
+        </IconButton>
+      </DialogTitle>
+
       <DialogContent dividers>
         {record ? (
-          <Stack spacing={2.25}>
+          <Stack spacing={2.5}>
             <Stack
               direction={{ xs: "column", md: "row" }}
-              spacing={1.5}
+              spacing={2}
               justifyContent="space-between"
-              alignItems={{ xs: "flex-start", md: "center" }}
+              alignItems={{ xs: "stretch", md: "flex-start" }}
             >
-              <Box>
-                <Typography variant="subtitle1" fontWeight={800}>
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+                <Avatar
+                  alt={getCustomerLabel(record)}
+                  src={getCustomerAvatar(record)}
+                  slotProps={{
+                    img: {
+                      referrerPolicy: "no-referrer",
+                    },
+                  }}
+                  sx={{ width: 42, height: 42 }}
+                >
+                  {getCustomerInitial(record)}
+                </Avatar>
+                <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                  <Typography variant="subtitle1" fontWeight={700} noWrap>
+                    {getCustomerLabel(record)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {getCustomerEmail(record)}
+                  </Typography>
+                  {getCustomerPhone(record) !== "-" ? (
+                    <Typography variant="caption" color="text.secondary" noWrap>
+                      {getCustomerPhone(record)}
+                    </Typography>
+                  ) : null}
+                </Stack>
+              </Stack>
+
+              <Stack spacing={0.75} alignItems={{ xs: "flex-start", md: "flex-end" }}>
+                <Typography variant="subtitle2" fontWeight={800}>
                   {getOrderLabel(record)}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {getCustomerLabel(record)}
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1} alignItems="center">
-                <StatusChip status={record.status} />
-                <Chip size="small" label={getProviderLabel(record.provider)} variant="outlined" />
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {orderStatus ? <StatusChip status={orderStatus} variant="order" /> : null}
+                  {orderPaymentStatus ? <StatusChip status={orderPaymentStatus} /> : null}
+                  <Chip size="small" label={providerLabel} variant="outlined" />
+                  <StatusChip status={record.status} />
+                </Stack>
               </Stack>
             </Stack>
 
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-              <Box sx={{ flex: 1 }}>
-                <MoneySummary label="Amount" value={record.amount} currency={record.currency} />
-              </Box>
+            <Divider />
+
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} useFlexGap flexWrap="wrap">
+              <SummaryItem label={isRefund ? "Refund amount" : "Amount"} value={formatPaymentMoney(record.amount, record.currency)} />
               {isPayment ? (
                 <>
-                  <Box sx={{ flex: 1 }}>
-                    <MoneySummary label="Refunded" value={record.refundedAmount} currency={record.currency} />
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <MoneySummary label="Refundable" value={record.refundableAmount} currency={record.currency} />
-                  </Box>
+                  <SummaryItem label="Refunded" value={formatPaymentMoney(record.refundedAmount, record.currency)} />
+                  <SummaryItem label="Refundable" value={formatPaymentMoney(record.refundableAmount, record.currency)} />
                 </>
               ) : null}
+              {isRefund ? <SummaryItem label="Processed" value={formatPaymentDate(record.processedAt)} /> : null}
+              <SummaryItem label={isPayment ? "Payment Time" : "Created At"} value={formatPaymentDate(getRecordTime(record))} />
             </Stack>
 
-            <Box
-              sx={{
-                display: "grid",
-                gap: 1.5,
-                gridTemplateColumns: { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
-              }}
-            >
-              <DetailItem label="Record ID" value={record.id} mono />
-              <DetailItem label="Order ID" value={record.orderId} mono />
-              <DetailItem label="User ID" value={record.userId} mono />
-              <DetailItem label="Method" value={getMethodLabel(record.paymentMethod)} />
-              <DetailItem label="Provider Order ID" value={record.providerOrderId} mono />
-              <DetailItem label="Provider Payment ID" value={record.providerPaymentId} mono />
-              <DetailItem label="Provider Session ID" value={record.providerSessionId} mono />
-              <DetailItem label="Provider Refund ID" value={record.providerRefundId} mono />
-              <DetailItem label="Payment Attempt ID" value={record.paymentAttemptId} mono />
-              <DetailItem label="Created" value={formatPaymentDate(record.createdAt)} />
-              <DetailItem label="Updated" value={formatPaymentDate(record.updatedAt)} />
-              <DetailItem label="Processed" value={formatPaymentDate(record.processedAt)} />
-              <DetailItem label="Paid" value={formatPaymentDate(record.paidAt)} />
-              <DetailItem label="Reason" value={record.reason} />
-              <DetailItem label="Failure Reason" value={record.failureReason} />
-            </Box>
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+              <Box sx={{ flex: 1.1, minWidth: 0 }}>
+                <DetailPanel title="Payment reference">
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 1.5,
+                      gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+                    }}
+                  >
+                    <DetailItem label="Record ID" value={record.id} mono />
+                    <DetailItem label="Payment attempt" value={record.paymentAttemptId} mono />
+                    <DetailItem label="Provider order" value={record.providerOrderId} mono />
+                    <DetailItem label="Provider payment" value={record.providerPaymentId} mono />
+                    <DetailItem label="Provider session" value={record.providerSessionId} mono />
+                    <DetailItem label="Provider refund" value={record.providerRefundId} mono />
+                    <DetailItem label="Method" value={methodLabel} />
+                    <DetailItem label="Updated" value={formatPaymentDate(record.updatedAt)} />
+                  </Box>
+                </DetailPanel>
+              </Box>
+
+              <Box sx={{ flex: 0.9, minWidth: 0 }}>
+                <DetailPanel title="Order context">
+                  <Stack spacing={1.25}>
+                    <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                      {orderStatus ? <StatusChip status={orderStatus} variant="order" /> : null}
+                      {orderPaymentStatus ? <StatusChip status={orderPaymentStatus} /> : null}
+                    </Stack>
+                    <DetailItem label="Order ID" value={record.orderId} mono />
+                    <DetailItem
+                      label="Order total"
+                      value={formatPaymentMoney(record.order?.totalPayable ?? record.amount, record.currency)}
+                    />
+                    <DetailItem label="Placed" value={formatPaymentDate(record.order?.placedAt)} />
+                  </Stack>
+                </DetailPanel>
+              </Box>
+            </Stack>
+
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <DetailPanel title="Shipping address">
+                  <AddressBlock address={record.order?.shippingAddress} />
+                </DetailPanel>
+              </Box>
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <DetailPanel title={isRefund ? "Refund note" : isAttempt ? "Attempt note" : "Payment note"}>
+                  <Stack spacing={1.25}>
+                    <DetailItem label="Reason" value={record.reason} />
+                    <DetailItem label="Failure reason" value={record.failureReason} />
+                    {isRefund ? <DetailItem label="Requested by" value={record.requestedByUser?.name || record.requestedBy} /> : null}
+                  </Stack>
+                </DetailPanel>
+              </Box>
+            </Stack>
 
             {isPayment ? (
-              <>
-                <Divider />
-                <Box>
-                  <Typography variant="subtitle2" fontWeight={800} sx={{ mb: 1 }}>
-                    Refund
-                  </Typography>
-
-                  {canRefund ? (
-                    <Stack spacing={1.5}>
-                      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.25}>
-                        <TextField
-                          fullWidth
-                          label="Refund amount"
-                          onChange={handleRefundFieldChange("amount")}
-                          size="small"
-                          type="number"
-                          value={refundForm.amount}
-                          inputProps={{
-                            max: refundableAmount,
-                            min: 0.01,
-                            step: 0.01,
-                          }}
-                        />
-                        <TextField
-                          fullWidth
-                          label="Reason"
-                          onChange={handleRefundFieldChange("reason")}
-                          size="small"
-                          value={refundForm.reason}
-                        />
-                      </Stack>
-
-                      {refundError ? (
-                        <Alert severity="error">{refundError}</Alert>
-                      ) : null}
-
-                      <Button
-                        disabled={refundSubmitting}
-                        onClick={handleRefundSubmit}
-                        startIcon={refundSubmitting ? <CircularProgress color="inherit" size={16} /> : null}
-                        sx={{ alignSelf: "flex-start" }}
-                        variant="contained"
+              <DetailPanel title="Refund">
+                {canRefund ? (
+                  <Stack spacing={1.5}>
+                    <Stack direction={{ xs: "column", md: "row" }} spacing={1.25}>
+                      <TextField
+                        fullWidth
+                        label="Refund amount"
+                        onChange={handleRefundFieldChange("amount")}
+                        size="small"
+                        type="number"
+                        value={refundForm.amount}
+                        inputProps={{
+                          max: refundableAmount,
+                          min: 0.01,
+                          step: 0.01,
+                        }}
+                      />
+                      <TextField
+                        fullWidth
+                        label="Order result"
+                        onChange={handleRefundFieldChange("orderStatus")}
+                        required
+                        select
+                        size="small"
+                        value={refundForm.orderStatus}
                       >
-                        {refundSubmitting ? "Initiating..." : "Initiate Refund"}
-                      </Button>
+                        <MenuItem disabled value="">
+                          Select result
+                        </MenuItem>
+                        {REFUND_ORDER_STATUS_OPTIONS.map((option) => (
+                          <MenuItem key={option.value} value={option.value}>
+                            {option.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                      <TextField
+                        fullWidth
+                        label="Reason"
+                        onChange={handleRefundFieldChange("reason")}
+                        size="small"
+                        value={refundForm.reason}
+                      />
                     </Stack>
-                  ) : (
-                    <Alert severity="info">
-                      {record.provider === "razorpay"
-                        ? "There is no refundable amount left for this payment."
-                        : "Refunds are currently wired for Razorpay payments only."}
-                    </Alert>
-                  )}
-                </Box>
-              </>
+
+                    {refundError ? <Alert severity="error">{refundError}</Alert> : null}
+
+                    <Button
+                      disabled={refundSubmitting}
+                      onClick={handleRefundSubmit}
+                      startIcon={refundSubmitting ? <CircularProgress color="inherit" size={16} /> : null}
+                      sx={{ alignSelf: "flex-start" }}
+                      variant="contained"
+                    >
+                      {refundSubmitting ? "Initiating..." : "Initiate Refund"}
+                    </Button>
+                  </Stack>
+                ) : (
+                  <Alert severity="info">
+                    {record.provider === "razorpay"
+                      ? "There is no refundable amount left for this payment."
+                      : "Refunds are currently wired for Razorpay payments only."}
+                  </Alert>
+                )}
+              </DetailPanel>
             ) : null}
           </Stack>
         ) : null}
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
+
+      <DialogActions>
         <Button disabled={refundSubmitting} onClick={onClose}>
           Close
         </Button>

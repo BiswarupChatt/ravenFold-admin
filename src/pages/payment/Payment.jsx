@@ -332,7 +332,7 @@ function Payment() {
     setSelectedRecordType("");
   };
 
-  const handleRefundSubmit = async ({ amount, payment, reason }) => {
+  const handleRefundSubmit = async ({ amount, orderStatus, payment, reason }) => {
     if (!payment) {
       return;
     }
@@ -342,6 +342,7 @@ function Payment() {
     try {
       await createAdminRefund(authToken, {
         amount,
+        orderStatus,
         paymentId: payment.id,
         reason,
       });
