@@ -51,7 +51,7 @@ export const SIDEBAR_ITEMS = [
   },
   {
     name: "Shipping",
-    path: "/shipping",
+    path: ROUTES.SHIPPING,
     icon: LocalShippingIcon,
   },
   {
