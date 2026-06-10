@@ -34,6 +34,7 @@ import {
 
 const terminalOrderStatuses = new Set(["cancelled", "delivered", "returned"]);
 const terminalShipmentStatuses = new Set(["cancelled", "delivered", "lost", "rto"]);
+const PRODUCT_DIMENSIONS_BOX_TYPE = "__product_dimensions";
 
 const initialShipmentForm = {
   awbCode: "",
@@ -63,10 +64,83 @@ const hasCompleteDimensions = (packageDetails = {}) => (
   hasValue(packageDetails.height)
 );
 
+const dimensionMultipliersToCm = {
+  cm: 1,
+  in: 2.54,
+};
+
+const weightMultipliersToKg = {
+  g: 0.001,
+  kg: 1,
+  lb: 0.45359237,
+  oz: 0.0283495231,
+};
+
+const roundMeasurement = (value) => Number(Number(value).toFixed(2));
+
+const convertMeasurement = (value, unit, multipliers) => {
+  if (!hasValue(value)) {
+    return "";
+  }
+
+  const numberValue = Number(value);
+  const multiplier = multipliers[String(unit || "").toLowerCase()];
+
+  if (!Number.isFinite(numberValue) || !multiplier) {
+    return "";
+  }
+
+  return String(roundMeasurement(numberValue * multiplier));
+};
+
+const emptyPackageFields = {
+  breadth: "",
+  height: "",
+  length: "",
+  weight: "",
+};
+
+const compactPackagePayload = (form = {}) => {
+  const payload = { ...form };
+
+  if (payload.boxType === PRODUCT_DIMENSIONS_BOX_TYPE) {
+    delete payload.boxType;
+  }
+
+  for (const field of ["boxType", "breadth", "height", "length", "weight"]) {
+    if (!hasValue(payload[field])) {
+      delete payload[field];
+    }
+  }
+
+  return payload;
+};
+
 const isSingleUnitOrder = (order) => {
   const items = Array.isArray(order?.items) ? order.items : [];
 
   return items.length === 1 && Number(items[0]?.quantity || 0) === 1;
+};
+
+const getProductPackageFromOrder = (order) => {
+  if (!isSingleUnitOrder(order)) {
+    return null;
+  }
+
+  const shipping = order.items?.[0]?.productShipping;
+
+  if (!shipping || shipping.requiresShipping === false) {
+    return null;
+  }
+
+  const packageDetails = {
+    breadth: convertMeasurement(shipping.dimensions?.width, shipping.dimensions?.unit || "cm", dimensionMultipliersToCm),
+    height: convertMeasurement(shipping.dimensions?.height, shipping.dimensions?.unit || "cm", dimensionMultipliersToCm),
+    length: convertMeasurement(shipping.dimensions?.length, shipping.dimensions?.unit || "cm", dimensionMultipliersToCm),
+    weight: convertMeasurement(shipping.weight?.value, shipping.weight?.unit || "kg", weightMultipliersToKg),
+  };
+
+  return hasCompleteDimensions(packageDetails) ? packageDetails : null;
 };
 
 const formatPackageSummary = (packageDetails = {}, boxTypes = []) => {
@@ -157,6 +231,7 @@ const ShipmentFulfillmentPanel = ({
 }) => {
   const shipments = useMemo(() => (Array.isArray(order?.shipments) ? order.shipments : []), [order?.shipments]);
   const latestShipment = useMemo(() => getLatestShipment(shipments), [shipments]);
+  const productPackage = useMemo(() => getProductPackageFromOrder(order), [order]);
   const [shipmentForm, setShipmentForm] = useState(initialShipmentForm);
   const [statusForm, setStatusForm] = useState({
     note: "",
@@ -174,13 +249,22 @@ const ShipmentFulfillmentPanel = ({
   const singleUnitOrder = isSingleUnitOrder(order);
   const packageDimensionsComplete = hasCompleteDimensions(shipmentForm);
   const customPackageSelected = shipmentForm.boxType === SHIPPING_CUSTOM_BOX_TYPE;
+  const productPackageSelected = singleUnitOrder && shipmentForm.boxType === PRODUCT_DIMENSIONS_BOX_TYPE;
   const packageSelectionMissing = !singleUnitOrder && !shipmentForm.boxType;
   const packageDetailsIncomplete = customPackageSelected && !packageDimensionsComplete;
-  const createShipmentDisabled = actionLoading || packageSelectionMissing || packageDetailsIncomplete;
+  const productPackageMissing = productPackageSelected && !packageDimensionsComplete;
+  const createShipmentDisabled = actionLoading ||
+    packageSelectionMissing ||
+    packageDetailsIncomplete ||
+    productPackageMissing;
 
   useEffect(() => {
-    setShipmentForm(initialShipmentForm);
-  }, [order?.id]);
+    setShipmentForm({
+      ...initialShipmentForm,
+      boxType: isSingleUnitOrder(order) ? PRODUCT_DIMENSIONS_BOX_TYPE : "",
+      ...(productPackage || {}),
+    });
+  }, [order?.id, productPackage]);
 
   useEffect(() => {
     setStatusForm({
@@ -204,6 +288,7 @@ const ShipmentFulfillmentPanel = ({
     setShipmentForm((currentForm) => ({
       ...currentForm,
       boxType: nextBoxType,
+      ...(nextBoxType === PRODUCT_DIMENSIONS_BOX_TYPE ? productPackage || emptyPackageFields : {}),
       ...(selectedBoxType && getBoxTypeCode(selectedBoxType) !== SHIPPING_CUSTOM_BOX_TYPE
         ? {
             breadth: String(selectedBoxType.breadth),
@@ -224,7 +309,7 @@ const ShipmentFulfillmentPanel = ({
 
   const handleCreateShipment = async () => {
     await onCreateShipment({
-      ...shipmentForm,
+      ...compactPackagePayload(shipmentForm),
       note: shipmentForm.note,
       notes: shipmentForm.note,
     });
@@ -366,8 +451,10 @@ const ShipmentFulfillmentPanel = ({
                         ? "Required for multiple items."
                         : packageDetailsIncomplete
                           ? "Enter package dimensions."
-                          : singleUnitOrder && !shipmentForm.boxType
-                            ? "Product dimensions will be used."
+                          : productPackageMissing
+                            ? "Product shipping dimensions are missing."
+                          : productPackageSelected
+                            ? "Product dimensions loaded."
                             : ""
                     }
                     label="Box type"
@@ -376,7 +463,7 @@ const ShipmentFulfillmentPanel = ({
                     onChange={handleBoxTypeChange}
                   >
                     {singleUnitOrder ? (
-                      <MenuItem value="">Product dimensions</MenuItem>
+                      <MenuItem value={PRODUCT_DIMENSIONS_BOX_TYPE}>Product dimensions</MenuItem>
                     ) : (
                       <MenuItem value="" disabled>
                         Select box type
