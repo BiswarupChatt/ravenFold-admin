@@ -13,7 +13,6 @@ import Inventory from "../pages/inventory/Inventory";
 import Cart from "../pages/cart/Cart";
 import Order from "../pages/order/Order";
 import Payment from "../pages/payment/Payment";
-import Shipping from "../pages/shipping/Shipping";
 import Other from "../pages/other/Other";
 import Customer from "../pages/customer/Customer";
 import NotFound from "../pages/NotFound";
@@ -41,7 +40,6 @@ export const appRoutes = [
       { path: ROUTES.CART.slice(1), element: <Cart /> },
       { path: ROUTES.ORDER.slice(1), element: <Order /> },
       { path: ROUTES.PAYMENT.slice(1), element: <Payment /> },
-      { path: ROUTES.SHIPPING.slice(1), element: <Shipping /> },
       { path: ROUTES.OTHER.slice(1), element: <Other /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },

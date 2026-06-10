@@ -23,14 +23,14 @@ import {
   getShippingBoxTypeLabel,
   SHIPPING_CUSTOM_BOX_TYPE,
 } from "@/lib/shipping/boxTypes";
-import { formatOrderDateTime } from "@/pages/order/components/orderFormatters";
+import { formatOrderDateTime } from "./orderFormatters";
 import {
   formatProviderName,
   getLatestShipment,
   getShipmentStatusMeta,
   SHIPMENT_STATUS_OPTIONS,
   SHIPPING_PROVIDER_OPTIONS,
-} from "./shippingFormatters";
+} from "./shipmentFormatters";
 
 const terminalOrderStatuses = new Set(["cancelled", "delivered", "returned"]);
 const terminalShipmentStatuses = new Set(["cancelled", "delivered", "lost", "rto"]);

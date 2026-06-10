@@ -16,6 +16,7 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 
 import DataTable from "@/components/DataTable";
+import ShipmentFulfillmentPanel from "./ShipmentFulfillmentPanel";
 import {
   formatAddressLines,
   formatOrderDateTime,
@@ -92,10 +93,16 @@ const AddressBlock = ({ title, address }) => {
 };
 
 const OrderDetailsDialog = ({
+  actionLoading = false,
+  boxTypes = [],
+  loading,
+  onCancelShipment,
+  onClose,
+  onCreateShipment,
+  onMarkPacked,
+  onUpdateShipmentStatus,
   open,
   order,
-  loading,
-  onClose,
 }) => {
   const orderStatus = getOrderStatusMeta(order?.status);
   const paymentStatus = getPaymentStatusMeta(order?.paymentStatus);
@@ -258,6 +265,16 @@ const OrderDetailsDialog = ({
                 <AddressBlock title="Billing address" address={order.billingAddress} />
               </Box>
             </Stack>
+
+            <ShipmentFulfillmentPanel
+              actionLoading={actionLoading}
+              boxTypes={boxTypes}
+              order={order}
+              onCancelShipment={onCancelShipment}
+              onCreateShipment={onCreateShipment}
+              onMarkPacked={onMarkPacked}
+              onUpdateShipmentStatus={onUpdateShipmentStatus}
+            />
 
             <DataTable
               columns={itemColumns}

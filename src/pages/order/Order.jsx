@@ -17,7 +17,14 @@ import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 
 import SectionHeader from "@/components/SectionHeader";
+import { fetchAdminBoxTypes } from "@/lib/api/boxTypeApi";
 import { fetchAdminOrder, fetchAdminOrders } from "@/lib/api/orderApi";
+import {
+  cancelAdminShipment,
+  createAdminShipment,
+  markAdminOrderPacked,
+  updateAdminShipmentStatus,
+} from "@/lib/api/shippingApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, SEARCH_DEBOUNCE_MS } from "@/lib/utils/utils";
 import { useToast } from "@/hooks/ToastContext";
@@ -36,7 +43,9 @@ const Order = () => {
   const [error, setError] = useState("");
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [boxTypes, setBoxTypes] = useState([]);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
+  const [shipmentActionLoading, setShipmentActionLoading] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -152,19 +161,86 @@ const Order = () => {
     setLoadingOrderDetails(true);
 
     try {
-      setSelectedOrder(await fetchAdminOrder(authToken, order.id));
+      const [nextOrder, boxTypeList] = await Promise.all([
+        fetchAdminOrder(authToken, order.id),
+        fetchAdminBoxTypes(authToken, { isActive: true, limit: 100 }),
+      ]);
+
+      setSelectedOrder(nextOrder);
+      setBoxTypes(boxTypeList.items);
     } catch (err) {
       toast.error(err.message || "Failed to load order details.");
       setOrderDetailsOpen(false);
       setSelectedOrder(null);
+      setBoxTypes([]);
     } finally {
       setLoadingOrderDetails(false);
     }
   };
 
+  const refreshSelectedOrder = async (orderId) => {
+    const nextOrder = await fetchAdminOrder(authToken, orderId);
+
+    setSelectedOrder(nextOrder);
+    await loadOrders();
+
+    return nextOrder;
+  };
+
+  const runShipmentAction = async (action, successMessage) => {
+    if (!selectedOrder?.id) {
+      return;
+    }
+
+    setShipmentActionLoading(true);
+
+    try {
+      await action();
+      await refreshSelectedOrder(selectedOrder.id);
+      toast.success(successMessage);
+    } catch (err) {
+      toast.error(err.message || "Failed to update shipment.");
+    } finally {
+      setShipmentActionLoading(false);
+    }
+  };
+
+  const handleMarkPacked = async (payload) => {
+    await runShipmentAction(
+      () => markAdminOrderPacked(authToken, selectedOrder.id, payload),
+      "Order marked packed.",
+    );
+  };
+
+  const handleCreateShipment = async (payload) => {
+    await runShipmentAction(
+      () => createAdminShipment(authToken, selectedOrder.id, payload),
+      "Shipment created.",
+    );
+  };
+
+  const handleUpdateShipmentStatus = async (shipmentId, payload) => {
+    await runShipmentAction(
+      () => updateAdminShipmentStatus(authToken, shipmentId, payload),
+      "Shipment updated.",
+    );
+  };
+
+  const handleCancelShipment = async (shipmentId, payload) => {
+    await runShipmentAction(
+      () => cancelAdminShipment(authToken, shipmentId, payload),
+      "Shipment cancelled.",
+    );
+  };
+
   const closeOrderDetails = () => {
+    if (shipmentActionLoading) {
+      return;
+    }
+
     setOrderDetailsOpen(false);
     setSelectedOrder(null);
+    setBoxTypes([]);
   };
 
   return (
@@ -274,10 +350,16 @@ const Order = () => {
       </Paper>
 
       <OrderDetailsDialog
+        actionLoading={shipmentActionLoading}
+        boxTypes={boxTypes}
         open={orderDetailsOpen}
         order={selectedOrder}
         loading={loadingOrderDetails}
+        onCancelShipment={handleCancelShipment}
         onClose={closeOrderDetails}
+        onCreateShipment={handleCreateShipment}
+        onMarkPacked={handleMarkPacked}
+        onUpdateShipmentStatus={handleUpdateShipmentStatus}
       />
     </>
   );

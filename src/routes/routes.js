@@ -11,7 +11,6 @@ const ROUTES = {
   CART: "/cart",
   ORDER: "/order",
   PAYMENT: "/payment",
-  SHIPPING: "/shipping",
   OTHER: "/other",
   CUSTOMER: "/customer",
 

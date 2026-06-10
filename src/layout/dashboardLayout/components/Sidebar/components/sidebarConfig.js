@@ -7,7 +7,6 @@ import WarehouseIcon from "@mui/icons-material/Warehouse";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PaymentsIcon from "@mui/icons-material/Payments";
-import LocalShippingIcon from "@mui/icons-material/LocalShipping";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
@@ -49,11 +48,6 @@ export const SIDEBAR_ITEMS = [
     name: "Payment",
     path: ROUTES.PAYMENT,
     icon: PaymentsIcon,
-  },
-  {
-    name: "Shipping",
-    path: ROUTES.SHIPPING,
-    icon: LocalShippingIcon,
   },
   {
     name: "Other",
