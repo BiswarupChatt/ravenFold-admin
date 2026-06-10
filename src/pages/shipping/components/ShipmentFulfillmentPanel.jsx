@@ -14,6 +14,15 @@ import {
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 
+import {
+  formatBoxTypeDetails,
+  getBoxTypeCode,
+  getBoxTypeName,
+  getPresetShippingBoxTypes,
+  getShippingBoxType,
+  getShippingBoxTypeLabel,
+  SHIPPING_CUSTOM_BOX_TYPE,
+} from "@/lib/shipping/boxTypes";
 import { formatOrderDateTime } from "@/pages/order/components/orderFormatters";
 import {
   formatProviderName,
@@ -28,6 +37,7 @@ const terminalShipmentStatuses = new Set(["cancelled", "delivered", "lost", "rto
 
 const initialShipmentForm = {
   awbCode: "",
+  boxType: "",
   breadth: "",
   courierName: "",
   height: "",
@@ -45,6 +55,35 @@ const Field = ({ children }) => (
   </Box>
 );
 
+const hasValue = (value) => value !== null && value !== undefined && value !== "";
+
+const hasCompleteDimensions = (packageDetails = {}) => (
+  hasValue(packageDetails.length) &&
+  hasValue(packageDetails.breadth) &&
+  hasValue(packageDetails.height)
+);
+
+const isSingleUnitOrder = (order) => {
+  const items = Array.isArray(order?.items) ? order.items : [];
+
+  return items.length === 1 && Number(items[0]?.quantity || 0) === 1;
+};
+
+const formatPackageSummary = (packageDetails = {}, boxTypes = []) => {
+  if (!packageDetails || !hasCompleteDimensions(packageDetails)) {
+    return "";
+  }
+
+  const dimensions = `${packageDetails.length} x ${packageDetails.breadth} x ${packageDetails.height} cm`;
+  const weight = hasValue(packageDetails.weight) ? `${packageDetails.weight} kg` : "";
+
+  return [
+    getShippingBoxTypeLabel(packageDetails.boxType, boxTypes, packageDetails.boxTypeName),
+    dimensions,
+    weight,
+  ].filter(Boolean).join(" / ");
+};
+
 const ShipmentStatusChip = ({ status }) => {
   const meta = getShipmentStatusMeta(status);
 
@@ -58,7 +97,7 @@ const ShipmentStatusChip = ({ status }) => {
   );
 };
 
-const ShipmentSummary = ({ shipment }) => {
+const ShipmentSummary = ({ boxTypes = [], shipment }) => {
   if (!shipment) {
     return (
       <Typography variant="body2" color="text.secondary">
@@ -66,6 +105,8 @@ const ShipmentSummary = ({ shipment }) => {
       </Typography>
     );
   }
+
+  const packageSummary = formatPackageSummary(shipment.package, boxTypes);
 
   return (
     <Stack spacing={1}>
@@ -95,6 +136,11 @@ const ShipmentSummary = ({ shipment }) => {
             Tracking link
           </Link>
         ) : null}
+        {packageSummary ? (
+          <Typography variant="body2" color="text.secondary">
+            Package: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{packageSummary}</Box>
+          </Typography>
+        ) : null}
       </Stack>
     </Stack>
   );
@@ -102,6 +148,7 @@ const ShipmentSummary = ({ shipment }) => {
 
 const ShipmentFulfillmentPanel = ({
   actionLoading = false,
+  boxTypes = [],
   onCancelShipment,
   onCreateShipment,
   onMarkPacked,
@@ -124,6 +171,12 @@ const ShipmentFulfillmentPanel = ({
     ["confirmed", "packed", "shipped"].includes(order?.status);
   const canUpdateShipment = latestShipment && !terminalShipmentStatuses.has(latestShipment.status);
   const showManualFields = shipmentForm.provider === "manual";
+  const singleUnitOrder = isSingleUnitOrder(order);
+  const packageDimensionsComplete = hasCompleteDimensions(shipmentForm);
+  const customPackageSelected = shipmentForm.boxType === SHIPPING_CUSTOM_BOX_TYPE;
+  const packageSelectionMissing = !singleUnitOrder && !shipmentForm.boxType;
+  const packageDetailsIncomplete = customPackageSelected && !packageDimensionsComplete;
+  const createShipmentDisabled = actionLoading || packageSelectionMissing || packageDetailsIncomplete;
 
   useEffect(() => {
     setShipmentForm(initialShipmentForm);
@@ -141,6 +194,24 @@ const ShipmentFulfillmentPanel = ({
     setShipmentForm((currentForm) => ({
       ...currentForm,
       [field]: event.target.value,
+    }));
+  };
+
+  const handleBoxTypeChange = (event) => {
+    const nextBoxType = event.target.value;
+    const selectedBoxType = getShippingBoxType(nextBoxType, boxTypes);
+
+    setShipmentForm((currentForm) => ({
+      ...currentForm,
+      boxType: nextBoxType,
+      ...(selectedBoxType && getBoxTypeCode(selectedBoxType) !== SHIPPING_CUSTOM_BOX_TYPE
+        ? {
+            breadth: String(selectedBoxType.breadth),
+            height: String(selectedBoxType.height),
+            length: String(selectedBoxType.length),
+            weight: String(selectedBoxType.weight),
+          }
+        : {}),
     }));
   };
 
@@ -197,7 +268,7 @@ const ShipmentFulfillmentPanel = ({
               <Typography variant="subtitle1" fontWeight={700}>
                 Shipment
               </Typography>
-              <ShipmentSummary shipment={latestShipment} />
+              <ShipmentSummary boxTypes={boxTypes} shipment={latestShipment} />
             </Stack>
           </Stack>
 
@@ -287,38 +358,89 @@ const ShipmentFulfillmentPanel = ({
               <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} flexWrap="wrap" useFlexGap>
                 <Field>
                   <TextField
+                    select
+                    fullWidth
+                    error={packageSelectionMissing || packageDetailsIncomplete}
+                    helperText={
+                      packageSelectionMissing
+                        ? "Required for multiple items."
+                        : packageDetailsIncomplete
+                          ? "Enter package dimensions."
+                          : singleUnitOrder && !shipmentForm.boxType
+                            ? "Product dimensions will be used."
+                            : ""
+                    }
+                    label="Box type"
+                    size="small"
+                    value={shipmentForm.boxType}
+                    onChange={handleBoxTypeChange}
+                  >
+                    {singleUnitOrder ? (
+                      <MenuItem value="">Product dimensions</MenuItem>
+                    ) : (
+                      <MenuItem value="" disabled>
+                        Select box type
+                      </MenuItem>
+                    )}
+                    {getPresetShippingBoxTypes(boxTypes).map((boxType) => {
+                      const details = formatBoxTypeDetails(boxType);
+                      const code = getBoxTypeCode(boxType);
+                      const name = getBoxTypeName(boxType);
+
+                      return (
+                        <MenuItem key={code} value={code}>
+                          {details ? `${name} (${details})` : name}
+                        </MenuItem>
+                      );
+                    })}
+                    <MenuItem value={SHIPPING_CUSTOM_BOX_TYPE}>Custom size</MenuItem>
+                  </TextField>
+                </Field>
+                <Field>
+                  <TextField
                     fullWidth
                     label="Weight kg"
+                    type="number"
                     size="small"
                     value={shipmentForm.weight}
                     onChange={updateShipmentForm("weight")}
+                    inputProps={{ min: 0, step: "0.01" }}
                   />
                 </Field>
                 <Field>
                   <TextField
                     fullWidth
                     label="Length cm"
+                    error={packageDetailsIncomplete && !hasValue(shipmentForm.length)}
+                    type="number"
                     size="small"
                     value={shipmentForm.length}
                     onChange={updateShipmentForm("length")}
+                    inputProps={{ min: 0, step: "0.01" }}
                   />
                 </Field>
                 <Field>
                   <TextField
                     fullWidth
                     label="Breadth cm"
+                    error={packageDetailsIncomplete && !hasValue(shipmentForm.breadth)}
+                    type="number"
                     size="small"
                     value={shipmentForm.breadth}
                     onChange={updateShipmentForm("breadth")}
+                    inputProps={{ min: 0, step: "0.01" }}
                   />
                 </Field>
                 <Field>
                   <TextField
                     fullWidth
                     label="Height cm"
+                    error={packageDetailsIncomplete && !hasValue(shipmentForm.height)}
+                    type="number"
                     size="small"
                     value={shipmentForm.height}
                     onChange={updateShipmentForm("height")}
+                    inputProps={{ min: 0, step: "0.01" }}
                   />
                 </Field>
               </Stack>
@@ -333,7 +455,7 @@ const ShipmentFulfillmentPanel = ({
                 />
                 <Button
                   disableElevation
-                  disabled={actionLoading}
+                  disabled={createShipmentDisabled}
                   onClick={handleCreateShipment}
                   variant="contained"
                   sx={{ minWidth: 160 }}

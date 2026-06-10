@@ -12,6 +12,7 @@ const ROUTES = {
   ORDER: "/order",
   PAYMENT: "/payment",
   SHIPPING: "/shipping",
+  OTHER: "/other",
   CUSTOMER: "/customer",
 
   NOT_FOUND: "*",

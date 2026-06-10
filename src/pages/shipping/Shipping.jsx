@@ -17,6 +17,7 @@ import ClearIcon from "@mui/icons-material/Clear";
 import SearchIcon from "@mui/icons-material/Search";
 
 import SectionHeader from "@/components/SectionHeader";
+import { fetchAdminBoxTypes } from "@/lib/api/boxTypeApi";
 import { useToast } from "@/hooks/ToastContext";
 import { fetchAdminOrder, fetchAdminOrders } from "@/lib/api/orderApi";
 import {
@@ -43,6 +44,7 @@ const Shipping = () => {
   const authToken = useAtomValue(authTokenAtom);
   const toast = useToast();
   const [orders, setOrders] = useState([]);
+  const [boxTypes, setBoxTypes] = useState([]);
   const [tableParams, setTableParams] = useState(INITIAL_SHIPPING_TABLE_PARAMS);
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [searchInput, setSearchInput] = useState("");
@@ -58,15 +60,20 @@ const Shipping = () => {
     setError("");
 
     try {
-      const orderList = await fetchAdminOrders(authToken, tableParams);
+      const [orderList, boxTypeList] = await Promise.all([
+        fetchAdminOrders(authToken, tableParams),
+        fetchAdminBoxTypes(authToken, { isActive: true, limit: 100 }),
+      ]);
 
       setOrders(orderList.items);
+      setBoxTypes(boxTypeList.items);
       setPagination(orderList.pagination);
     } catch (err) {
       const message = err.message || "Failed to load shipping orders.";
 
       setError(message);
       setOrders([]);
+      setBoxTypes([]);
       setPagination({
         ...DEFAULT_PAGINATION,
         limit: tableParams.limit,
@@ -349,6 +356,7 @@ const Shipping = () => {
 
       <ShipmentManagementDialog
         actionLoading={shipmentActionLoading}
+        boxTypes={boxTypes}
         loading={loadingShippingDetails}
         onCancelShipment={handleCancelShipment}
         onClose={closeShippingDetails}

@@ -81,6 +81,7 @@ const StatusChip = ({ meta }) => (
 
 const ShipmentManagementDialog = ({
   actionLoading = false,
+  boxTypes = [],
   loading = false,
   onCancelShipment,
   onClose,
@@ -167,6 +168,7 @@ const ShipmentManagementDialog = ({
 
             <ShipmentFulfillmentPanel
               actionLoading={actionLoading}
+              boxTypes={boxTypes}
               order={order}
               onCancelShipment={onCancelShipment}
               onCreateShipment={onCreateShipment}
