@@ -22,11 +22,6 @@ export const SIDEBAR_ITEMS = [
     icon: DashboardIcon,
   },
   {
-    name: "Category",
-    path: ROUTES.CATEGORY,
-    icon: CategoryIcon,
-  },
-  {
     name: "Product",
     path: ROUTES.PRODUCT,
     icon: Inventory2Icon,
@@ -37,24 +32,39 @@ export const SIDEBAR_ITEMS = [
     icon: WarehouseIcon,
   },
   {
-    name: "Cart",
-    path: ROUTES.CART,
-    icon: ShoppingCartIcon,
-  },
-  {
     name: "Order",
     path: ROUTES.ORDER,
     icon: ReceiptLongIcon,
   },
   {
-    name: "Payment",
-    path: ROUTES.PAYMENT,
-    icon: PaymentsIcon,
-  },
-  {
     name: "Other",
     icon: MoreHorizIcon,
     children: [
+      {
+        name: "Category",
+        path: ROUTES.OTHER_CATEGORY,
+        icon: CategoryIcon,
+      },
+      {
+        name: "Cart",
+        path: ROUTES.OTHER_CART,
+        icon: ShoppingCartIcon,
+      },
+      {
+        name: "Payment",
+        path: ROUTES.OTHER_PAYMENT,
+        icon: PaymentsIcon,
+      },
+      {
+        name: "Coupon",
+        path: ROUTES.OTHER_COUPON,
+        icon: ConfirmationNumberIcon,
+      },
+      {
+        name: "Review",
+        path: ROUTES.OTHER_REVIEW,
+        icon: RateReviewIcon,
+      },
       {
         name: "Box Types",
         path: ROUTES.OTHER_BOX_TYPES,
@@ -66,15 +76,5 @@ export const SIDEBAR_ITEMS = [
         icon: LocationOnIcon,
       },
     ],
-  },
-  {
-    name: "Coupon",
-    path: "/coupon",
-    icon: ConfirmationNumberIcon,
-  },
-  {
-    name: "Review",
-    path: "/review",
-    icon: RateReviewIcon,
   },
 ];

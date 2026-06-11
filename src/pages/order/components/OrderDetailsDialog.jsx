@@ -99,7 +99,7 @@ const OrderDetailsDialog = ({
   onCancelShipment,
   onClose,
   onCreateShipment,
-  onMarkPacked,
+  onUpdateOrderStatus,
   onUpdateShipmentStatus,
   open,
   order,
@@ -273,7 +273,7 @@ const OrderDetailsDialog = ({
               order={order}
               onCancelShipment={onCancelShipment}
               onCreateShipment={onCreateShipment}
-              onMarkPacked={onMarkPacked}
+              onUpdateOrderStatus={onUpdateOrderStatus}
               pickupLocations={pickupLocations}
               onUpdateShipmentStatus={onUpdateShipmentStatus}
             />

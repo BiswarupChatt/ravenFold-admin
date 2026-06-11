@@ -18,12 +18,11 @@ import SearchIcon from "@mui/icons-material/Search";
 
 import SectionHeader from "@/components/SectionHeader";
 import { fetchAdminBoxTypes } from "@/lib/api/boxTypeApi";
-import { fetchAdminOrder, fetchAdminOrders } from "@/lib/api/orderApi";
+import { fetchAdminOrder, fetchAdminOrders, updateAdminOrderStatus } from "@/lib/api/orderApi";
 import {
   cancelAdminShipment,
   createAdminShipment,
   fetchAdminPickupLocations,
-  markAdminOrderPacked,
   updateAdminShipmentStatus,
 } from "@/lib/api/shippingApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
@@ -47,7 +46,7 @@ const Order = () => {
   const [boxTypes, setBoxTypes] = useState([]);
   const [pickupLocations, setPickupLocations] = useState([]);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
-  const [shipmentActionLoading, setShipmentActionLoading] = useState(false);
+  const [fulfillmentActionLoading, setFulfillmentActionLoading] = useState(false);
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -192,54 +191,58 @@ const Order = () => {
     return nextOrder;
   };
 
-  const runShipmentAction = async (action, successMessage) => {
+  const runFulfillmentAction = async (action, successMessage, errorMessage = "Failed to update fulfilment.") => {
     if (!selectedOrder?.id) {
       return;
     }
 
-    setShipmentActionLoading(true);
+    setFulfillmentActionLoading(true);
 
     try {
       await action();
       await refreshSelectedOrder(selectedOrder.id);
       toast.success(successMessage);
     } catch (err) {
-      toast.error(err.message || "Failed to update shipment.");
+      toast.error(err.message || errorMessage);
     } finally {
-      setShipmentActionLoading(false);
+      setFulfillmentActionLoading(false);
     }
   };
 
-  const handleMarkPacked = async (payload) => {
-    await runShipmentAction(
-      () => markAdminOrderPacked(authToken, selectedOrder.id, payload),
-      "Order marked packed.",
-    );
-  };
-
   const handleCreateShipment = async (payload) => {
-    await runShipmentAction(
+    await runFulfillmentAction(
       () => createAdminShipment(authToken, selectedOrder.id, payload),
       "Shipment created.",
+      "Failed to create shipment.",
     );
   };
 
   const handleUpdateShipmentStatus = async (shipmentId, payload) => {
-    await runShipmentAction(
+    await runFulfillmentAction(
       () => updateAdminShipmentStatus(authToken, shipmentId, payload),
       "Shipment updated.",
+      "Failed to update shipment.",
     );
   };
 
   const handleCancelShipment = async (shipmentId, payload) => {
-    await runShipmentAction(
+    await runFulfillmentAction(
       () => cancelAdminShipment(authToken, shipmentId, payload),
       "Shipment cancelled.",
+      "Failed to cancel shipment.",
+    );
+  };
+
+  const handleUpdateOrderStatus = async (payload) => {
+    await runFulfillmentAction(
+      () => updateAdminOrderStatus(authToken, selectedOrder.id, payload),
+      "Order status updated.",
+      "Failed to update order status.",
     );
   };
 
   const closeOrderDetails = () => {
-    if (shipmentActionLoading) {
+    if (fulfillmentActionLoading) {
       return;
     }
 
@@ -356,7 +359,7 @@ const Order = () => {
       </Paper>
 
       <OrderDetailsDialog
-        actionLoading={shipmentActionLoading}
+        actionLoading={fulfillmentActionLoading}
         boxTypes={boxTypes}
         open={orderDetailsOpen}
         order={selectedOrder}
@@ -364,7 +367,7 @@ const Order = () => {
         onCancelShipment={handleCancelShipment}
         onClose={closeOrderDetails}
         onCreateShipment={handleCreateShipment}
-        onMarkPacked={handleMarkPacked}
+        onUpdateOrderStatus={handleUpdateOrderStatus}
         pickupLocations={pickupLocations}
         onUpdateShipmentStatus={handleUpdateShipmentStatus}
       />

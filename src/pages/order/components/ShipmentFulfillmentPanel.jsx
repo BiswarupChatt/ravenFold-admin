@@ -11,7 +11,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 
 import {
@@ -23,7 +22,7 @@ import {
   getShippingBoxTypeLabel,
   SHIPPING_CUSTOM_BOX_TYPE,
 } from "@/lib/shipping/boxTypes";
-import { formatOrderDateTime } from "./orderFormatters";
+import { formatOrderDateTime, ORDER_STATUS_OPTIONS } from "./orderFormatters";
 import {
   formatProviderName,
   getLatestShipment,
@@ -33,11 +32,11 @@ import {
 } from "./shipmentFormatters";
 
 const terminalOrderStatuses = new Set(["cancelled", "delivered", "returned"]);
-const terminalShipmentStatuses = new Set(["cancelled", "delivered", "lost", "rto"]);
 const PRODUCT_DIMENSIONS_BOX_TYPE = "__product_dimensions";
 const PRODUCT_DIMENSIONS_BOX_TYPE_LABEL = "Product dimension";
 const BOX_TYPE_PLACEHOLDER = "Select box type";
 const PICKUP_LOCATION_PLACEHOLDER = "Select pickup location";
+const MANUAL_ORDER_STATUS_OPTIONS = ORDER_STATUS_OPTIONS.filter((status) => status.value !== "all");
 
 const initialShipmentForm = {
   awbCode: "",
@@ -265,7 +264,7 @@ const ShipmentFulfillmentPanel = ({
   boxTypes = [],
   onCancelShipment,
   onCreateShipment,
-  onMarkPacked,
+  onUpdateOrderStatus,
   onUpdateShipmentStatus,
   order,
   pickupLocations = [],
@@ -274,18 +273,22 @@ const ShipmentFulfillmentPanel = ({
   const latestShipment = useMemo(() => getLatestShipment(shipments), [shipments]);
   const productPackage = useMemo(() => getProductPackageFromOrder(order), [order]);
   const [shipmentForm, setShipmentForm] = useState(initialShipmentForm);
+  const [orderStatusForm, setOrderStatusForm] = useState({
+    note: "",
+    status: order?.status || "pending",
+  });
   const [statusForm, setStatusForm] = useState({
     note: "",
     status: "in_transit",
     trackingUrl: "",
   });
   const orderIsTerminal = terminalOrderStatuses.has(order?.status);
-  const canPack = order?.status === "confirmed" && order?.paymentStatus === "paid";
+  const canUpdateOrder = Boolean(order?.id);
   const canCreateShipment = Boolean(order?.id) &&
     order?.paymentStatus === "paid" &&
     !orderIsTerminal &&
     ["confirmed", "packed", "shipped"].includes(order?.status);
-  const canUpdateShipment = latestShipment && !terminalShipmentStatuses.has(latestShipment.status);
+  const canUpdateShipment = Boolean(latestShipment);
   const showManualFields = shipmentForm.provider === "manual";
   const singleUnitOrder = isSingleUnitOrder(order);
   const packageDimensionsComplete = hasCompleteDimensions(shipmentForm);
@@ -295,6 +298,10 @@ const ShipmentFulfillmentPanel = ({
   const packageDetailsIncomplete = customPackageSelected && !packageDimensionsComplete;
   const productPackageMissing = productPackageSelected && !packageDimensionsComplete;
   const pickupLocationMissing = !showManualFields && pickupLocations.length > 0 && !shipmentForm.pickupLocationId;
+  const orderStatusUnchanged = orderStatusForm.status === (order?.status || "");
+  const orderStatusUpdateDisabled = actionLoading ||
+    !orderStatusForm.status ||
+    orderStatusUnchanged;
   const createShipmentDisabled = actionLoading ||
     pickupLocationMissing ||
     packageSelectionMissing ||
@@ -307,6 +314,13 @@ const ShipmentFulfillmentPanel = ({
       boxType: "",
     });
   }, [order?.id]);
+
+  useEffect(() => {
+    setOrderStatusForm({
+      note: "",
+      status: order?.status || "pending",
+    });
+  }, [order?.id, order?.status]);
 
   useEffect(() => {
     setStatusForm({
@@ -375,6 +389,20 @@ const ShipmentFulfillmentPanel = ({
     }));
   };
 
+  const updateOrderStatusForm = (field) => (event) => {
+    setOrderStatusForm((currentForm) => ({
+      ...currentForm,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleUpdateOrderStatus = async () => {
+    await onUpdateOrderStatus({
+      note: orderStatusForm.note,
+      status: orderStatusForm.status,
+    });
+  };
+
   const handleCreateShipment = async () => {
     await onCreateShipment({
       ...compactPackagePayload(shipmentForm),
@@ -424,20 +452,50 @@ const ShipmentFulfillmentPanel = ({
               <ShipmentSummary boxTypes={boxTypes} shipment={latestShipment} />
             </Stack>
           </Stack>
-
-          {canPack ? (
-            <Button
-              disableElevation
-              disabled={actionLoading}
-              onClick={() => onMarkPacked({ note: "Order packed from admin shipping" })}
-              startIcon={<Inventory2OutlinedIcon />}
-              variant="outlined"
-              sx={{ alignSelf: { xs: "stretch", md: "flex-start" } }}
-            >
-              Mark Packed
-            </Button>
-          ) : null}
         </Stack>
+
+        {canUpdateOrder ? (
+          <>
+            <Divider />
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle2" fontWeight={700}>
+                Update order status
+              </Typography>
+              <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ xs: "stretch", md: "center" }}>
+                <TextField
+                  select
+                  label="Order status"
+                  size="small"
+                  value={orderStatusForm.status}
+                  onChange={updateOrderStatusForm("status")}
+                  sx={{ minWidth: { xs: "100%", md: 190 } }}
+                >
+                  {MANUAL_ORDER_STATUS_OPTIONS.map((status) => (
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  fullWidth
+                  label="Note"
+                  size="small"
+                  value={orderStatusForm.note}
+                  onChange={updateOrderStatusForm("note")}
+                />
+                <Button
+                  disableElevation
+                  disabled={orderStatusUpdateDisabled}
+                  onClick={handleUpdateOrderStatus}
+                  variant="contained"
+                  sx={{ minWidth: 150 }}
+                >
+                  Update Order
+                </Button>
+              </Stack>
+            </Stack>
+          </>
+        ) : null}
 
         {canCreateShipment ? (
           <>
@@ -695,7 +753,7 @@ const ShipmentFulfillmentPanel = ({
                 </Button>
                 <Button
                   color="error"
-                  disabled={actionLoading}
+                  disabled={actionLoading || latestShipment?.status === "cancelled"}
                   onClick={handleCancelShipment}
                   variant="outlined"
                   sx={{ minWidth: 110 }}

@@ -55,3 +55,22 @@ export const fetchAdminOrder = async (authToken, orderId) => {
 
   return payload?.data || null;
 };
+
+export const updateAdminOrderStatus = async (authToken, orderId, payload = {}) => {
+  const response = await fetch(`${API_BASE_URL}/api/orders/admin/${orderId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(authToken),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const responsePayload = await response.json();
+
+  return responsePayload?.data || null;
+};
