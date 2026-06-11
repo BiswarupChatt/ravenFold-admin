@@ -55,12 +55,6 @@ const initialShipmentForm = {
   weight: "",
 };
 
-const Field = ({ children }) => (
-  <Box sx={{ flex: "1 1 150px", minWidth: 0 }}>
-    {children}
-  </Box>
-);
-
 const hasValue = (value) => value !== null && value !== undefined && value !== "";
 
 const hasCompleteDimensions = (packageDetails = {}) => (
@@ -496,203 +490,227 @@ const ShipmentFulfillmentPanel = ({
                 Create shipment
               </Typography>
 
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} flexWrap="wrap" useFlexGap>
-                <Field>
-                  <TextField
-                    select
-                    fullWidth
-                    label="Provider"
-                    size="small"
-                    value={shipmentForm.provider}
-                    onChange={handleProviderChange}
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  bgcolor: "background.default",
+                  p: { xs: 1.25, md: 1.5 },
+                }}
+              >
+                <Stack spacing={1.5}>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 1.25,
+                      gridTemplateColumns: showManualFields
+                        ? { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" }
+                        : { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+                    }}
                   >
-                    {SHIPPING_PROVIDER_OPTIONS.map((provider) => (
-                      <MenuItem key={provider.value} value={provider.value}>
-                        {provider.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </Field>
-
-                {showManualFields ? (
-                  <>
-                    <Field>
-                      <TextField
-                        fullWidth
-                        label="Courier"
-                        size="small"
-                        value={shipmentForm.courierName}
-                        onChange={updateShipmentForm("courierName")}
-                      />
-                    </Field>
-                    <Field>
-                      <TextField
-                        fullWidth
-                        label="AWB"
-                        size="small"
-                        value={shipmentForm.awbCode}
-                        onChange={updateShipmentForm("awbCode")}
-                      />
-                    </Field>
-                    <Field>
-                      <TextField
-                        fullWidth
-                        label="Tracking URL"
-                        size="small"
-                        value={shipmentForm.trackingUrl}
-                        onChange={updateShipmentForm("trackingUrl")}
-                      />
-                    </Field>
-                  </>
-                ) : (
-                  <Field>
                     <TextField
                       select
                       fullWidth
-                      helperText={!pickupLocations.length ? "No active pickup locations found." : ""}
-                      InputLabelProps={{ shrink: true }}
-                      label="Pickup location"
-                      SelectProps={{
-                        displayEmpty: true,
-                        renderValue: (selectedLocationId) => (
-                          selectedLocationId
-                            ? getPickupLocationSelectLabel(selectedLocationId, pickupLocations)
-                            : <Box component="span" sx={{ color: "text.secondary" }}>{PICKUP_LOCATION_PLACEHOLDER}</Box>
-                        ),
-                      }}
+                      label="Provider"
                       size="small"
-                      value={shipmentForm.pickupLocationId}
-                      onChange={handlePickupLocationChange}
+                      value={shipmentForm.provider}
+                      onChange={handleProviderChange}
                     >
-                      <MenuItem value="" disabled>
-                        {PICKUP_LOCATION_PLACEHOLDER}
-                      </MenuItem>
-                      {pickupLocations.map((location) => (
-                        <MenuItem key={location.id} value={location.id}>
-                          {getPickupLocationDisplayLabel(location)}
+                      {SHIPPING_PROVIDER_OPTIONS.map((provider) => (
+                        <MenuItem key={provider.value} value={provider.value}>
+                          {provider.label}
                         </MenuItem>
                       ))}
                     </TextField>
-                  </Field>
-                )}
-              </Stack>
 
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} flexWrap="wrap" useFlexGap>
-                <Field>
-                  <TextField
-                    select
-                    fullWidth
-                    error={packageDetailsIncomplete || productPackageMissing}
-                    helperText={
-                      packageDetailsIncomplete
-                        ? "Enter package dimensions."
-                        : productPackageMissing
-                          ? "Product shipping dimensions are missing."
-                          : productPackageSelected
-                            ? "Product dimensions loaded."
-                            : ""
-                    }
-                    InputLabelProps={{ shrink: true }}
-                    label="Box type"
-                    SelectProps={{
-                      displayEmpty: true,
-                      renderValue: (selectedBoxType) => (
-                        selectedBoxType
-                          ? getBoxTypeSelectLabel(selectedBoxType, boxTypes)
-                          : <Box component="span" sx={{ color: "text.secondary" }}>{BOX_TYPE_PLACEHOLDER}</Box>
-                      ),
-                    }}
-                    size="small"
-                    value={shipmentForm.boxType}
-                    onChange={handleBoxTypeChange}
-                  >
-                    <MenuItem value="" disabled>
-                      {BOX_TYPE_PLACEHOLDER}
-                    </MenuItem>
-                    {singleUnitOrder ? (
-                      <MenuItem value={PRODUCT_DIMENSIONS_BOX_TYPE}>{PRODUCT_DIMENSIONS_BOX_TYPE_LABEL}</MenuItem>
-                    ) : null}
-                    {getPresetShippingBoxTypes(boxTypes).map((boxType) => {
-                      const details = formatBoxTypeDetails(boxType);
-                      const code = getBoxTypeCode(boxType);
-                      const name = getBoxTypeName(boxType);
-
-                      return (
-                        <MenuItem key={code} value={code}>
-                          {details ? `${name} (${details})` : name}
+                    {showManualFields ? (
+                      <>
+                        <TextField
+                          fullWidth
+                          label="Courier"
+                          size="small"
+                          value={shipmentForm.courierName}
+                          onChange={updateShipmentForm("courierName")}
+                        />
+                        <TextField
+                          fullWidth
+                          label="AWB"
+                          size="small"
+                          value={shipmentForm.awbCode}
+                          onChange={updateShipmentForm("awbCode")}
+                        />
+                        <TextField
+                          fullWidth
+                          label="Tracking URL"
+                          size="small"
+                          value={shipmentForm.trackingUrl}
+                          onChange={updateShipmentForm("trackingUrl")}
+                          sx={{ gridColumn: { xs: "auto", md: "1 / -1" } }}
+                        />
+                      </>
+                    ) : (
+                      <TextField
+                        select
+                        fullWidth
+                        helperText={!pickupLocations.length ? "No active pickup locations found." : ""}
+                        InputLabelProps={{ shrink: true }}
+                        label="Pickup location"
+                        SelectProps={{
+                          displayEmpty: true,
+                          renderValue: (selectedLocationId) => (
+                            selectedLocationId
+                              ? getPickupLocationSelectLabel(selectedLocationId, pickupLocations)
+                              : <Box component="span" sx={{ color: "text.secondary" }}>{PICKUP_LOCATION_PLACEHOLDER}</Box>
+                          ),
+                        }}
+                        size="small"
+                        value={shipmentForm.pickupLocationId}
+                        onChange={handlePickupLocationChange}
+                      >
+                        <MenuItem value="" disabled>
+                          {PICKUP_LOCATION_PLACEHOLDER}
                         </MenuItem>
-                      );
-                    })}
-                    <MenuItem value={SHIPPING_CUSTOM_BOX_TYPE}>Custom size</MenuItem>
-                  </TextField>
-                </Field>
-                <Field>
-                  <TextField
-                    fullWidth
-                    label="Weight kg"
-                    type="number"
-                    size="small"
-                    value={shipmentForm.weight}
-                    onChange={updateShipmentForm("weight")}
-                    inputProps={{ min: 0, step: "0.01" }}
-                  />
-                </Field>
-                <Field>
-                  <TextField
-                    fullWidth
-                    label="Length cm"
-                    error={packageDetailsIncomplete && !hasValue(shipmentForm.length)}
-                    type="number"
-                    size="small"
-                    value={shipmentForm.length}
-                    onChange={updateShipmentForm("length")}
-                    inputProps={{ min: 0, step: "0.01" }}
-                  />
-                </Field>
-                <Field>
-                  <TextField
-                    fullWidth
-                    label="Breadth cm"
-                    error={packageDetailsIncomplete && !hasValue(shipmentForm.breadth)}
-                    type="number"
-                    size="small"
-                    value={shipmentForm.breadth}
-                    onChange={updateShipmentForm("breadth")}
-                    inputProps={{ min: 0, step: "0.01" }}
-                  />
-                </Field>
-                <Field>
-                  <TextField
-                    fullWidth
-                    label="Height cm"
-                    error={packageDetailsIncomplete && !hasValue(shipmentForm.height)}
-                    type="number"
-                    size="small"
-                    value={shipmentForm.height}
-                    onChange={updateShipmentForm("height")}
-                    inputProps={{ min: 0, step: "0.01" }}
-                  />
-                </Field>
-              </Stack>
+                        {pickupLocations.map((location) => (
+                          <MenuItem key={location.id} value={location.id}>
+                            {getPickupLocationDisplayLabel(location)}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  </Box>
 
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ xs: "stretch", md: "center" }}>
-                <TextField
-                  fullWidth
-                  label="Note"
-                  size="small"
-                  value={shipmentForm.note}
-                  onChange={updateShipmentForm("note")}
-                />
-                <Button
-                  disableElevation
-                  disabled={createShipmentDisabled}
-                  onClick={handleCreateShipment}
-                  variant="contained"
-                  sx={{ minWidth: 160 }}
-                >
-                  Create Shipment
-                </Button>
-              </Stack>
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 1.25,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        sm: "repeat(2, minmax(0, 1fr))",
+                        lg: "1.25fr repeat(4, minmax(0, 1fr))",
+                      },
+                    }}
+                  >
+                    <TextField
+                      select
+                      fullWidth
+                      error={packageDetailsIncomplete || productPackageMissing}
+                      helperText={
+                        packageDetailsIncomplete
+                          ? "Enter package dimensions."
+                          : productPackageMissing
+                            ? "Product shipping dimensions are missing."
+                            : productPackageSelected
+                              ? "Product dimensions loaded."
+                              : ""
+                      }
+                      InputLabelProps={{ shrink: true }}
+                      label="Box type"
+                      SelectProps={{
+                        displayEmpty: true,
+                        renderValue: (selectedBoxType) => (
+                          selectedBoxType
+                            ? getBoxTypeSelectLabel(selectedBoxType, boxTypes)
+                            : <Box component="span" sx={{ color: "text.secondary" }}>{BOX_TYPE_PLACEHOLDER}</Box>
+                        ),
+                      }}
+                      size="small"
+                      value={shipmentForm.boxType}
+                      onChange={handleBoxTypeChange}
+                    >
+                      <MenuItem value="" disabled>
+                        {BOX_TYPE_PLACEHOLDER}
+                      </MenuItem>
+                      {singleUnitOrder ? (
+                        <MenuItem value={PRODUCT_DIMENSIONS_BOX_TYPE}>{PRODUCT_DIMENSIONS_BOX_TYPE_LABEL}</MenuItem>
+                      ) : null}
+                      {getPresetShippingBoxTypes(boxTypes).map((boxType) => {
+                        const details = formatBoxTypeDetails(boxType);
+                        const code = getBoxTypeCode(boxType);
+                        const name = getBoxTypeName(boxType);
+
+                        return (
+                          <MenuItem key={code} value={code}>
+                            {details ? `${name} (${details})` : name}
+                          </MenuItem>
+                        );
+                      })}
+                      <MenuItem value={SHIPPING_CUSTOM_BOX_TYPE}>Custom size</MenuItem>
+                    </TextField>
+                    <TextField
+                      fullWidth
+                      label="Weight kg"
+                      type="number"
+                      size="small"
+                      value={shipmentForm.weight}
+                      onChange={updateShipmentForm("weight")}
+                      inputProps={{ min: 0, step: "0.01" }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Length cm"
+                      error={packageDetailsIncomplete && !hasValue(shipmentForm.length)}
+                      type="number"
+                      size="small"
+                      value={shipmentForm.length}
+                      onChange={updateShipmentForm("length")}
+                      inputProps={{ min: 0, step: "0.01" }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Breadth cm"
+                      error={packageDetailsIncomplete && !hasValue(shipmentForm.breadth)}
+                      type="number"
+                      size="small"
+                      value={shipmentForm.breadth}
+                      onChange={updateShipmentForm("breadth")}
+                      inputProps={{ min: 0, step: "0.01" }}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Height cm"
+                      error={packageDetailsIncomplete && !hasValue(shipmentForm.height)}
+                      type="number"
+                      size="small"
+                      value={shipmentForm.height}
+                      onChange={updateShipmentForm("height")}
+                      inputProps={{ min: 0, step: "0.01" }}
+                    />
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 1.25,
+                      gridTemplateColumns: { xs: "1fr", md: "minmax(0, 1fr) auto" },
+                      alignItems: "end",
+                    }}
+                  >
+                    <TextField
+                      fullWidth
+                      label="Note"
+                      size="small"
+                      value={shipmentForm.note}
+                      onChange={updateShipmentForm("note")}
+                      placeholder="Optional shipment note"
+                    />
+                    <Button
+                      disableElevation
+                      disabled={createShipmentDisabled}
+                      onClick={handleCreateShipment}
+                      variant="contained"
+                      sx={{
+                        minWidth: 170,
+                        minHeight: 40,
+                        px: 2.5,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      Create Shipment
+                    </Button>
+                  </Box>
+                </Stack>
+              </Box>
             </Stack>
           </>
         ) : null}
