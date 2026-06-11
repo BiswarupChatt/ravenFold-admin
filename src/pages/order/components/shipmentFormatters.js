@@ -1,7 +1,7 @@
 export const SHIPPING_PROVIDER_OPTIONS = [
-  { value: "manual", label: "Manual" },
   { value: "shiprocket", label: "Shiprocket" },
   { value: "delhivery", label: "Delhivery" },
+  { value: "manual", label: "Manual" },
 ];
 
 export const SHIPMENT_STATUS_OPTIONS = [

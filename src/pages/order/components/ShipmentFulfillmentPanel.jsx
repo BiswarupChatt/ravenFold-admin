@@ -35,6 +35,8 @@ import {
 const terminalOrderStatuses = new Set(["cancelled", "delivered", "returned"]);
 const terminalShipmentStatuses = new Set(["cancelled", "delivered", "lost", "rto"]);
 const PRODUCT_DIMENSIONS_BOX_TYPE = "__product_dimensions";
+const PRODUCT_DIMENSIONS_BOX_TYPE_LABEL = "Product dimension";
+const BOX_TYPE_PLACEHOLDER = "Select box type";
 
 const initialShipmentForm = {
   awbCode: "",
@@ -45,7 +47,7 @@ const initialShipmentForm = {
   length: "",
   note: "",
   pickupLocation: "",
-  provider: "manual",
+  provider: "shiprocket",
   trackingUrl: "",
   weight: "",
 };
@@ -158,6 +160,23 @@ const formatPackageSummary = (packageDetails = {}, boxTypes = []) => {
   ].filter(Boolean).join(" / ");
 };
 
+const getBoxTypeSelectLabel = (value = "", boxTypes = []) => {
+  if (value === PRODUCT_DIMENSIONS_BOX_TYPE) {
+    return PRODUCT_DIMENSIONS_BOX_TYPE_LABEL;
+  }
+
+  const selectedBoxType = getShippingBoxType(value, boxTypes);
+
+  if (selectedBoxType) {
+    const details = formatBoxTypeDetails(selectedBoxType);
+    const name = getBoxTypeName(selectedBoxType);
+
+    return details ? `${name} (${details})` : name;
+  }
+
+  return getShippingBoxTypeLabel(value, boxTypes);
+};
+
 const ShipmentStatusChip = ({ status }) => {
   const meta = getShipmentStatusMeta(status);
 
@@ -250,7 +269,7 @@ const ShipmentFulfillmentPanel = ({
   const packageDimensionsComplete = hasCompleteDimensions(shipmentForm);
   const customPackageSelected = shipmentForm.boxType === SHIPPING_CUSTOM_BOX_TYPE;
   const productPackageSelected = singleUnitOrder && shipmentForm.boxType === PRODUCT_DIMENSIONS_BOX_TYPE;
-  const packageSelectionMissing = !singleUnitOrder && !shipmentForm.boxType;
+  const packageSelectionMissing = !shipmentForm.boxType;
   const packageDetailsIncomplete = customPackageSelected && !packageDimensionsComplete;
   const productPackageMissing = productPackageSelected && !packageDimensionsComplete;
   const createShipmentDisabled = actionLoading ||
@@ -261,10 +280,9 @@ const ShipmentFulfillmentPanel = ({
   useEffect(() => {
     setShipmentForm({
       ...initialShipmentForm,
-      boxType: isSingleUnitOrder(order) ? PRODUCT_DIMENSIONS_BOX_TYPE : "",
-      ...(productPackage || {}),
+      boxType: "",
     });
-  }, [order?.id, productPackage]);
+  }, [order?.id]);
 
   useEffect(() => {
     setStatusForm({
@@ -445,30 +463,36 @@ const ShipmentFulfillmentPanel = ({
                   <TextField
                     select
                     fullWidth
-                    error={packageSelectionMissing || packageDetailsIncomplete}
+                    error={packageDetailsIncomplete || productPackageMissing}
                     helperText={
-                      packageSelectionMissing
-                        ? "Required for multiple items."
-                        : packageDetailsIncomplete
-                          ? "Enter package dimensions."
-                          : productPackageMissing
-                            ? "Product shipping dimensions are missing."
+                      packageDetailsIncomplete
+                        ? "Enter package dimensions."
+                        : productPackageMissing
+                          ? "Product shipping dimensions are missing."
                           : productPackageSelected
                             ? "Product dimensions loaded."
                             : ""
                     }
+                    InputLabelProps={{ shrink: true }}
                     label="Box type"
+                    SelectProps={{
+                      displayEmpty: true,
+                      renderValue: (selectedBoxType) => (
+                        selectedBoxType
+                          ? getBoxTypeSelectLabel(selectedBoxType, boxTypes)
+                          : <Box component="span" sx={{ color: "text.secondary" }}>{BOX_TYPE_PLACEHOLDER}</Box>
+                      ),
+                    }}
                     size="small"
                     value={shipmentForm.boxType}
                     onChange={handleBoxTypeChange}
                   >
+                    <MenuItem value="" disabled>
+                      {BOX_TYPE_PLACEHOLDER}
+                    </MenuItem>
                     {singleUnitOrder ? (
-                      <MenuItem value={PRODUCT_DIMENSIONS_BOX_TYPE}>Product dimensions</MenuItem>
-                    ) : (
-                      <MenuItem value="" disabled>
-                        Select box type
-                      </MenuItem>
-                    )}
+                      <MenuItem value={PRODUCT_DIMENSIONS_BOX_TYPE}>{PRODUCT_DIMENSIONS_BOX_TYPE_LABEL}</MenuItem>
+                    ) : null}
                     {getPresetShippingBoxTypes(boxTypes).map((boxType) => {
                       const details = formatBoxTypeDetails(boxType);
                       const code = getBoxTypeCode(boxType);
