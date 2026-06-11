@@ -10,6 +10,8 @@ import PaymentsIcon from "@mui/icons-material/Payments";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
+import AllInboxIcon from "@mui/icons-material/AllInbox";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 
 import ROUTES from "../../../../../routes/routes";
 
@@ -56,10 +58,12 @@ export const SIDEBAR_ITEMS = [
       {
         name: "Box Types",
         path: ROUTES.OTHER_BOX_TYPES,
+        icon: AllInboxIcon,
       },
       {
         name: "Pickup Locations",
         path: ROUTES.OTHER_PICKUP_LOCATIONS,
+        icon: LocationOnIcon,
       },
     ],
   },
