@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 
 import {
@@ -37,6 +38,7 @@ const PRODUCT_DIMENSIONS_BOX_TYPE_LABEL = "Product dimension";
 const BOX_TYPE_PLACEHOLDER = "Select box type";
 const PICKUP_LOCATION_PLACEHOLDER = "Select pickup location";
 const MANUAL_ORDER_STATUS_OPTIONS = ORDER_STATUS_OPTIONS.filter((status) => status.value !== "all");
+const markPackedVisibleStatuses = new Set(["confirmed", "packed"]);
 
 const initialShipmentForm = {
   awbCode: "",
@@ -273,10 +275,6 @@ const ShipmentFulfillmentPanel = ({
   const latestShipment = useMemo(() => getLatestShipment(shipments), [shipments]);
   const productPackage = useMemo(() => getProductPackageFromOrder(order), [order]);
   const [shipmentForm, setShipmentForm] = useState(initialShipmentForm);
-  const [orderStatusForm, setOrderStatusForm] = useState({
-    note: "",
-    status: order?.status || "pending",
-  });
   const [statusForm, setStatusForm] = useState({
     note: "",
     status: "in_transit",
@@ -284,6 +282,7 @@ const ShipmentFulfillmentPanel = ({
   });
   const orderIsTerminal = terminalOrderStatuses.has(order?.status);
   const canUpdateOrder = Boolean(order?.id);
+  const canShowMarkPacked = order?.paymentStatus === "paid" && markPackedVisibleStatuses.has(order?.status);
   const canCreateShipment = Boolean(order?.id) &&
     order?.paymentStatus === "paid" &&
     !orderIsTerminal &&
@@ -298,10 +297,6 @@ const ShipmentFulfillmentPanel = ({
   const packageDetailsIncomplete = customPackageSelected && !packageDimensionsComplete;
   const productPackageMissing = productPackageSelected && !packageDimensionsComplete;
   const pickupLocationMissing = !showManualFields && pickupLocations.length > 0 && !shipmentForm.pickupLocationId;
-  const orderStatusUnchanged = orderStatusForm.status === (order?.status || "");
-  const orderStatusUpdateDisabled = actionLoading ||
-    !orderStatusForm.status ||
-    orderStatusUnchanged;
   const createShipmentDisabled = actionLoading ||
     pickupLocationMissing ||
     packageSelectionMissing ||
@@ -314,13 +309,6 @@ const ShipmentFulfillmentPanel = ({
       boxType: "",
     });
   }, [order?.id]);
-
-  useEffect(() => {
-    setOrderStatusForm({
-      note: "",
-      status: order?.status || "pending",
-    });
-  }, [order?.id, order?.status]);
 
   useEffect(() => {
     setStatusForm({
@@ -389,17 +377,25 @@ const ShipmentFulfillmentPanel = ({
     }));
   };
 
-  const updateOrderStatusForm = (field) => (event) => {
-    setOrderStatusForm((currentForm) => ({
-      ...currentForm,
-      [field]: event.target.value,
-    }));
+  const handleOrderStatusChange = async (event) => {
+    const nextStatus = event.target.value;
+
+    if (!nextStatus || nextStatus === order?.status) {
+      return;
+    }
+
+    await onUpdateOrderStatus({
+      status: nextStatus,
+    });
   };
 
-  const handleUpdateOrderStatus = async () => {
+  const handleMarkPacked = async () => {
+    if (order?.status === "packed") {
+      return;
+    }
+
     await onUpdateOrderStatus({
-      note: orderStatusForm.note,
-      status: orderStatusForm.status,
+      status: "packed",
     });
   };
 
@@ -452,50 +448,45 @@ const ShipmentFulfillmentPanel = ({
               <ShipmentSummary boxTypes={boxTypes} shipment={latestShipment} />
             </Stack>
           </Stack>
-        </Stack>
 
-        {canUpdateOrder ? (
-          <>
-            <Divider />
-            <Stack spacing={1.5}>
-              <Typography variant="subtitle2" fontWeight={700}>
-                Update order status
-              </Typography>
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ xs: "stretch", md: "center" }}>
-                <TextField
-                  select
-                  label="Order status"
-                  size="small"
-                  value={orderStatusForm.status}
-                  onChange={updateOrderStatusForm("status")}
-                  sx={{ minWidth: { xs: "100%", md: 190 } }}
-                >
-                  {MANUAL_ORDER_STATUS_OPTIONS.map((status) => (
-                    <MenuItem key={status.value} value={status.value}>
-                      {status.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  fullWidth
-                  label="Note"
-                  size="small"
-                  value={orderStatusForm.note}
-                  onChange={updateOrderStatusForm("note")}
-                />
-                <Button
-                  disableElevation
-                  disabled={orderStatusUpdateDisabled}
-                  onClick={handleUpdateOrderStatus}
-                  variant="contained"
-                  sx={{ minWidth: 150 }}
-                >
-                  Update Order
-                </Button>
-              </Stack>
-            </Stack>
-          </>
-        ) : null}
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.25}
+            alignItems={{ xs: "stretch", sm: "center" }}
+            sx={{ width: { xs: "100%", md: "auto" } }}
+          >
+            {canUpdateOrder ? (
+              <TextField
+                select
+                label="Order status"
+                size="small"
+                value={order?.status || ""}
+                onChange={handleOrderStatusChange}
+                disabled={actionLoading}
+                sx={{ minWidth: { xs: "100%", sm: 190 } }}
+              >
+                {MANUAL_ORDER_STATUS_OPTIONS.map((status) => (
+                  <MenuItem key={status.value} value={status.value}>
+                    {status.label}
+                  </MenuItem>
+                ))}
+              </TextField>
+            ) : null}
+
+            {canShowMarkPacked ? (
+              <Button
+                disableElevation
+                disabled={actionLoading || order?.status === "packed"}
+                onClick={handleMarkPacked}
+                startIcon={<Inventory2OutlinedIcon />}
+                variant="outlined"
+                sx={{ alignSelf: { xs: "stretch", md: "flex-start" } }}
+              >
+                Mark Packed
+              </Button>
+            ) : null}
+          </Stack>
+        </Stack>
 
         {canCreateShipment ? (
           <>
