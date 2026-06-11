@@ -14,6 +14,8 @@ import Cart from "../pages/cart/Cart";
 import Order from "../pages/order/Order";
 import Payment from "../pages/payment/Payment";
 import Other from "../pages/other/Other";
+import BoxTypes from "../pages/other/boxTypes/BoxTypes";
+import PickupLocations from "../pages/other/pickupLocations/PickupLocations";
 import Customer from "../pages/customer/Customer";
 import NotFound from "../pages/NotFound";
 
@@ -41,6 +43,8 @@ export const appRoutes = [
       { path: ROUTES.ORDER.slice(1), element: <Order /> },
       { path: ROUTES.PAYMENT.slice(1), element: <Payment /> },
       { path: ROUTES.OTHER.slice(1), element: <Other /> },
+      { path: ROUTES.OTHER_BOX_TYPES.slice(1), element: <BoxTypes /> },
+      { path: ROUTES.OTHER_PICKUP_LOCATIONS.slice(1), element: <PickupLocations /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },
       { path: ROUTES.SETTINGS.slice(1), element: <Settings /> },

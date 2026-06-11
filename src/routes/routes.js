@@ -12,6 +12,8 @@ const ROUTES = {
   ORDER: "/order",
   PAYMENT: "/payment",
   OTHER: "/other",
+  OTHER_BOX_TYPES: "/other/box-types",
+  OTHER_PICKUP_LOCATIONS: "/other/pickup-locations",
   CUSTOMER: "/customer",
 
   NOT_FOUND: "*",

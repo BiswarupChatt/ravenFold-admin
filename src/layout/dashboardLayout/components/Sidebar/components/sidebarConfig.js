@@ -51,8 +51,17 @@ export const SIDEBAR_ITEMS = [
   },
   {
     name: "Other",
-    path: ROUTES.OTHER,
     icon: MoreHorizIcon,
+    children: [
+      {
+        name: "Box Types",
+        path: ROUTES.OTHER_BOX_TYPES,
+      },
+      {
+        name: "Pickup Locations",
+        path: ROUTES.OTHER_PICKUP_LOCATIONS,
+      },
+    ],
   },
   {
     name: "Coupon",
