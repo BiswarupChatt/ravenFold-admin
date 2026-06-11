@@ -56,6 +56,14 @@ export const fetchAdminPickupLocations = async (authToken, params = {}) => {
   return unwrapListResponse(response, params);
 };
 
+export const testShippingProviderConnection = async (authToken, providerName = "shiprocket") => {
+  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/providers/${providerName}/test`, {
+    headers: getAuthHeaders(authToken),
+  });
+
+  return unwrapResponse(response);
+};
+
 export const createPickupLocation = async (authToken, locationPayload) => {
   const response = await fetch(`${API_BASE_URL}/api/shipping/admin/pickup-locations`, {
     method: "POST",

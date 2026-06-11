@@ -21,6 +21,7 @@ import {
   createPickupLocation,
   deletePickupLocation,
   fetchAdminPickupLocations,
+  testShippingProviderConnection,
   updatePickupLocation,
 } from "@/lib/api/shippingApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
@@ -111,6 +112,8 @@ const PickupLocationSection = () => {
   const [deletingLocation, setDeletingLocation] = useState(null);
   const [deletingLocationBusy, setDeletingLocationBusy] = useState(false);
   const [locationStatusUpdatingId, setLocationStatusUpdatingId] = useState("");
+  const [testingShiprocket, setTestingShiprocket] = useState(false);
+  const [shiprocketStatus, setShiprocketStatus] = useState(null);
 
   const loadPickupLocations = useCallback(async () => {
     setLoadingLocations(true);
@@ -282,6 +285,23 @@ const PickupLocationSection = () => {
     }
   };
 
+  const handleTestShiprocket = async () => {
+    setTestingShiprocket(true);
+    setLocationError("");
+
+    try {
+      const result = await testShippingProviderConnection(authToken, "shiprocket");
+
+      setShiprocketStatus(result);
+      toast.success("Shiprocket connection checked.");
+    } catch (err) {
+      setShiprocketStatus(null);
+      setLocationError(err.message || "Failed to test Shiprocket connection.");
+    } finally {
+      setTestingShiprocket(false);
+    }
+  };
+
   const handleLocationPageChange = (nextPage) => {
     setLocationParams((currentParams) => ({
       ...currentParams,
@@ -344,6 +364,13 @@ const PickupLocationSection = () => {
               }}
             />
             <Button
+              disabled={testingShiprocket}
+              variant="outlined"
+              onClick={handleTestShiprocket}
+            >
+              {testingShiprocket ? "Checking..." : "Test Shiprocket"}
+            </Button>
+            <Button
               startIcon={<AddIcon />}
               variant="contained"
               onClick={openLocationCreateDialog}
@@ -359,6 +386,22 @@ const PickupLocationSection = () => {
           {locationError ? (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setLocationError("")}>
               {locationError}
+            </Alert>
+          ) : null}
+
+          {shiprocketStatus ? (
+            <Alert
+              severity={shiprocketStatus.readyForShipment ? "success" : "warning"}
+              sx={{ mb: 2 }}
+              onClose={() => setShiprocketStatus(null)}
+            >
+              {shiprocketStatus.readyForShipment
+                ? "Shiprocket is connected and ready for shipment creation."
+                : "Shiprocket authenticated, but shipment setup still needs pickup-location configuration."}
+              {` Active local pickup locations: ${shiprocketStatus.activePickupLocationCount}.`}
+              {shiprocketStatus.defaultPickupLocation
+                ? ` Default provider pickup: ${shiprocketStatus.defaultPickupLocation}.`
+                : " No default provider pickup is configured in backend env."}
             </Alert>
           ) : null}
 
