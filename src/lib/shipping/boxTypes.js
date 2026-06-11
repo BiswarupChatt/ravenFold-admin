@@ -1,8 +1,8 @@
 export const SHIPPING_CUSTOM_BOX_TYPE = "custom";
 
-export const getBoxTypeCode = (boxType = {}) => boxType.code || boxType.value || "";
+export const getBoxTypeCode = (boxType = {}) => boxType?.code || boxType?.value || "";
 
-export const getBoxTypeName = (boxType = {}) => boxType.name || boxType.label || "";
+export const getBoxTypeName = (boxType = {}) => boxType?.name || boxType?.label || "";
 
 export const getShippingBoxType = (value = "", boxTypes = []) => (
   boxTypes.find((boxType) => getBoxTypeCode(boxType) === value) || null
