@@ -35,6 +35,7 @@ import { useToast } from "@/hooks/ToastContext";
 import BoxTypeDialog from "./components/BoxTypeDialog";
 import BoxTypeTable from "./components/BoxTypeTable";
 import DeleteBoxTypeDialog from "./components/DeleteBoxTypeDialog";
+import PickupLocationSection from "./components/PickupLocationSection";
 
 const EMPTY_FORM = {
   breadth: "",
@@ -303,89 +304,93 @@ const Other = () => {
     <>
       <SectionHeader title="Other" />
 
-      <Paper
-        variant="outlined"
-        sx={{ width: "100%", maxWidth: "100%", minWidth: 0, borderRadius: 2, overflow: "hidden" }}
-      >
-        <Stack
-          direction={{ xs: "column", md: "row" }}
-          spacing={2}
-          justifyContent="space-between"
-          alignItems={{ xs: "stretch", md: "center" }}
-          sx={{ p: 2 }}
+      <Stack spacing={2}>
+        <Paper
+          variant="outlined"
+          sx={{ width: "100%", maxWidth: "100%", minWidth: 0, borderRadius: 2, overflow: "hidden" }}
         >
-          <Box>
-            <Typography variant="h6" fontWeight={600}>
-              Box Type Management
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Manage reusable package sizes for shipment creation.
-            </Typography>
-          </Box>
-
           <Stack
-            direction={{ xs: "column", sm: "row" }}
-            spacing={1}
-            alignItems={{ xs: "stretch", sm: "center" }}
+            direction={{ xs: "column", md: "row" }}
+            spacing={2}
+            justifyContent="space-between"
+            alignItems={{ xs: "stretch", md: "center" }}
+            sx={{ p: 2 }}
           >
-            <TextField
-              size="small"
-              placeholder="Search box types"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              sx={{ minWidth: { xs: "100%", sm: 280 } }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon fontSize="small" />
-                  </InputAdornment>
-                ),
-                endAdornment: searchInput ? (
-                  <InputAdornment position="end">
-                    <Tooltip title="Clear search">
-                      <IconButton edge="end" size="small" onClick={() => setSearchInput("")}>
-                        <ClearIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  </InputAdornment>
-                ) : null,
-              }}
-            />
+            <Box>
+              <Typography variant="h6" fontWeight={600}>
+                Box Type Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Manage reusable package sizes for shipment creation.
+              </Typography>
+            </Box>
 
-            <Button
-              startIcon={<AddIcon />}
-              variant="contained"
-              onClick={handleOpenCreate}
+            <Stack
+              direction={{ xs: "column", sm: "row" }}
+              spacing={1}
+              alignItems={{ xs: "stretch", sm: "center" }}
             >
-              Add Box Type
-            </Button>
+              <TextField
+                size="small"
+                placeholder="Search box types"
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                sx={{ minWidth: { xs: "100%", sm: 280 } }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: searchInput ? (
+                    <InputAdornment position="end">
+                      <Tooltip title="Clear search">
+                        <IconButton edge="end" size="small" onClick={() => setSearchInput("")}>
+                          <ClearIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+
+              <Button
+                startIcon={<AddIcon />}
+                variant="contained"
+                onClick={handleOpenCreate}
+              >
+                Add Box Type
+              </Button>
+            </Stack>
           </Stack>
-        </Stack>
 
-        <Divider />
+          <Divider />
 
-        <Box sx={{ p: 2 }}>
-          {error ? (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
-              {error}
-            </Alert>
-          ) : null}
+          <Box sx={{ p: 2 }}>
+            {error ? (
+              <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>
+                {error}
+              </Alert>
+            ) : null}
 
-          <BoxTypeTable
-            deletingId={deletingBoxType?.id || ""}
-            error={error}
-            loading={loading}
-            pagination={pagination}
-            rows={boxTypes}
-            statusUpdatingId={statusUpdatingId}
-            onDelete={setDeletingBoxType}
-            onEdit={handleOpenEdit}
-            onPageChange={handleTablePageChange}
-            onRowsPerPageChange={handleRowsPerPageChange}
-            onToggleStatus={handleToggleStatus}
-          />
-        </Box>
-      </Paper>
+            <BoxTypeTable
+              deletingId={deletingBoxType?.id || ""}
+              error={error}
+              loading={loading}
+              pagination={pagination}
+              rows={boxTypes}
+              statusUpdatingId={statusUpdatingId}
+              onDelete={setDeletingBoxType}
+              onEdit={handleOpenEdit}
+              onPageChange={handleTablePageChange}
+              onRowsPerPageChange={handleRowsPerPageChange}
+              onToggleStatus={handleToggleStatus}
+            />
+          </Box>
+        </Paper>
+
+        <PickupLocationSection />
+      </Stack>
 
       <BoxTypeDialog
         editingBoxType={editingBoxType}

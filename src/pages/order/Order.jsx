@@ -22,6 +22,7 @@ import { fetchAdminOrder, fetchAdminOrders } from "@/lib/api/orderApi";
 import {
   cancelAdminShipment,
   createAdminShipment,
+  fetchAdminPickupLocations,
   markAdminOrderPacked,
   updateAdminShipmentStatus,
 } from "@/lib/api/shippingApi";
@@ -44,6 +45,7 @@ const Order = () => {
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [boxTypes, setBoxTypes] = useState([]);
+  const [pickupLocations, setPickupLocations] = useState([]);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
   const [shipmentActionLoading, setShipmentActionLoading] = useState(false);
 
@@ -161,18 +163,21 @@ const Order = () => {
     setLoadingOrderDetails(true);
 
     try {
-      const [nextOrder, boxTypeList] = await Promise.all([
+      const [nextOrder, boxTypeList, pickupLocationList] = await Promise.all([
         fetchAdminOrder(authToken, order.id),
         fetchAdminBoxTypes(authToken, { isActive: true, limit: 100 }),
+        fetchAdminPickupLocations(authToken, { isActive: true, limit: 100 }),
       ]);
 
       setSelectedOrder(nextOrder);
       setBoxTypes(boxTypeList.items);
+      setPickupLocations(pickupLocationList.items);
     } catch (err) {
       toast.error(err.message || "Failed to load order details.");
       setOrderDetailsOpen(false);
       setSelectedOrder(null);
       setBoxTypes([]);
+      setPickupLocations([]);
     } finally {
       setLoadingOrderDetails(false);
     }
@@ -241,6 +246,7 @@ const Order = () => {
     setOrderDetailsOpen(false);
     setSelectedOrder(null);
     setBoxTypes([]);
+    setPickupLocations([]);
   };
 
   return (
@@ -359,6 +365,7 @@ const Order = () => {
         onClose={closeOrderDetails}
         onCreateShipment={handleCreateShipment}
         onMarkPacked={handleMarkPacked}
+        pickupLocations={pickupLocations}
         onUpdateShipmentStatus={handleUpdateShipmentStatus}
       />
     </>
