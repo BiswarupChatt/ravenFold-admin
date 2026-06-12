@@ -36,14 +36,17 @@ const terminalOrderStatuses = new Set(["cancelled", "delivered", "returned"]);
 const PRODUCT_DIMENSIONS_BOX_TYPE = "__product_dimensions";
 const PRODUCT_DIMENSIONS_BOX_TYPE_LABEL = "Product dimension";
 const BOX_TYPE_PLACEHOLDER = "Select box type";
+const COURIER_PLACEHOLDER = "Select courier";
 const PICKUP_LOCATION_PLACEHOLDER = "Select pickup location";
 const MANUAL_ORDER_STATUS_OPTIONS = ORDER_STATUS_OPTIONS.filter((status) => status.value !== "all");
 const markPackedVisibleStatuses = new Set(["confirmed", "packed"]);
+const SHIPROCKET_PROVIDER = "shiprocket";
 
 const initialShipmentForm = {
   awbCode: "",
   boxType: "",
   breadth: "",
+  courierCompanyId: "",
   courierName: "",
   height: "",
   length: "",
@@ -99,6 +102,8 @@ const emptyPackageFields = {
   weight: "",
 };
 
+const courierResetFields = new Set(["boxType", "breadth", "height", "length", "pickupLocationId", "weight"]);
+
 const compactPackagePayload = (form = {}) => {
   const payload = { ...form };
 
@@ -113,6 +118,12 @@ const compactPackagePayload = (form = {}) => {
   }
 
   for (const field of ["pickupLocationId", "pickupLocation"]) {
+    if (!hasValue(payload[field])) {
+      delete payload[field];
+    }
+  }
+
+  for (const field of ["courierCompanyId", "courierName"]) {
     if (!hasValue(payload[field])) {
       delete payload[field];
     }
@@ -193,6 +204,15 @@ const getPickupLocationSelectLabel = (value = "", pickupLocations = []) => {
   return selectedLocation ? getPickupLocationDisplayLabel(selectedLocation) : value;
 };
 
+const getCourierOptionLabel = (courier = {}) => {
+  const meta = [
+    courier.estimatedDeliveryDays ? `ETD ${courier.estimatedDeliveryDays}` : "",
+    hasValue(courier.charge) ? `INR ${courier.charge}` : "",
+  ].filter(Boolean).join(" / ");
+
+  return meta ? `${courier.courierName} (${meta})` : courier.courierName;
+};
+
 const ShipmentStatusChip = ({ status }) => {
   const meta = getShipmentStatusMeta(status);
 
@@ -260,6 +280,7 @@ const ShipmentFulfillmentPanel = ({
   boxTypes = [],
   onCancelShipment,
   onCreateShipment,
+  onFetchCourierOptions,
   onUpdateOrderStatus,
   onUpdateShipmentStatus,
   order,
@@ -274,6 +295,10 @@ const ShipmentFulfillmentPanel = ({
     status: "in_transit",
     trackingUrl: "",
   });
+  const [courierOptions, setCourierOptions] = useState([]);
+  const [courierOptionsError, setCourierOptionsError] = useState("");
+  const [courierOptionsLoaded, setCourierOptionsLoaded] = useState(false);
+  const [courierOptionsLoading, setCourierOptionsLoading] = useState(false);
   const orderIsTerminal = terminalOrderStatuses.has(order?.status);
   const canUpdateOrder = Boolean(order?.id);
   const canShowMarkPacked = order?.paymentStatus === "paid" && markPackedVisibleStatuses.has(order?.status);
@@ -283,6 +308,7 @@ const ShipmentFulfillmentPanel = ({
     ["confirmed", "packed", "shipped"].includes(order?.status);
   const canUpdateShipment = Boolean(latestShipment);
   const showManualFields = shipmentForm.provider === "manual";
+  const shiprocketProviderSelected = shipmentForm.provider === SHIPROCKET_PROVIDER;
   const singleUnitOrder = isSingleUnitOrder(order);
   const packageDimensionsComplete = hasCompleteDimensions(shipmentForm);
   const customPackageSelected = shipmentForm.boxType === SHIPPING_CUSTOM_BOX_TYPE;
@@ -291,8 +317,21 @@ const ShipmentFulfillmentPanel = ({
   const packageDetailsIncomplete = customPackageSelected && !packageDimensionsComplete;
   const productPackageMissing = productPackageSelected && !packageDimensionsComplete;
   const pickupLocationMissing = !showManualFields && pickupLocations.length > 0 && !shipmentForm.pickupLocationId;
+  const courierSelectionMissing = shiprocketProviderSelected && !shipmentForm.courierCompanyId;
+  const courierOptionsUnavailable = shiprocketProviderSelected &&
+    courierOptionsLoaded &&
+    !courierOptionsLoading &&
+    !courierOptionsError &&
+    !pickupLocationMissing &&
+    !packageSelectionMissing &&
+    !packageDetailsIncomplete &&
+    !productPackageMissing &&
+    courierOptions.length === 0;
   const createShipmentDisabled = actionLoading ||
     pickupLocationMissing ||
+    courierOptionsLoading ||
+    courierSelectionMissing ||
+    courierOptionsUnavailable ||
     packageSelectionMissing ||
     packageDetailsIncomplete ||
     productPackageMissing;
@@ -302,6 +341,9 @@ const ShipmentFulfillmentPanel = ({
       ...initialShipmentForm,
       boxType: "",
     });
+    setCourierOptions([]);
+    setCourierOptionsError("");
+    setCourierOptionsLoaded(false);
   }, [order?.id]);
 
   useEffect(() => {
@@ -312,10 +354,85 @@ const ShipmentFulfillmentPanel = ({
     });
   }, [latestShipment?.id, latestShipment?.status, latestShipment?.trackingUrl]);
 
+  useEffect(() => {
+    if (
+      !onFetchCourierOptions ||
+      !order?.id ||
+      !shiprocketProviderSelected ||
+      pickupLocationMissing ||
+      packageSelectionMissing ||
+      packageDetailsIncomplete ||
+      productPackageMissing
+    ) {
+      setCourierOptions([]);
+      setCourierOptionsError("");
+      setCourierOptionsLoaded(false);
+      setCourierOptionsLoading(false);
+      return undefined;
+    }
+
+    let isActive = true;
+
+    setCourierOptionsLoading(true);
+    setCourierOptionsError("");
+    setCourierOptionsLoaded(false);
+
+    onFetchCourierOptions(compactPackagePayload(shipmentForm))
+      .then((result) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCourierOptions(result?.couriers || []);
+        setCourierOptionsLoaded(true);
+      })
+      .catch((err) => {
+        if (!isActive) {
+          return;
+        }
+
+        setCourierOptions([]);
+        setCourierOptionsLoaded(true);
+        setCourierOptionsError(err.message || "Failed to load courier options.");
+      })
+      .finally(() => {
+        if (isActive) {
+          setCourierOptionsLoading(false);
+        }
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [
+    onFetchCourierOptions,
+    order?.id,
+    packageDetailsIncomplete,
+    packageSelectionMissing,
+    pickupLocationMissing,
+    productPackageMissing,
+    shipmentForm.boxType,
+    shipmentForm.breadth,
+    shipmentForm.height,
+    shipmentForm.length,
+    shipmentForm.pickupLocationId,
+    shipmentForm.provider,
+    shipmentForm.weight,
+    shiprocketProviderSelected,
+  ]);
+
   const updateShipmentForm = (field) => (event) => {
+    const nextValue = event.target.value;
+
     setShipmentForm((currentForm) => ({
       ...currentForm,
-      [field]: event.target.value,
+      [field]: nextValue,
+      ...(courierResetFields.has(field)
+        ? {
+            courierCompanyId: "",
+            courierName: "",
+          }
+        : {}),
     }));
   };
 
@@ -325,6 +442,8 @@ const ShipmentFulfillmentPanel = ({
     setShipmentForm((currentForm) => ({
       ...currentForm,
       provider: nextProvider,
+      courierCompanyId: "",
+      courierName: "",
       ...(nextProvider === "manual"
         ? {
             pickupLocationId: "",
@@ -340,6 +459,8 @@ const ShipmentFulfillmentPanel = ({
 
     setShipmentForm((currentForm) => ({
       ...currentForm,
+      courierCompanyId: "",
+      courierName: "",
       pickupLocationId: nextLocationId,
       pickupLocation: selectedLocation?.pickupLocation || selectedLocation?.name || "",
     }));
@@ -352,6 +473,8 @@ const ShipmentFulfillmentPanel = ({
     setShipmentForm((currentForm) => ({
       ...currentForm,
       boxType: nextBoxType,
+      courierCompanyId: "",
+      courierName: "",
       ...(nextBoxType === PRODUCT_DIMENSIONS_BOX_TYPE ? productPackage || emptyPackageFields : {}),
       ...(selectedBoxType && getBoxTypeCode(selectedBoxType) !== SHIPPING_CUSTOM_BOX_TYPE
         ? {
@@ -361,6 +484,17 @@ const ShipmentFulfillmentPanel = ({
             weight: String(selectedBoxType.weight),
           }
         : {}),
+    }));
+  };
+
+  const handleCourierChange = (event) => {
+    const nextCourierCompanyId = event.target.value;
+    const selectedCourier = courierOptions.find((courier) => courier.courierCompanyId === nextCourierCompanyId);
+
+    setShipmentForm((currentForm) => ({
+      ...currentForm,
+      courierCompanyId: nextCourierCompanyId,
+      courierName: selectedCourier?.courierName || "",
     }));
   };
 
@@ -506,7 +640,9 @@ const ShipmentFulfillmentPanel = ({
                       gap: 1.25,
                       gridTemplateColumns: showManualFields
                         ? { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" }
-                        : { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
+                        : shiprocketProviderSelected
+                          ? { xs: "1fr", md: "repeat(3, minmax(0, 1fr))" }
+                          : { xs: "1fr", md: "repeat(2, minmax(0, 1fr))" },
                     }}
                   >
                     <TextField
@@ -550,33 +686,82 @@ const ShipmentFulfillmentPanel = ({
                         />
                       </>
                     ) : (
-                      <TextField
-                        select
-                        fullWidth
-                        helperText={!pickupLocations.length ? "No active pickup locations found." : ""}
-                        InputLabelProps={{ shrink: true }}
-                        label="Pickup location"
-                        SelectProps={{
-                          displayEmpty: true,
-                          renderValue: (selectedLocationId) => (
-                            selectedLocationId
-                              ? getPickupLocationSelectLabel(selectedLocationId, pickupLocations)
-                              : <Box component="span" sx={{ color: "text.secondary" }}>{PICKUP_LOCATION_PLACEHOLDER}</Box>
-                          ),
-                        }}
-                        size="small"
-                        value={shipmentForm.pickupLocationId}
-                        onChange={handlePickupLocationChange}
-                      >
-                        <MenuItem value="" disabled>
-                          {PICKUP_LOCATION_PLACEHOLDER}
-                        </MenuItem>
-                        {pickupLocations.map((location) => (
-                          <MenuItem key={location.id} value={location.id}>
-                            {getPickupLocationDisplayLabel(location)}
+                      <>
+                        <TextField
+                          select
+                          fullWidth
+                          helperText={!pickupLocations.length ? "No active pickup locations found." : ""}
+                          InputLabelProps={{ shrink: true }}
+                          label="Pickup location"
+                          SelectProps={{
+                            displayEmpty: true,
+                            renderValue: (selectedLocationId) => (
+                              selectedLocationId
+                                ? getPickupLocationSelectLabel(selectedLocationId, pickupLocations)
+                                : <Box component="span" sx={{ color: "text.secondary" }}>{PICKUP_LOCATION_PLACEHOLDER}</Box>
+                            ),
+                          }}
+                          size="small"
+                          value={shipmentForm.pickupLocationId}
+                          onChange={handlePickupLocationChange}
+                        >
+                          <MenuItem value="" disabled>
+                            {PICKUP_LOCATION_PLACEHOLDER}
                           </MenuItem>
-                        ))}
-                      </TextField>
+                          {pickupLocations.map((location) => (
+                            <MenuItem key={location.id} value={location.id}>
+                              {getPickupLocationDisplayLabel(location)}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+
+                        {shiprocketProviderSelected ? (
+                          <TextField
+                            select
+                            fullWidth
+                            disabled={
+                              courierOptionsLoading ||
+                              pickupLocationMissing ||
+                              packageSelectionMissing ||
+                              packageDetailsIncomplete ||
+                              productPackageMissing
+                            }
+                            error={Boolean(courierOptionsError || courierOptionsUnavailable)}
+                            helperText={
+                              courierOptionsError ||
+                              (courierOptionsUnavailable ? "No serviceable couriers found." : "")
+                            }
+                            InputLabelProps={{ shrink: true }}
+                            label="Courier"
+                            SelectProps={{
+                              displayEmpty: true,
+                              renderValue: (selectedCourierId) => {
+                                const selectedCourier = courierOptions.find(
+                                  (courier) => courier.courierCompanyId === selectedCourierId,
+                                );
+
+                                return selectedCourier
+                                  ? getCourierOptionLabel(selectedCourier)
+                                  : <Box component="span" sx={{ color: "text.secondary" }}>
+                                      {courierOptionsLoading ? "Loading couriers..." : COURIER_PLACEHOLDER}
+                                    </Box>;
+                              },
+                            }}
+                            size="small"
+                            value={shipmentForm.courierCompanyId}
+                            onChange={handleCourierChange}
+                          >
+                            <MenuItem value="" disabled>
+                              {courierOptionsLoading ? "Loading couriers..." : COURIER_PLACEHOLDER}
+                            </MenuItem>
+                            {courierOptions.map((courier) => (
+                              <MenuItem key={courier.courierCompanyId} value={courier.courierCompanyId}>
+                                {getCourierOptionLabel(courier)}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        ) : null}
+                      </>
                     )}
                   </Box>
 

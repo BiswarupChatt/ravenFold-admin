@@ -64,6 +64,17 @@ export const testShippingProviderConnection = async (authToken, providerName = "
   return unwrapResponse(response);
 };
 
+export const fetchAdminCourierOptions = async (authToken, orderId, params = {}) => {
+  const response = await fetch(
+    `${API_BASE_URL}/api/shipping/admin/orders/${orderId}/courier-options${buildQueryString(params)}`,
+    {
+      headers: getAuthHeaders(authToken),
+    },
+  );
+
+  return unwrapResponse(response);
+};
+
 export const createPickupLocation = async (authToken, locationPayload) => {
   const response = await fetch(`${API_BASE_URL}/api/shipping/admin/pickup-locations`, {
     method: "POST",

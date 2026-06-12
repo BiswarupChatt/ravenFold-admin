@@ -22,6 +22,7 @@ import { fetchAdminOrder, fetchAdminOrders, updateAdminOrderStatus } from "@/lib
 import {
   cancelAdminShipment,
   createAdminShipment,
+  fetchAdminCourierOptions,
   fetchAdminPickupLocations,
   updateAdminShipmentStatus,
 } from "@/lib/api/shippingApi";
@@ -217,6 +218,10 @@ const Order = () => {
     );
   };
 
+  const handleFetchCourierOptions = async (payload) => {
+    return fetchAdminCourierOptions(authToken, selectedOrder.id, payload);
+  };
+
   const handleUpdateShipmentStatus = async (shipmentId, payload) => {
     await runFulfillmentAction(
       () => updateAdminShipmentStatus(authToken, shipmentId, payload),
@@ -367,6 +372,7 @@ const Order = () => {
         onCancelShipment={handleCancelShipment}
         onClose={closeOrderDetails}
         onCreateShipment={handleCreateShipment}
+        onFetchCourierOptions={handleFetchCourierOptions}
         onUpdateOrderStatus={handleUpdateOrderStatus}
         pickupLocations={pickupLocations}
         onUpdateShipmentStatus={handleUpdateShipmentStatus}
