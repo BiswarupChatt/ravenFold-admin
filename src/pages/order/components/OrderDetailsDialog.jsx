@@ -104,7 +104,7 @@ const OrderDetailsDialog = ({
   onUpdateShipmentStatus,
   open,
   order,
-  pickupLocations = [],
+  providerPickupLocations = [],
 }) => {
   const orderStatus = getOrderStatusMeta(order?.status);
   const paymentStatus = getPaymentStatusMeta(order?.paymentStatus);
@@ -276,7 +276,7 @@ const OrderDetailsDialog = ({
               onCreateShipment={onCreateShipment}
               onFetchCourierOptions={onFetchCourierOptions}
               onUpdateOrderStatus={onUpdateOrderStatus}
-              pickupLocations={pickupLocations}
+              providerPickupLocations={providerPickupLocations}
               onUpdateShipmentStatus={onUpdateShipmentStatus}
             />
 

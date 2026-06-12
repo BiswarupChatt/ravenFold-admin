@@ -23,7 +23,7 @@ import {
   cancelAdminShipment,
   createAdminShipment,
   fetchAdminCourierOptions,
-  fetchAdminPickupLocations,
+  fetchAdminProviderPickupLocations,
   updateAdminShipmentStatus,
 } from "@/lib/api/shippingApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
@@ -45,7 +45,7 @@ const Order = () => {
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [boxTypes, setBoxTypes] = useState([]);
-  const [pickupLocations, setPickupLocations] = useState([]);
+  const [providerPickupLocations, setProviderPickupLocations] = useState([]);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
   const [fulfillmentActionLoading, setFulfillmentActionLoading] = useState(false);
 
@@ -163,21 +163,28 @@ const Order = () => {
     setLoadingOrderDetails(true);
 
     try {
-      const [nextOrder, boxTypeList, pickupLocationList] = await Promise.all([
+      const [nextOrder, boxTypeList] = await Promise.all([
         fetchAdminOrder(authToken, order.id),
         fetchAdminBoxTypes(authToken, { isActive: true, limit: 100 }),
-        fetchAdminPickupLocations(authToken, { isActive: true, limit: 100 }),
       ]);
 
       setSelectedOrder(nextOrder);
       setBoxTypes(boxTypeList.items);
-      setPickupLocations(pickupLocationList.items);
+
+      try {
+        const providerPickupLocationResult = await fetchAdminProviderPickupLocations(authToken, "shiprocket");
+
+        setProviderPickupLocations(providerPickupLocationResult.items || []);
+      } catch (providerPickupLocationError) {
+        setProviderPickupLocations([]);
+        toast.error(providerPickupLocationError.message || "Failed to load Shiprocket pickup locations.");
+      }
     } catch (err) {
       toast.error(err.message || "Failed to load order details.");
       setOrderDetailsOpen(false);
       setSelectedOrder(null);
       setBoxTypes([]);
-      setPickupLocations([]);
+      setProviderPickupLocations([]);
     } finally {
       setLoadingOrderDetails(false);
     }
@@ -254,7 +261,7 @@ const Order = () => {
     setOrderDetailsOpen(false);
     setSelectedOrder(null);
     setBoxTypes([]);
-    setPickupLocations([]);
+    setProviderPickupLocations([]);
   };
 
   return (
@@ -374,7 +381,7 @@ const Order = () => {
         onCreateShipment={handleCreateShipment}
         onFetchCourierOptions={handleFetchCourierOptions}
         onUpdateOrderStatus={handleUpdateOrderStatus}
-        pickupLocations={pickupLocations}
+        providerPickupLocations={providerPickupLocations}
         onUpdateShipmentStatus={handleUpdateShipmentStatus}
       />
     </>

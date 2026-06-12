@@ -64,6 +64,14 @@ export const testShippingProviderConnection = async (authToken, providerName = "
   return unwrapResponse(response);
 };
 
+export const fetchAdminProviderPickupLocations = async (authToken, providerName = "shiprocket") => {
+  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/providers/${providerName}/pickup-locations`, {
+    headers: getAuthHeaders(authToken),
+  });
+
+  return unwrapResponse(response);
+};
+
 export const fetchAdminCourierOptions = async (authToken, orderId, params = {}) => {
   const response = await fetch(
     `${API_BASE_URL}/api/shipping/admin/orders/${orderId}/courier-options${buildQueryString(params)}`,

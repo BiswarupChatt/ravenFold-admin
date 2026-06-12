@@ -51,8 +51,10 @@ const initialShipmentForm = {
   height: "",
   length: "",
   note: "",
+  pickupAddress: null,
   pickupLocationId: "",
   pickupLocation: "",
+  pickupPincode: "",
   provider: "shiprocket",
   trackingUrl: "",
   weight: "",
@@ -104,7 +106,7 @@ const emptyPackageFields = {
 
 const courierResetFields = new Set(["boxType", "breadth", "height", "length", "pickupLocationId", "weight"]);
 
-const compactPackagePayload = (form = {}) => {
+const compactPackagePayload = (form = {}, { includePickupAddress = false } = {}) => {
   const payload = { ...form };
 
   if (payload.boxType === PRODUCT_DIMENSIONS_BOX_TYPE) {
@@ -117,10 +119,20 @@ const compactPackagePayload = (form = {}) => {
     }
   }
 
-  for (const field of ["pickupLocationId", "pickupLocation"]) {
+  if (payload.provider === SHIPROCKET_PROVIDER) {
+    delete payload.pickupLocationId;
+  } else if (!hasValue(payload.pickupLocationId)) {
+    delete payload.pickupLocationId;
+  }
+
+  for (const field of ["pickupLocation", "pickupPincode"]) {
     if (!hasValue(payload[field])) {
       delete payload[field];
     }
+  }
+
+  if (!includePickupAddress || !payload.pickupAddress) {
+    delete payload.pickupAddress;
   }
 
   for (const field of ["courierCompanyId", "courierName"]) {
@@ -131,6 +143,17 @@ const compactPackagePayload = (form = {}) => {
 
   return payload;
 };
+
+const toPickupAddressPayload = (location = {}) => ({
+  addressLine1: location.addressLine1 || "",
+  addressLine2: location.addressLine2 || "",
+  city: location.city || "",
+  country: location.country || "India",
+  name: location.name || location.pickupLocation || "",
+  phone: location.phone || "",
+  pincode: location.pincode || "",
+  state: location.state || "",
+});
 
 const isSingleUnitOrder = (order) => {
   const items = Array.isArray(order?.items) ? order.items : [];
@@ -284,7 +307,7 @@ const ShipmentFulfillmentPanel = ({
   onUpdateOrderStatus,
   onUpdateShipmentStatus,
   order,
-  pickupLocations = [],
+  providerPickupLocations = [],
 }) => {
   const shipments = useMemo(() => (Array.isArray(order?.shipments) ? order.shipments : []), [order?.shipments]);
   const latestShipment = useMemo(() => getLatestShipment(shipments), [shipments]);
@@ -316,7 +339,9 @@ const ShipmentFulfillmentPanel = ({
   const packageSelectionMissing = !shipmentForm.boxType;
   const packageDetailsIncomplete = customPackageSelected && !packageDimensionsComplete;
   const productPackageMissing = productPackageSelected && !packageDimensionsComplete;
-  const pickupLocationMissing = !showManualFields && pickupLocations.length > 0 && !shipmentForm.pickupLocationId;
+  const pickupLocationMissing = shiprocketProviderSelected
+    ? !shipmentForm.pickupLocationId
+    : !showManualFields && providerPickupLocations.length > 0 && !shipmentForm.pickupLocationId;
   const courierSelectionMissing = shiprocketProviderSelected && !shipmentForm.courierCompanyId;
   const courierOptionsUnavailable = shiprocketProviderSelected &&
     courierOptionsLoaded &&
@@ -446,8 +471,10 @@ const ShipmentFulfillmentPanel = ({
       courierName: "",
       ...(nextProvider === "manual"
         ? {
+            pickupAddress: null,
             pickupLocationId: "",
             pickupLocation: "",
+            pickupPincode: "",
           }
         : {}),
     }));
@@ -455,14 +482,16 @@ const ShipmentFulfillmentPanel = ({
 
   const handlePickupLocationChange = (event) => {
     const nextLocationId = event.target.value;
-    const selectedLocation = pickupLocations.find((location) => location.id === nextLocationId);
+    const selectedLocation = providerPickupLocations.find((location) => location.id === nextLocationId);
 
     setShipmentForm((currentForm) => ({
       ...currentForm,
       courierCompanyId: "",
       courierName: "",
+      pickupAddress: selectedLocation ? toPickupAddressPayload(selectedLocation) : null,
       pickupLocationId: nextLocationId,
       pickupLocation: selectedLocation?.pickupLocation || selectedLocation?.name || "",
+      pickupPincode: selectedLocation?.pincode || "",
     }));
   };
 
@@ -529,7 +558,7 @@ const ShipmentFulfillmentPanel = ({
 
   const handleCreateShipment = async () => {
     await onCreateShipment({
-      ...compactPackagePayload(shipmentForm),
+      ...compactPackagePayload(shipmentForm, { includePickupAddress: true }),
       note: shipmentForm.note,
       notes: shipmentForm.note,
     });
@@ -690,14 +719,14 @@ const ShipmentFulfillmentPanel = ({
                         <TextField
                           select
                           fullWidth
-                          helperText={!pickupLocations.length ? "No active pickup locations found." : ""}
+                          helperText={!providerPickupLocations.length ? "No Shiprocket pickup locations found." : ""}
                           InputLabelProps={{ shrink: true }}
                           label="Pickup location"
                           SelectProps={{
                             displayEmpty: true,
                             renderValue: (selectedLocationId) => (
                               selectedLocationId
-                                ? getPickupLocationSelectLabel(selectedLocationId, pickupLocations)
+                                ? getPickupLocationSelectLabel(selectedLocationId, providerPickupLocations)
                                 : <Box component="span" sx={{ color: "text.secondary" }}>{PICKUP_LOCATION_PLACEHOLDER}</Box>
                             ),
                           }}
@@ -708,7 +737,7 @@ const ShipmentFulfillmentPanel = ({
                           <MenuItem value="" disabled>
                             {PICKUP_LOCATION_PLACEHOLDER}
                           </MenuItem>
-                          {pickupLocations.map((location) => (
+                          {providerPickupLocations.map((location) => (
                             <MenuItem key={location.id} value={location.id}>
                               {getPickupLocationDisplayLabel(location)}
                             </MenuItem>
