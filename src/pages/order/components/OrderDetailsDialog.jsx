@@ -94,12 +94,18 @@ const AddressBlock = ({ title, address }) => {
 
 const OrderDetailsDialog = ({
   actionLoading = false,
+  onAssignShipmentAwb,
   boxTypes = [],
   loading,
   onCancelShipment,
   onClose,
+  onCreateProviderOrder,
   onCreateShipment,
   onFetchCourierOptions,
+  onGenerateShipmentLabel,
+  onGenerateShipmentManifest,
+  onScheduleShipmentPickup,
+  onSyncShipmentTracking,
   onUpdateOrderStatus,
   onUpdateShipmentStatus,
   open,
@@ -270,11 +276,17 @@ const OrderDetailsDialog = ({
 
             <ShipmentFulfillmentPanel
               actionLoading={actionLoading}
+              onAssignShipmentAwb={onAssignShipmentAwb}
               boxTypes={boxTypes}
               order={order}
               onCancelShipment={onCancelShipment}
               onCreateShipment={onCreateShipment}
+              onCreateProviderOrder={onCreateProviderOrder}
               onFetchCourierOptions={onFetchCourierOptions}
+              onGenerateShipmentLabel={onGenerateShipmentLabel}
+              onGenerateShipmentManifest={onGenerateShipmentManifest}
+              onScheduleShipmentPickup={onScheduleShipmentPickup}
+              onSyncShipmentTracking={onSyncShipmentTracking}
               onUpdateOrderStatus={onUpdateOrderStatus}
               providerPickupLocations={providerPickupLocations}
               onUpdateShipmentStatus={onUpdateShipmentStatus}

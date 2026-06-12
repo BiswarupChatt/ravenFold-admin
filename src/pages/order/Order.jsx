@@ -20,10 +20,16 @@ import SectionHeader from "@/components/SectionHeader";
 import { fetchAdminBoxTypes } from "@/lib/api/boxTypeApi";
 import { fetchAdminOrder, fetchAdminOrders, updateAdminOrderStatus } from "@/lib/api/orderApi";
 import {
+  assignAdminShipmentAwb,
   cancelAdminShipment,
+  createAdminProviderOrder,
   createAdminShipment,
   fetchAdminCourierOptions,
   fetchAdminProviderPickupLocations,
+  generateAdminShipmentLabel,
+  generateAdminShipmentManifest,
+  scheduleAdminShipmentPickup,
+  syncAdminShipmentTracking,
   updateAdminShipmentStatus,
 } from "@/lib/api/shippingApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
@@ -229,6 +235,54 @@ const Order = () => {
     return fetchAdminCourierOptions(authToken, selectedOrder.id, payload);
   };
 
+  const handleCreateProviderOrder = async (payload) => {
+    await runFulfillmentAction(
+      () => createAdminProviderOrder(authToken, selectedOrder.id, payload),
+      "Provider order created.",
+      "Failed to create provider order.",
+    );
+  };
+
+  const handleAssignShipmentAwb = async (shipmentId, payload) => {
+    await runFulfillmentAction(
+      () => assignAdminShipmentAwb(authToken, shipmentId, payload),
+      "AWB assigned.",
+      "Failed to assign AWB.",
+    );
+  };
+
+  const handleScheduleShipmentPickup = async (shipmentId, payload) => {
+    await runFulfillmentAction(
+      () => scheduleAdminShipmentPickup(authToken, shipmentId, payload),
+      "Pickup scheduled.",
+      "Failed to schedule pickup.",
+    );
+  };
+
+  const handleGenerateShipmentLabel = async (shipmentId, payload) => {
+    await runFulfillmentAction(
+      () => generateAdminShipmentLabel(authToken, shipmentId, payload),
+      "Shipment label generated.",
+      "Failed to generate shipment label.",
+    );
+  };
+
+  const handleGenerateShipmentManifest = async (shipmentId, payload) => {
+    await runFulfillmentAction(
+      () => generateAdminShipmentManifest(authToken, shipmentId, payload),
+      "Shipment manifest generated.",
+      "Failed to generate shipment manifest.",
+    );
+  };
+
+  const handleSyncShipmentTracking = async (shipmentId, payload) => {
+    await runFulfillmentAction(
+      () => syncAdminShipmentTracking(authToken, shipmentId, payload),
+      "Shipment tracking synced.",
+      "Failed to sync shipment tracking.",
+    );
+  };
+
   const handleUpdateShipmentStatus = async (shipmentId, payload) => {
     await runFulfillmentAction(
       () => updateAdminShipmentStatus(authToken, shipmentId, payload),
@@ -378,8 +432,14 @@ const Order = () => {
         loading={loadingOrderDetails}
         onCancelShipment={handleCancelShipment}
         onClose={closeOrderDetails}
+        onCreateProviderOrder={handleCreateProviderOrder}
         onCreateShipment={handleCreateShipment}
         onFetchCourierOptions={handleFetchCourierOptions}
+        onGenerateShipmentLabel={handleGenerateShipmentLabel}
+        onGenerateShipmentManifest={handleGenerateShipmentManifest}
+        onAssignShipmentAwb={handleAssignShipmentAwb}
+        onScheduleShipmentPickup={handleScheduleShipmentPickup}
+        onSyncShipmentTracking={handleSyncShipmentTracking}
         onUpdateOrderStatus={handleUpdateOrderStatus}
         providerPickupLocations={providerPickupLocations}
         onUpdateShipmentStatus={handleUpdateShipmentStatus}

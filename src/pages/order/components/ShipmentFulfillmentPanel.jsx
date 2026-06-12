@@ -41,13 +41,43 @@ const PICKUP_LOCATION_PLACEHOLDER = "Select pickup location";
 const MANUAL_ORDER_STATUS_OPTIONS = ORDER_STATUS_OPTIONS.filter((status) => status.value !== "all");
 const markPackedVisibleStatuses = new Set(["confirmed", "packed"]);
 const SHIPROCKET_PROVIDER = "shiprocket";
+const pickupScheduledStatuses = new Set([
+  "pickup_scheduled",
+  "picked_up",
+  "in_transit",
+  "out_for_delivery",
+  "delivered",
+  "cancelled",
+  "rto",
+  "lost",
+]);
+const labelBlockedStatuses = new Set(["cancelled", "delivered", "rto", "lost"]);
+const manifestReadyStatuses = new Set(["pickup_scheduled", "picked_up", "in_transit", "out_for_delivery"]);
+const nonCancelableShipmentStatuses = new Set([
+  "cancelled",
+  "delivered",
+  "picked_up",
+  "in_transit",
+  "out_for_delivery",
+  "rto",
+  "lost",
+]);
+const shipmentMovingStatuses = new Set(["picked_up", "in_transit", "out_for_delivery", "delivered", "rto", "lost"]);
+const shipmentProgressSteps = [
+  { key: "provider_order", label: "Provider order" },
+  { key: "awb", label: "AWB assigned" },
+  { key: "pickup", label: "Pickup booked" },
+  { key: "tracking", label: "In movement" },
+];
 
 const initialShipmentForm = {
   awbCode: "",
   boxType: "",
   breadth: "",
+  courierCharge: "",
   courierCompanyId: "",
   courierName: "",
+  estimatedDeliveryDays: "",
   height: "",
   length: "",
   note: "",
@@ -135,7 +165,7 @@ const compactPackagePayload = (form = {}, { includePickupAddress = false } = {})
     delete payload.pickupAddress;
   }
 
-  for (const field of ["courierCompanyId", "courierName"]) {
+  for (const field of ["courierCharge", "courierCompanyId", "courierName", "estimatedDeliveryDays"]) {
     if (!hasValue(payload[field])) {
       delete payload[field];
     }
@@ -236,6 +266,41 @@ const getCourierOptionLabel = (courier = {}) => {
   return meta ? `${courier.courierName} (${meta})` : courier.courierName;
 };
 
+const formatShipmentDateTime = (value) => {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime()) || date.getUTCFullYear() < 2005) {
+    return "";
+  }
+
+  return formatOrderDateTime(value);
+};
+
+const SummaryMetric = ({ label, value, children }) => (
+  <Box
+    sx={{
+      border: "1px solid",
+      borderColor: "divider",
+      borderRadius: 2,
+      minWidth: 0,
+      p: 1.25,
+    }}
+  >
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    {children || (
+      <Typography variant="body2" fontWeight={700} sx={{ mt: 0.35 }}>
+        {value || "-"}
+      </Typography>
+    )}
+  </Box>
+);
+
 const ShipmentStatusChip = ({ status }) => {
   const meta = getShipmentStatusMeta(status);
 
@@ -249,6 +314,63 @@ const ShipmentStatusChip = ({ status }) => {
   );
 };
 
+const ShipmentProgress = ({ shipment }) => {
+  const completionMap = {
+    provider_order: Boolean(shipment?.providerOrderId),
+    awb: Boolean(shipment?.awbCode),
+    pickup: Boolean(
+      shipment?.pickupScheduledAt ||
+      pickupScheduledStatuses.has(shipment?.status) ||
+      shipmentMovingStatuses.has(shipment?.status),
+    ),
+    tracking: Boolean(shipmentMovingStatuses.has(shipment?.status)),
+  };
+  const currentStepIndex = shipmentProgressSteps.findIndex((step) => !completionMap[step.key]);
+
+  return (
+    <Stack spacing={1}>
+      <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.6 }}>
+        Fulfilment progress
+      </Typography>
+      <Box
+        sx={{
+          display: "grid",
+          gap: 1,
+          gridTemplateColumns: { xs: "repeat(2, minmax(0, 1fr))", md: "repeat(4, minmax(0, 1fr))" },
+        }}
+      >
+        {shipmentProgressSteps.map((step, index) => {
+          const done = completionMap[step.key];
+          const current = !done && (currentStepIndex === -1 ? index === shipmentProgressSteps.length - 1 : index === currentStepIndex);
+
+          return (
+            <Box
+              key={step.key}
+              sx={{
+                border: "1px solid",
+                borderColor: done ? "primary.main" : current ? "warning.main" : "divider",
+                bgcolor: done ? "primary.50" : current ? "warning.50" : "background.default",
+                borderRadius: 2,
+                p: 1.25,
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                Step {index + 1}
+              </Typography>
+              <Typography variant="body2" fontWeight={700} sx={{ mt: 0.35 }}>
+                {step.label}
+              </Typography>
+              <Typography variant="caption" color={done ? "primary.main" : current ? "warning.main" : "text.secondary"}>
+                {done ? "Done" : current ? "Current" : "Pending"}
+              </Typography>
+            </Box>
+          );
+        })}
+      </Box>
+    </Stack>
+  );
+};
+
 const ShipmentSummary = ({ boxTypes = [], shipment }) => {
   if (!shipment) {
     return (
@@ -259,9 +381,10 @@ const ShipmentSummary = ({ boxTypes = [], shipment }) => {
   }
 
   const packageSummary = formatPackageSummary(shipment.package, boxTypes);
+  const pickupDate = formatShipmentDateTime(shipment.pickupScheduledAt);
 
   return (
-    <Stack spacing={1}>
+    <Stack spacing={1.25}>
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
         <ShipmentStatusChip status={shipment.status} />
         <Typography variant="body2" fontWeight={700}>
@@ -274,26 +397,141 @@ const ShipmentSummary = ({ boxTypes = [], shipment }) => {
         ) : null}
       </Stack>
 
-      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} flexWrap="wrap" useFlexGap>
-        <Typography variant="body2" color="text.secondary">
-          AWB: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{shipment.awbCode || "-"}</Box>
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Created: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>
-            {formatOrderDateTime(shipment.createdAt)}
+      <Box
+        sx={{
+          display: "grid",
+          gap: 1,
+          gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))", lg: "repeat(5, minmax(0, 1fr))" },
+        }}
+      >
+        <SummaryMetric label="Provider order" value={shipment.providerOrderId || "Not created"} />
+        <SummaryMetric label="AWB" value={shipment.awbCode || "Not assigned"} />
+        <SummaryMetric label="Package" value={packageSummary || "Package not selected"} />
+        <SummaryMetric label="Pickup" value={pickupDate || "Not booked"} />
+        <SummaryMetric label="Links">
+          <Stack spacing={0.4} sx={{ mt: 0.5 }}>
+            <Typography variant="body2" fontWeight={700}>
+              {formatOrderDateTime(shipment.createdAt)}
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {shipment.trackingUrl ? (
+                <Link href={shipment.trackingUrl} target="_blank" rel="noreferrer" underline="hover" variant="caption">
+                  Tracking
+                </Link>
+              ) : null}
+              {shipment.labelUrl ? (
+                <Link href={shipment.labelUrl} target="_blank" rel="noreferrer" underline="hover" variant="caption">
+                  Label
+                </Link>
+              ) : null}
+              {shipment.manifestUrl ? (
+                <Link href={shipment.manifestUrl} target="_blank" rel="noreferrer" underline="hover" variant="caption">
+                  Manifest
+                </Link>
+              ) : null}
+            </Stack>
+          </Stack>
+        </SummaryMetric>
+      </Box>
+
+      {(shipment.courierCharge !== null && shipment.courierCharge !== undefined && shipment.courierCharge !== "") ||
+      shipment.estimatedDeliveryDays ||
+      shipment.pickupTokenNumber ? (
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {shipment.courierCharge !== null && shipment.courierCharge !== undefined && shipment.courierCharge !== "" ? (
+            <Chip size="small" variant="outlined" label={`Charge: INR ${shipment.courierCharge}`} />
+          ) : null}
+          {shipment.estimatedDeliveryDays ? (
+            <Chip size="small" variant="outlined" label={`ETA: ${shipment.estimatedDeliveryDays}`} />
+          ) : null}
+          {shipment.pickupTokenNumber ? (
+            <Chip size="small" variant="outlined" label={`Pickup token: ${shipment.pickupTokenNumber}`} />
+          ) : null}
+        </Stack>
+      ) : null}
+    </Stack>
+  );
+};
+
+const getShipmentSelectionLabel = (shipment = {}) => {
+  const segments = [
+    formatProviderName(shipment.provider),
+    getShipmentStatusMeta(shipment.status).label,
+  ];
+
+  if (shipment.awbCode) {
+    segments.push(`AWB ${shipment.awbCode}`);
+  } else if (shipment.providerOrderId) {
+    segments.push(`Order ${shipment.providerOrderId}`);
+  }
+
+  return segments.filter(Boolean).join(" / ");
+};
+
+const ShipmentEventsTimeline = ({ shipment }) => {
+  const events = Array.isArray(shipment?.events) ? shipment.events : [];
+
+  if (!shipment) {
+    return null;
+  }
+
+  if (!events.length) {
+    return (
+      <Typography variant="body2" color="text.secondary">
+        No shipment activity has been recorded yet.
+      </Typography>
+    );
+  }
+
+  return (
+    <Stack spacing={1}>
+      {events.map((event) => {
+        const statusMeta = getShipmentStatusMeta(event.status);
+
+        return (
+          <Box
+            key={event.id || `${event.providerEventId}-${event.eventAt || event.createdAt}`}
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 2,
+              bgcolor: "background.default",
+              p: 1.25,
+            }}
+          >
+            <Stack spacing={0.5}>
+              <Stack
+                direction={{ xs: "column", sm: "row" }}
+                spacing={1}
+                alignItems={{ xs: "flex-start", sm: "center" }}
+              >
+                <Chip
+                  size="small"
+                  label={statusMeta.label}
+                  color={statusMeta.color}
+                  variant={statusMeta.color === "default" ? "outlined" : "filled"}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {formatOrderDateTime(event.eventAt || event.createdAt)}
+                </Typography>
+                {event.location ? (
+                  <Typography variant="caption" color="text.secondary">
+                    {event.location}
+                  </Typography>
+                ) : null}
+              </Stack>
+              <Typography variant="body2" fontWeight={600}>
+                {event.message || event.providerStatus || "Shipment activity updated"}
+              </Typography>
+              {event.providerStatus ? (
+                <Typography variant="caption" color="text.secondary">
+                  Provider status: {event.providerStatus}
+                </Typography>
+              ) : null}
+            </Stack>
           </Box>
-        </Typography>
-        {shipment.trackingUrl ? (
-          <Link href={shipment.trackingUrl} target="_blank" rel="noreferrer" underline="hover" variant="body2">
-            Tracking link
-          </Link>
-        ) : null}
-        {packageSummary ? (
-          <Typography variant="body2" color="text.secondary">
-            Package: <Box component="span" sx={{ color: "text.primary", fontWeight: 600 }}>{packageSummary}</Box>
-          </Typography>
-        ) : null}
-      </Stack>
+        );
+      })}
     </Stack>
   );
 };
@@ -301,9 +539,15 @@ const ShipmentSummary = ({ boxTypes = [], shipment }) => {
 const ShipmentFulfillmentPanel = ({
   actionLoading = false,
   boxTypes = [],
+  onAssignShipmentAwb,
   onCancelShipment,
+  onCreateProviderOrder,
   onCreateShipment,
   onFetchCourierOptions,
+  onGenerateShipmentLabel,
+  onGenerateShipmentManifest,
+  onScheduleShipmentPickup,
+  onSyncShipmentTracking,
   onUpdateOrderStatus,
   onUpdateShipmentStatus,
   order,
@@ -312,6 +556,7 @@ const ShipmentFulfillmentPanel = ({
   const shipments = useMemo(() => (Array.isArray(order?.shipments) ? order.shipments : []), [order?.shipments]);
   const latestShipment = useMemo(() => getLatestShipment(shipments), [shipments]);
   const productPackage = useMemo(() => getProductPackageFromOrder(order), [order]);
+  const [selectedShipmentId, setSelectedShipmentId] = useState("");
   const [shipmentForm, setShipmentForm] = useState(initialShipmentForm);
   const [statusForm, setStatusForm] = useState({
     note: "",
@@ -322,6 +567,13 @@ const ShipmentFulfillmentPanel = ({
   const [courierOptionsError, setCourierOptionsError] = useState("");
   const [courierOptionsLoaded, setCourierOptionsLoaded] = useState(false);
   const [courierOptionsLoading, setCourierOptionsLoading] = useState(false);
+  const selectedShipment = useMemo(() => {
+    if (!shipments.length) {
+      return null;
+    }
+
+    return shipments.find((shipment) => shipment.id === selectedShipmentId) || latestShipment;
+  }, [latestShipment, selectedShipmentId, shipments]);
   const orderIsTerminal = terminalOrderStatuses.has(order?.status);
   const canUpdateOrder = Boolean(order?.id);
   const canShowMarkPacked = order?.paymentStatus === "paid" && markPackedVisibleStatuses.has(order?.status);
@@ -329,7 +581,42 @@ const ShipmentFulfillmentPanel = ({
     order?.paymentStatus === "paid" &&
     !orderIsTerminal &&
     ["confirmed", "packed", "shipped"].includes(order?.status);
-  const canUpdateShipment = Boolean(latestShipment);
+  const canUpdateShipment = Boolean(selectedShipment);
+  const canRefreshTracking = Boolean(selectedShipment?.id && selectedShipment?.provider !== "manual");
+  const awaitingAwbAssignment = latestShipment?.provider === SHIPROCKET_PROVIDER &&
+    latestShipment?.status === "provider_order_created" &&
+    !latestShipment?.awbCode;
+  const canSchedulePickup = Boolean(
+    selectedShipment?.id &&
+    selectedShipment?.provider === SHIPROCKET_PROVIDER &&
+    selectedShipment?.awbCode &&
+    !pickupScheduledStatuses.has(selectedShipment?.status),
+  );
+  const canGenerateLabel = Boolean(
+    selectedShipment?.id &&
+    selectedShipment?.provider === SHIPROCKET_PROVIDER &&
+    selectedShipment?.providerShipmentId &&
+    selectedShipment?.awbCode &&
+    !selectedShipment?.labelUrl &&
+    !labelBlockedStatuses.has(selectedShipment?.status),
+  );
+  const canGenerateManifest = Boolean(
+    selectedShipment?.id &&
+    selectedShipment?.provider === SHIPROCKET_PROVIDER &&
+    selectedShipment?.providerShipmentId &&
+    selectedShipment?.awbCode &&
+    !selectedShipment?.manifestUrl &&
+    (
+      Boolean(selectedShipment?.pickupScheduledAt) ||
+      manifestReadyStatuses.has(selectedShipment?.status)
+    ) &&
+    !labelBlockedStatuses.has(selectedShipment?.status),
+  );
+  const canCancelShipment = Boolean(
+    selectedShipment?.id &&
+    !nonCancelableShipmentStatuses.has(selectedShipment?.status),
+  );
+  const shiprocketOrderFieldsLocked = awaitingAwbAssignment;
   const showManualFields = shipmentForm.provider === "manual";
   const shiprocketProviderSelected = shipmentForm.provider === SHIPROCKET_PROVIDER;
   const singleUnitOrder = isSingleUnitOrder(order);
@@ -342,6 +629,10 @@ const ShipmentFulfillmentPanel = ({
   const pickupLocationMissing = shiprocketProviderSelected
     ? !shipmentForm.pickupLocationId
     : !showManualFields && providerPickupLocations.length > 0 && !shipmentForm.pickupLocationId;
+  const shipmentFormInvalid = pickupLocationMissing ||
+    packageSelectionMissing ||
+    packageDetailsIncomplete ||
+    productPackageMissing;
   const courierSelectionMissing = shiprocketProviderSelected && !shipmentForm.courierCompanyId;
   const courierOptionsUnavailable = shiprocketProviderSelected &&
     courierOptionsLoaded &&
@@ -352,16 +643,19 @@ const ShipmentFulfillmentPanel = ({
     !packageDetailsIncomplete &&
     !productPackageMissing &&
     courierOptions.length === 0;
-  const createShipmentDisabled = actionLoading ||
-    pickupLocationMissing ||
+  const createProviderOrderDisabled = actionLoading || shipmentFormInvalid;
+  const assignAwbDisabled = actionLoading ||
     courierOptionsLoading ||
     courierSelectionMissing ||
     courierOptionsUnavailable ||
-    packageSelectionMissing ||
-    packageDetailsIncomplete ||
-    productPackageMissing;
+    shipmentFormInvalid ||
+    !latestShipment?.id;
+  const createShipmentDisabled = actionLoading ||
+    shipmentFormInvalid ||
+    (shiprocketProviderSelected && (courierOptionsLoading || courierSelectionMissing || courierOptionsUnavailable));
 
   useEffect(() => {
+    setSelectedShipmentId(latestShipment?.id || "");
     setShipmentForm({
       ...initialShipmentForm,
       boxType: "",
@@ -372,12 +666,51 @@ const ShipmentFulfillmentPanel = ({
   }, [order?.id]);
 
   useEffect(() => {
+    if (!shipments.length) {
+      setSelectedShipmentId("");
+      return;
+    }
+
+    if (selectedShipmentId && shipments.some((shipment) => shipment.id === selectedShipmentId)) {
+      return;
+    }
+
+    setSelectedShipmentId(latestShipment?.id || shipments[0]?.id || "");
+  }, [latestShipment?.id, selectedShipmentId, shipments]);
+
+  useEffect(() => {
+    if (!awaitingAwbAssignment || !latestShipment) {
+      return;
+    }
+
+    setShipmentForm((currentForm) => ({
+      ...currentForm,
+      awbCode: latestShipment.awbCode || "",
+      boxType: latestShipment.package?.boxType || currentForm.boxType || "",
+      breadth: hasValue(latestShipment.package?.breadth) ? String(latestShipment.package.breadth) : "",
+      courierCharge: hasValue(latestShipment.courierCharge) ? String(latestShipment.courierCharge) : "",
+      courierCompanyId: latestShipment.courierCompanyId || "",
+      courierName: latestShipment.courierName || "",
+      estimatedDeliveryDays: latestShipment.estimatedDeliveryDays || "",
+      height: hasValue(latestShipment.package?.height) ? String(latestShipment.package.height) : "",
+      length: hasValue(latestShipment.package?.length) ? String(latestShipment.package.length) : "",
+      pickupAddress: latestShipment.pickupAddress || null,
+      pickupLocation: latestShipment.pickupLocation || "",
+      pickupLocationId: latestShipment.pickupLocationId || "",
+      pickupPincode: latestShipment.pickupAddress?.pincode || "",
+      provider: latestShipment.provider || SHIPROCKET_PROVIDER,
+      trackingUrl: latestShipment.trackingUrl || "",
+      weight: hasValue(latestShipment.package?.weight) ? String(latestShipment.package.weight) : "",
+    }));
+  }, [awaitingAwbAssignment, latestShipment]);
+
+  useEffect(() => {
     setStatusForm({
       note: "",
-      status: latestShipment?.status || "in_transit",
-      trackingUrl: latestShipment?.trackingUrl || "",
+      status: selectedShipment?.status || "in_transit",
+      trackingUrl: selectedShipment?.trackingUrl || "",
     });
-  }, [latestShipment?.id, latestShipment?.status, latestShipment?.trackingUrl]);
+  }, [selectedShipment?.id, selectedShipment?.status, selectedShipment?.trackingUrl]);
 
   useEffect(() => {
     if (
@@ -454,8 +787,10 @@ const ShipmentFulfillmentPanel = ({
       [field]: nextValue,
       ...(courierResetFields.has(field)
         ? {
+            courierCharge: "",
             courierCompanyId: "",
             courierName: "",
+            estimatedDeliveryDays: "",
           }
         : {}),
     }));
@@ -467,8 +802,10 @@ const ShipmentFulfillmentPanel = ({
     setShipmentForm((currentForm) => ({
       ...currentForm,
       provider: nextProvider,
+      courierCharge: "",
       courierCompanyId: "",
       courierName: "",
+      estimatedDeliveryDays: "",
       ...(nextProvider === "manual"
         ? {
             pickupAddress: null,
@@ -486,8 +823,10 @@ const ShipmentFulfillmentPanel = ({
 
     setShipmentForm((currentForm) => ({
       ...currentForm,
+      courierCharge: "",
       courierCompanyId: "",
       courierName: "",
+      estimatedDeliveryDays: "",
       pickupAddress: selectedLocation ? toPickupAddressPayload(selectedLocation) : null,
       pickupLocationId: nextLocationId,
       pickupLocation: selectedLocation?.pickupLocation || selectedLocation?.name || "",
@@ -502,8 +841,10 @@ const ShipmentFulfillmentPanel = ({
     setShipmentForm((currentForm) => ({
       ...currentForm,
       boxType: nextBoxType,
+      courierCharge: "",
       courierCompanyId: "",
       courierName: "",
+      estimatedDeliveryDays: "",
       ...(nextBoxType === PRODUCT_DIMENSIONS_BOX_TYPE ? productPackage || emptyPackageFields : {}),
       ...(selectedBoxType && getBoxTypeCode(selectedBoxType) !== SHIPPING_CUSTOM_BOX_TYPE
         ? {
@@ -522,8 +863,12 @@ const ShipmentFulfillmentPanel = ({
 
     setShipmentForm((currentForm) => ({
       ...currentForm,
+      courierCharge: selectedCourier?.charge !== null && selectedCourier?.charge !== undefined
+        ? String(selectedCourier.charge)
+        : "",
       courierCompanyId: nextCourierCompanyId,
       courierName: selectedCourier?.courierName || "",
+      estimatedDeliveryDays: selectedCourier?.estimatedDeliveryDays || "",
     }));
   };
 
@@ -564,15 +909,104 @@ const ShipmentFulfillmentPanel = ({
     });
   };
 
-  const handleUpdateShipment = async () => {
-    await onUpdateShipmentStatus(latestShipment.id, statusForm);
+  const handleCreateProviderOrder = async () => {
+    await onCreateProviderOrder({
+      ...compactPackagePayload(shipmentForm, { includePickupAddress: true }),
+      note: shipmentForm.note,
+      notes: shipmentForm.note,
+    });
   };
 
-  const handleCancelShipment = async () => {
-    await onCancelShipment(latestShipment.id, {
+  const handleAssignAwb = async () => {
+    await onAssignShipmentAwb(latestShipment.id, {
+      courierCharge: shipmentForm.courierCharge,
+      courierCompanyId: shipmentForm.courierCompanyId,
+      courierName: shipmentForm.courierName,
+      estimatedDeliveryDays: shipmentForm.estimatedDeliveryDays,
+      note: shipmentForm.note,
+    });
+  };
+
+  const handleSchedulePickup = async () => {
+    await onScheduleShipmentPickup(selectedShipment.id, {
+      note: shipmentForm.note || statusForm.note,
+    });
+  };
+
+  const handleGenerateLabel = async () => {
+    await onGenerateShipmentLabel(selectedShipment.id, {
+      note: statusForm.note || shipmentForm.note,
+    });
+  };
+
+  const handleGenerateManifest = async () => {
+    await onGenerateShipmentManifest(selectedShipment.id, {
+      note: statusForm.note || shipmentForm.note,
+    });
+  };
+
+  const handleSyncTracking = async () => {
+    await onSyncShipmentTracking(selectedShipment.id, {
       note: statusForm.note,
     });
   };
+
+  const handleUpdateShipment = async () => {
+    await onUpdateShipmentStatus(selectedShipment.id, statusForm);
+  };
+
+  const handleCancelShipment = async () => {
+    await onCancelShipment(selectedShipment.id, {
+      note: statusForm.note,
+    });
+  };
+
+  const primaryShipmentAction = !canUpdateShipment
+    ? null
+    : canSchedulePickup
+      ? {
+          description: "Book pickup now that the courier and AWB are ready.",
+          key: "schedule_pickup",
+          label: "Schedule Pickup",
+          onClick: handleSchedulePickup,
+        }
+      : canGenerateManifest
+        ? {
+            description: "Generate the manifest once pickup is scheduled.",
+            key: "generate_manifest",
+            label: "Generate Manifest",
+            onClick: handleGenerateManifest,
+          }
+        : canGenerateLabel
+          ? {
+              description: "Generate the shipping label for printing and packing.",
+              key: "generate_label",
+              label: "Generate Label",
+              onClick: handleGenerateLabel,
+            }
+          : canRefreshTracking
+            ? {
+                description: "Pull the latest tracking status from the provider.",
+                key: "refresh_tracking",
+                label: "Refresh Tracking",
+                onClick: handleSyncTracking,
+              }
+            : null;
+
+  const quickShipmentActions = [
+    canGenerateLabel && primaryShipmentAction?.key !== "generate_label"
+      ? { key: "generate_label", label: "Generate Label", onClick: handleGenerateLabel }
+      : null,
+    canSchedulePickup && primaryShipmentAction?.key !== "schedule_pickup"
+      ? { key: "schedule_pickup", label: "Schedule Pickup", onClick: handleSchedulePickup }
+      : null,
+    canGenerateManifest && primaryShipmentAction?.key !== "generate_manifest"
+      ? { key: "generate_manifest", label: "Generate Manifest", onClick: handleGenerateManifest }
+      : null,
+    canRefreshTracking && primaryShipmentAction?.key !== "refresh_tracking"
+      ? { key: "refresh_tracking", label: "Refresh Tracking", onClick: handleSyncTracking }
+      : null,
+  ].filter(Boolean);
 
   return (
     <Paper variant="outlined" sx={{ borderRadius: 2, p: 1.5 }}>
@@ -602,7 +1036,7 @@ const ShipmentFulfillmentPanel = ({
               <Typography variant="subtitle1" fontWeight={700}>
                 Shipment
               </Typography>
-              <ShipmentSummary boxTypes={boxTypes} shipment={latestShipment} />
+              <ShipmentSummary boxTypes={boxTypes} shipment={selectedShipment} />
             </Stack>
           </Stack>
 
@@ -645,12 +1079,35 @@ const ShipmentFulfillmentPanel = ({
           </Stack>
         </Stack>
 
+        <ShipmentProgress shipment={selectedShipment} />
+
+        {shipments.length > 1 ? (
+          <Stack spacing={1}>
+            <Typography variant="subtitle2" fontWeight={700}>
+              Shipment history
+            </Typography>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {shipments.map((shipment) => (
+                <Button
+                  key={shipment.id}
+                  disableElevation
+                  variant={shipment.id === selectedShipment?.id ? "contained" : "outlined"}
+                  size="small"
+                  onClick={() => setSelectedShipmentId(shipment.id)}
+                >
+                  {getShipmentSelectionLabel(shipment)}
+                </Button>
+              ))}
+            </Stack>
+          </Stack>
+        ) : null}
+
         {canCreateShipment ? (
           <>
             <Divider />
             <Stack spacing={1.5}>
               <Typography variant="subtitle2" fontWeight={700}>
-                Create shipment
+                {awaitingAwbAssignment ? "Step 2: Assign AWB" : "Step 1: Shipment setup"}
               </Typography>
 
               <Box
@@ -663,6 +1120,12 @@ const ShipmentFulfillmentPanel = ({
                 }}
               >
                 <Stack spacing={1.5}>
+                  <Typography variant="body2" color="text.secondary">
+                    {awaitingAwbAssignment
+                      ? "Shiprocket order is already created. Choose the courier below and assign the AWB to continue."
+                      : "Start with pickup location, package, and courier selection. The panel will guide the next fulfilment step after creation."}
+                  </Typography>
+
                   <Box
                     sx={{
                       display: "grid",
@@ -677,6 +1140,7 @@ const ShipmentFulfillmentPanel = ({
                     <TextField
                       select
                       fullWidth
+                      disabled={shiprocketOrderFieldsLocked}
                       label="Provider"
                       size="small"
                       value={shipmentForm.provider}
@@ -719,6 +1183,7 @@ const ShipmentFulfillmentPanel = ({
                         <TextField
                           select
                           fullWidth
+                          disabled={shiprocketOrderFieldsLocked}
                           helperText={!providerPickupLocations.length ? "No Shiprocket pickup locations found." : ""}
                           InputLabelProps={{ shrink: true }}
                           label="Pickup location"
@@ -808,6 +1273,7 @@ const ShipmentFulfillmentPanel = ({
                     <TextField
                       select
                       fullWidth
+                      disabled={shiprocketOrderFieldsLocked}
                       error={packageDetailsIncomplete || productPackageMissing}
                       helperText={
                         packageDetailsIncomplete
@@ -853,6 +1319,7 @@ const ShipmentFulfillmentPanel = ({
                     </TextField>
                     <TextField
                       fullWidth
+                      disabled={shiprocketOrderFieldsLocked}
                       label="Weight kg"
                       type="number"
                       size="small"
@@ -862,6 +1329,7 @@ const ShipmentFulfillmentPanel = ({
                     />
                     <TextField
                       fullWidth
+                      disabled={shiprocketOrderFieldsLocked}
                       label="Length cm"
                       error={packageDetailsIncomplete && !hasValue(shipmentForm.length)}
                       type="number"
@@ -872,6 +1340,7 @@ const ShipmentFulfillmentPanel = ({
                     />
                     <TextField
                       fullWidth
+                      disabled={shiprocketOrderFieldsLocked}
                       label="Breadth cm"
                       error={packageDetailsIncomplete && !hasValue(shipmentForm.breadth)}
                       type="number"
@@ -882,6 +1351,7 @@ const ShipmentFulfillmentPanel = ({
                     />
                     <TextField
                       fullWidth
+                      disabled={shiprocketOrderFieldsLocked}
                       label="Height cm"
                       error={packageDetailsIncomplete && !hasValue(shipmentForm.height)}
                       type="number"
@@ -910,8 +1380,20 @@ const ShipmentFulfillmentPanel = ({
                     />
                     <Button
                       disableElevation
-                      disabled={createShipmentDisabled}
-                      onClick={handleCreateShipment}
+                      disabled={
+                        showManualFields
+                          ? createShipmentDisabled
+                          : shiprocketProviderSelected
+                            ? (awaitingAwbAssignment ? assignAwbDisabled : createProviderOrderDisabled)
+                            : createShipmentDisabled
+                      }
+                      onClick={
+                        showManualFields
+                          ? handleCreateShipment
+                          : shiprocketProviderSelected
+                            ? (awaitingAwbAssignment ? handleAssignAwb : handleCreateProviderOrder)
+                            : handleCreateShipment
+                      }
                       variant="contained"
                       sx={{
                         minWidth: 170,
@@ -920,7 +1402,11 @@ const ShipmentFulfillmentPanel = ({
                         whiteSpace: "nowrap",
                       }}
                     >
-                      Create Shipment
+                      {showManualFields
+                        ? "Create Shipment"
+                        : shiprocketProviderSelected
+                          ? (awaitingAwbAssignment ? "Assign AWB" : "Create Provider Order")
+                          : "Create Shipment"}
                     </Button>
                   </Box>
                 </Stack>
@@ -934,56 +1420,160 @@ const ShipmentFulfillmentPanel = ({
             <Divider />
             <Stack spacing={1.5}>
               <Typography variant="subtitle2" fontWeight={700}>
-                Update shipment
+                Step actions
               </Typography>
-              <Stack direction={{ xs: "column", md: "row" }} spacing={1.25} alignItems={{ xs: "stretch", md: "center" }}>
-                <TextField
-                  select
-                  label="Status"
-                  size="small"
-                  value={statusForm.status}
-                  onChange={updateStatusForm("status")}
-                  sx={{ minWidth: { xs: "100%", md: 190 } }}
+              {primaryShipmentAction || quickShipmentActions.length ? (
+                <Box
+                  sx={{
+                    border: "1px solid",
+                    borderColor: "divider",
+                    borderRadius: 2,
+                    bgcolor: "background.default",
+                    p: { xs: 1.25, md: 1.5 },
+                  }}
                 >
-                  {SHIPMENT_STATUS_OPTIONS.map((status) => (
-                    <MenuItem key={status.value} value={status.value}>
-                      {status.label}
-                    </MenuItem>
-                  ))}
-                </TextField>
-                <TextField
-                  fullWidth
-                  label="Tracking URL"
-                  size="small"
-                  value={statusForm.trackingUrl}
-                  onChange={updateStatusForm("trackingUrl")}
-                />
-                <TextField
-                  fullWidth
-                  label="Note"
-                  size="small"
-                  value={statusForm.note}
-                  onChange={updateStatusForm("note")}
-                />
-                <Button
-                  disableElevation
-                  disabled={actionLoading}
-                  onClick={handleUpdateShipment}
-                  variant="contained"
-                  sx={{ minWidth: 130 }}
-                >
-                  Update
-                </Button>
-                <Button
-                  color="error"
-                  disabled={actionLoading || latestShipment?.status === "cancelled"}
-                  onClick={handleCancelShipment}
-                  variant="outlined"
-                  sx={{ minWidth: 110 }}
-                >
-                  Cancel
-                </Button>
-              </Stack>
+                  <Stack spacing={1.5}>
+                    {primaryShipmentAction ? (
+                      <Stack
+                        direction={{ xs: "column", md: "row" }}
+                        spacing={1.5}
+                        justifyContent="space-between"
+                        alignItems={{ xs: "stretch", md: "center" }}
+                      >
+                        <Box sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle2" fontWeight={700}>
+                            Recommended next step
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+                            {primaryShipmentAction.description}
+                          </Typography>
+                        </Box>
+                        <Button
+                          disableElevation
+                          disabled={actionLoading}
+                          onClick={primaryShipmentAction.onClick}
+                          variant="contained"
+                          sx={{ minWidth: 180, whiteSpace: "nowrap" }}
+                        >
+                          {primaryShipmentAction.label}
+                        </Button>
+                      </Stack>
+                    ) : null}
+
+                    {quickShipmentActions.length ? (
+                      <Stack spacing={1}>
+                        <Typography variant="caption" color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: 0.6 }}>
+                          Other actions
+                        </Typography>
+                        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                          {quickShipmentActions.map((action) => (
+                            <Button
+                              key={action.key}
+                              disableElevation
+                              disabled={actionLoading}
+                              onClick={action.onClick}
+                              variant="outlined"
+                              size="small"
+                            >
+                              {action.label}
+                            </Button>
+                          ))}
+                        </Stack>
+                      </Stack>
+                    ) : null}
+                  </Stack>
+                </Box>
+              ) : null}
+
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  p: { xs: 1.25, md: 1.5 },
+                }}
+              >
+                <Stack spacing={1.25}>
+                  <Box>
+                    <Typography variant="subtitle2" fontWeight={700}>
+                      Manual override
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
+                      Use this only when you need to manually correct shipment status or tracking details.
+                    </Typography>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: "grid",
+                      gap: 1.25,
+                      gridTemplateColumns: {
+                        xs: "1fr",
+                        md: "minmax(180px, 220px) minmax(0, 1fr) minmax(0, 1fr)",
+                      },
+                    }}
+                  >
+                    <TextField
+                      select
+                      label="Status"
+                      size="small"
+                      value={statusForm.status}
+                      onChange={updateStatusForm("status")}
+                    >
+                      {SHIPMENT_STATUS_OPTIONS.map((status) => (
+                        <MenuItem key={status.value} value={status.value}>
+                          {status.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                    <TextField
+                      fullWidth
+                      label="Tracking URL"
+                      size="small"
+                      value={statusForm.trackingUrl}
+                      onChange={updateStatusForm("trackingUrl")}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Note"
+                      size="small"
+                      value={statusForm.note}
+                      onChange={updateStatusForm("note")}
+                    />
+                  </Box>
+
+                  <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap justifyContent="flex-end">
+                    <Button
+                      color="error"
+                      disabled={actionLoading || !canCancelShipment}
+                      onClick={handleCancelShipment}
+                      variant="outlined"
+                    >
+                      Cancel Shipment
+                    </Button>
+                    <Button
+                      disableElevation
+                      disabled={actionLoading}
+                      onClick={handleUpdateShipment}
+                      variant="contained"
+                    >
+                      Save Manual Update
+                    </Button>
+                  </Stack>
+                </Stack>
+              </Box>
+            </Stack>
+          </>
+        ) : null}
+
+        {selectedShipment ? (
+          <>
+            <Divider />
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle2" fontWeight={700}>
+                Tracking activity
+              </Typography>
+              <ShipmentEventsTimeline shipment={selectedShipment} />
             </Stack>
           </>
         ) : null}

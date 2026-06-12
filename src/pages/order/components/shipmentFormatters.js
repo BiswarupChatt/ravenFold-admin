@@ -5,6 +5,7 @@ export const SHIPPING_PROVIDER_OPTIONS = [
 ];
 
 export const SHIPMENT_STATUS_OPTIONS = [
+  { value: "provider_order_created", label: "Provider Order Created" },
   { value: "label_created", label: "Label Created" },
   { value: "pickup_scheduled", label: "Pickup Scheduled" },
   { value: "picked_up", label: "Picked Up" },
@@ -27,6 +28,7 @@ export const getShipmentStatusMeta = (status = "") => {
     out_for_delivery: { label: "Out For Delivery", color: "primary" },
     picked_up: { label: "Picked Up", color: "primary" },
     pickup_scheduled: { label: "Pickup Scheduled", color: "warning" },
+    provider_order_created: { label: "Provider Order Created", color: "warning" },
     rto: { label: "RTO", color: "warning" },
   };
 
