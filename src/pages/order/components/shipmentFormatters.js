@@ -5,6 +5,7 @@ export const SHIPPING_PROVIDER_OPTIONS = [
 ];
 
 export const SHIPMENT_STATUS_OPTIONS = [
+  { value: "not_created", label: "Draft" },
   { value: "provider_order_created", label: "Provider Order Created" },
   { value: "label_created", label: "Label Created" },
   { value: "pickup_scheduled", label: "Pickup Scheduled" },
@@ -24,7 +25,7 @@ export const getShipmentStatusMeta = (status = "") => {
     in_transit: { label: "In Transit", color: "secondary" },
     label_created: { label: "Label Created", color: "info" },
     lost: { label: "Lost", color: "error" },
-    not_created: { label: "Not Created", color: "default" },
+    not_created: { label: "Draft", color: "default" },
     out_for_delivery: { label: "Out For Delivery", color: "primary" },
     picked_up: { label: "Picked Up", color: "primary" },
     pickup_scheduled: { label: "Pickup Scheduled", color: "warning" },

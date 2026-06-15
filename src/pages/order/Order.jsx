@@ -163,16 +163,37 @@ const Order = () => {
     }));
   };
 
+  const syncTrackableShipmentsOnOpen = async (order) => {
+    const shipments = Array.isArray(order?.shipments) ? order.shipments : [];
+    const trackableShipments = shipments.filter((shipment) => (
+      shipment?.provider &&
+      shipment.provider !== "manual" &&
+      (shipment.awbCode || shipment.providerShipmentId)
+    ));
+
+    if (!trackableShipments.length) {
+      return order;
+    }
+
+    await Promise.allSettled(
+      trackableShipments.map((shipment) => syncAdminShipmentTracking(authToken, shipment.id, {})),
+    );
+
+    return fetchAdminOrder(authToken, order.id);
+  };
+
   const openOrderDetails = async (order) => {
     setSelectedOrder(order);
     setOrderDetailsOpen(true);
     setLoadingOrderDetails(true);
 
     try {
-      const [nextOrder, boxTypeList] = await Promise.all([
+      const [fetchedOrder, boxTypeList] = await Promise.all([
         fetchAdminOrder(authToken, order.id),
         fetchAdminBoxTypes(authToken, { isActive: true, limit: 100 }),
       ]);
+
+      const nextOrder = await syncTrackableShipmentsOnOpen(fetchedOrder);
 
       setSelectedOrder(nextOrder);
       setBoxTypes(boxTypeList.items);
