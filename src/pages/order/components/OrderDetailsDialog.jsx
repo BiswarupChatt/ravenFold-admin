@@ -284,6 +284,7 @@ const OrderDetailsDialog = ({
   onUpdateOrderStatus,
   open,
   order,
+  trackingSyncWarning = "",
 }) => {
   const orderStatus = getOrderStatusMeta(order?.status);
   const paymentStatus = getPaymentStatusMeta(order?.paymentStatus);
@@ -429,6 +430,7 @@ const OrderDetailsDialog = ({
               boxTypes={boxTypes}
               onCreateProviderOrder={onCreateProviderOrder}
               onSyncShipmentTracking={onSyncShipmentTracking}
+              trackingSyncWarning={trackingSyncWarning}
               onUpdateOrderStatus={onUpdateOrderStatus}
               order={order}
             />

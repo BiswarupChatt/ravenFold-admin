@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Box,
   Button,
   Chip,
@@ -54,6 +55,15 @@ const cleanValue = (value = "") => {
   return ["", "0", "null", "undefined", "nan"].includes(normalizedValue.toLowerCase())
     ? ""
     : normalizedValue;
+};
+const isDisplayableTrackingUrl = (value = "") => {
+  const trackingUrl = cleanValue(value);
+
+  return Boolean(
+    trackingUrl &&
+    !trackingUrl.includes("/courier/track/awb/") &&
+    !trackingUrl.includes("/courier/track/shipment/"),
+  );
 };
 
 const hasCompleteDimensions = (packageDetails = {}) => (
@@ -253,6 +263,7 @@ const ShipmentSummary = ({ boxTypes = [], shipment }) => {
   const courierName = cleanValue(shipment.courierName);
   const eta = cleanValue(shipment.estimatedDeliveryDays);
   const pickupToken = cleanValue(shipment.pickupTokenNumber);
+  const trackingUrl = isDisplayableTrackingUrl(shipment.trackingUrl) ? cleanValue(shipment.trackingUrl) : "";
 
   return (
     <Stack spacing={1.5}>
@@ -288,11 +299,11 @@ const ShipmentSummary = ({ boxTypes = [], shipment }) => {
         <DetailItem label="Created" value={formatShipmentDateTime(shipment.createdAt)} />
       </Box>
 
-      {(shipment.trackingUrl || shipment.labelUrl || shipment.manifestUrl || eta || pickupToken) ? (
+      {(trackingUrl || shipment.labelUrl || shipment.manifestUrl || eta || pickupToken) ? (
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-          {shipment.trackingUrl ? (
+          {trackingUrl ? (
             <Button
-              href={shipment.trackingUrl}
+              href={trackingUrl}
               rel="noreferrer"
               size="small"
               target="_blank"
@@ -388,6 +399,7 @@ const ShipmentFulfillmentPanel = ({
   onSyncShipmentTracking,
   onUpdateOrderStatus,
   order,
+  trackingSyncWarning = "",
 }) => {
   const shipments = useMemo(() => (Array.isArray(order?.shipments) ? order.shipments : []), [order?.shipments]);
   const latestShipment = useMemo(() => getLatestShipment(shipments), [shipments]);
@@ -541,6 +553,10 @@ const ShipmentFulfillmentPanel = ({
             ) : null}
           </Stack>
         </Stack>
+
+        {trackingSyncWarning ? (
+          <Alert severity="warning">{trackingSyncWarning}</Alert>
+        ) : null}
 
         {shipments.length > 1 ? (
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>

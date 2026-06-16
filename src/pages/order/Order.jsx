@@ -44,6 +44,7 @@ const Order = () => {
   const [boxTypes, setBoxTypes] = useState([]);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
   const [fulfillmentActionLoading, setFulfillmentActionLoading] = useState(false);
+  const [trackingSyncWarning, setTrackingSyncWarning] = useState("");
 
   const loadOrders = useCallback(async () => {
     setLoading(true);
@@ -162,20 +163,25 @@ const Order = () => {
     ));
 
     if (!trackableShipments.length) {
-      return order;
+      return { failedCount: 0, order };
     }
 
-    await Promise.allSettled(
+    const syncResults = await Promise.allSettled(
       trackableShipments.map((shipment) => syncAdminShipmentTracking(authToken, shipment.id, {})),
     );
+    const failedCount = syncResults.filter((result) => result.status === "rejected").length;
 
-    return fetchAdminOrder(authToken, order.id);
+    return {
+      failedCount,
+      order: await fetchAdminOrder(authToken, order.id),
+    };
   };
 
   const openOrderDetails = async (order) => {
     setSelectedOrder(order);
     setOrderDetailsOpen(true);
     setLoadingOrderDetails(true);
+    setTrackingSyncWarning("");
 
     try {
       const [fetchedOrder, boxTypeList] = await Promise.all([
@@ -183,15 +189,23 @@ const Order = () => {
         fetchAdminBoxTypes(authToken, { isActive: true, limit: 100 }),
       ]);
 
-      const nextOrder = await syncTrackableShipmentsOnOpen(fetchedOrder);
+      const { failedCount, order: nextOrder } = await syncTrackableShipmentsOnOpen(fetchedOrder);
 
       setSelectedOrder(nextOrder);
       setBoxTypes(boxTypeList.items);
+
+      if (failedCount > 0) {
+        const message = `${failedCount} shipment tracking refresh ${failedCount === 1 ? "request" : "requests"} failed. Use Refresh to retry.`;
+
+        setTrackingSyncWarning(message);
+        toast.warning(message);
+      }
     } catch (err) {
       toast.error(err.message || "Failed to load order details.");
       setOrderDetailsOpen(false);
       setSelectedOrder(null);
       setBoxTypes([]);
+      setTrackingSyncWarning("");
     } finally {
       setLoadingOrderDetails(false);
     }
@@ -256,6 +270,7 @@ const Order = () => {
     setOrderDetailsOpen(false);
     setSelectedOrder(null);
     setBoxTypes([]);
+    setTrackingSyncWarning("");
   };
 
   return (
@@ -373,6 +388,7 @@ const Order = () => {
         onClose={closeOrderDetails}
         onCreateProviderOrder={handleCreateProviderOrder}
         onSyncShipmentTracking={handleSyncShipmentTracking}
+        trackingSyncWarning={trackingSyncWarning}
         onUpdateOrderStatus={handleUpdateOrderStatus}
       />
     </>
