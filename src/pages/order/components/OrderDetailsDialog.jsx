@@ -1,9 +1,11 @@
 import {
   Avatar,
   Box,
+  Button,
   Chip,
   CircularProgress,
   Dialog,
+  DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
@@ -12,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
+
 import DataTable from "@/components/DataTable";
 import ShipmentFulfillmentPanel from "./ShipmentFulfillmentPanel";
 import {
@@ -25,6 +28,7 @@ import {
 } from "./orderFormatters";
 
 const hasDisplayValue = (value) => value !== null && value !== undefined && value !== "";
+
 const cleanReferenceValue = (value) => {
   const normalizedValue = String(value || "").trim();
 
@@ -56,56 +60,60 @@ const getItemMeta = (item) => {
   return [variantLabel, sku, item?.variantName, item?.size, item?.color].filter(Boolean).join(" / ");
 };
 
-const DetailLine = ({ label, value, strong = false }) => (
-  <Stack direction="row" justifyContent="space-between" spacing={2}>
-    <Typography variant="body2" color="text.secondary">
+const formatLabel = (value = "") => {
+  if (!value) return "-";
+
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+const SummaryItem = ({ color = "text.primary", label, value }) => (
+  <Box sx={{ minWidth: 150 }}>
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <Typography
+      variant="h6"
+      fontWeight={700}
+      color={color}
+      sx={{ overflowWrap: "anywhere" }}
+    >
+      {hasDisplayValue(value) ? value : "-"}
+    </Typography>
+  </Box>
+);
+
+const DetailItem = ({ label, mono = false, value }) => (
+  <Box sx={{ minWidth: 0 }}>
+    <Typography variant="caption" color="text.secondary">
       {label}
     </Typography>
     <Typography
       variant="body2"
-      fontWeight={strong ? 800 : 600}
-      textAlign="right"
-      sx={{ wordBreak: "break-word" }}
+      fontWeight={600}
+      sx={{
+        fontFamily: mono ? "monospace" : undefined,
+        overflowWrap: "anywhere",
+      }}
     >
-      {hasDisplayValue(value) ? value : "N/A"}
+      {hasDisplayValue(value) ? value : "-"}
     </Typography>
-  </Stack>
+  </Box>
 );
 
-const MetricTile = ({ label, value }) => (
+const DetailPanel = ({ children, subtitle, title }) => (
   <Box
     sx={{
       border: "1px solid",
       borderColor: "divider",
       borderRadius: 2,
-      bgcolor: "background.paper",
-      px: 1.5,
-      py: 1,
       minWidth: 0,
+      p: 1.5,
     }}
   >
-    <Typography variant="caption" color="text.secondary">
-      {label}
-    </Typography>
-    <Typography variant="subtitle1" fontWeight={800} noWrap>
-      {hasDisplayValue(value) ? value : "N/A"}
-    </Typography>
-  </Box>
-);
-
-const InfoPanel = ({ children, subtitle, sx, title }) => (
-  <Box
-    sx={{
-      border: "1px solid",
-      borderColor: "divider",
-      borderRadius: 2.5,
-      bgcolor: "background.paper",
-      p: 1.75,
-      ...sx,
-    }}
-  >
-    <Stack spacing={0.25} sx={{ mb: 1.5 }}>
-      <Typography variant="subtitle1" fontWeight={800}>
+    <Stack spacing={0.25} sx={{ mb: 1.25 }}>
+      <Typography variant="subtitle2" fontWeight={700}>
         {title}
       </Typography>
       {subtitle ? (
@@ -142,14 +150,14 @@ const AddressBlock = ({ address, title }) => {
   const lines = formatAddressLines(address);
 
   return (
-    <Box>
+    <Box sx={{ minWidth: 0 }}>
       <Typography variant="caption" color="text.secondary">
         {title}
       </Typography>
-      <Stack spacing={0.35} sx={{ mt: 0.5 }}>
+      <Stack spacing={0.3} sx={{ mt: 0.5 }}>
         {lines.length ? (
           lines.map((line) => (
-            <Typography key={line} variant="body2" fontWeight={600}>
+            <Typography key={line} variant="body2" color="text.secondary" sx={{ overflowWrap: "anywhere" }}>
               {line}
             </Typography>
           ))
@@ -163,35 +171,43 @@ const AddressBlock = ({ address, title }) => {
   );
 };
 
-const CustomerPanel = ({ order }) => (
-  <InfoPanel title="Customer">
-    <Stack direction="row" spacing={1.25} alignItems="center">
-      <Avatar sx={{ bgcolor: "primary.main", width: 44, height: 44 }}>
-        {getCustomerInitial(order)}
-      </Avatar>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography variant="subtitle2" fontWeight={900} noWrap>
-          {getCustomerName(order)}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" noWrap>
-          {order?.user?.email || order?.customer?.email || order?.email || "No email"}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" noWrap>
-          {order?.user?.phone || order?.customer?.phone || order?.phone || "No phone"}
-        </Typography>
-      </Box>
+const LabeledStatusChip = ({ label, meta }) => (
+  <Stack spacing={0.5} alignItems={{ xs: "flex-start", md: "flex-end" }}>
+    <Typography variant="caption" color="text.secondary">
+      {label}
+    </Typography>
+    <Chip
+      size="small"
+      label={meta.label}
+      color={meta.color}
+      variant={meta.color === "default" ? "outlined" : "filled"}
+    />
+  </Stack>
+);
+
+const CustomerSummary = ({ order }) => (
+  <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+    <Avatar sx={{ bgcolor: "primary.main", width: 42, height: 42 }}>
+      {getCustomerInitial(order)}
+    </Avatar>
+    <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+      <Typography variant="subtitle1" fontWeight={700} noWrap>
+        {getCustomerName(order)}
+      </Typography>
+      <Typography variant="body2" color="text.secondary" noWrap>
+        {order?.user?.email || order?.customer?.email || order?.email || "No email"}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" noWrap>
+        {order?.user?.phone || order?.customer?.phone || order?.phone || "No phone"}
+      </Typography>
     </Stack>
-  </InfoPanel>
+  </Stack>
 );
 
 const PaymentPanel = ({ order }) => (
-  <InfoPanel title="Payment">
+  <DetailPanel title="Payment">
     <Stack spacing={1}>
-      <DetailLine
-        label="Payment status"
-        value={getPaymentStatusMeta(order?.paymentStatus).label}
-        strong
-      />
+      <DetailItem label="Payment status" value={getPaymentStatusMeta(order?.paymentStatus).label} />
       <Divider />
       <TotalRow
         label="MRP"
@@ -228,21 +244,34 @@ const PaymentPanel = ({ order }) => (
         strong
       />
     </Stack>
-  </InfoPanel>
+  </DetailPanel>
 );
 
-const ReferencePanel = ({ order, placedAt }) => (
-  <InfoPanel title="Order references">
-    <Stack spacing={1}>
-      <DetailLine label="Order number" value={order?.orderNumber || order?.id} strong />
-      <DetailLine label="Placed" value={placedAt} />
-      <DetailLine
-        label="Shiprocket ref"
-        value={getShiprocketReference(order)}
-      />
-      <DetailLine label="Payment method" value={order?.paymentMethod || order?.payment?.method} />
+const DeliveryPanel = ({ order }) => (
+  <DetailPanel title="Delivery">
+    <Stack spacing={1.5}>
+      <AddressBlock title="Shipping address" address={order.shippingAddress} />
+      <Divider />
+      <AddressBlock title="Billing address" address={order.billingAddress} />
     </Stack>
-  </InfoPanel>
+  </DetailPanel>
+);
+
+const ReferencePanel = ({ order, placedAt, shiprocketReference }) => (
+  <DetailPanel title="Order reference">
+    <Box
+      sx={{
+        display: "grid",
+        gap: 1.5,
+        gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+      }}
+    >
+      <DetailItem label="Order number" value={order?.orderNumber || order?.id} mono />
+      <DetailItem label="Placed" value={placedAt} />
+      <DetailItem label="Shiprocket ref" value={shiprocketReference || "Pending"} mono />
+      <DetailItem label="Payment method" value={order?.paymentMethod || order?.payment?.method} />
+    </Box>
+  </DetailPanel>
 );
 
 const OrderDetailsDialog = ({
@@ -259,22 +288,9 @@ const OrderDetailsDialog = ({
   const orderStatus = getOrderStatusMeta(order?.status);
   const paymentStatus = getPaymentStatusMeta(order?.paymentStatus);
   const placedAt = formatOrderDateTime(order?.placedAt || order?.createdAt);
-  const orderNumber = order?.orderNumber || order?.id || "Order details";
+  const orderNumber = order?.orderNumber || order?.id || "Order";
   const itemRows = Array.isArray(order?.items) ? order.items : [];
   const shiprocketReference = getShiprocketReference(order);
-  const metrics = [
-    {
-      label: "Total",
-      value: formatOrderMoney(order?.pricing?.total ?? order?.totalPayable, order?.currency),
-    },
-    { label: "Items", value: order?.itemCount ?? itemRows.length ?? 0 },
-    { label: "Quantity", value: order?.totalQuantity || 0 },
-    { label: "Placed", value: placedAt },
-    {
-      label: "Shiprocket ref",
-      value: shiprocketReference || "Pending",
-    },
-  ];
   const itemColumns = [
     {
       id: "item",
@@ -352,161 +368,106 @@ const OrderDetailsDialog = ({
   ];
 
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="xl"
-      fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 3,
-          height: { md: "92vh" },
-          overflow: "hidden",
-        },
-      }}
-    >
-      <DialogTitle sx={{ p: 0 }}>
-        <Box sx={{ borderBottom: "1px solid", borderColor: "divider", p: { xs: 2, md: 2.5 } }}>
-          <Stack
-            direction={{ xs: "column", md: "row" }}
-            justifyContent="space-between"
-            alignItems={{ xs: "flex-start", md: "center" }}
-            spacing={1.5}
-          >
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="caption" color="text.secondary" fontWeight={700}>
-                Order workspace
-              </Typography>
-              <Typography variant="h5" fontWeight={900} sx={{ mt: 0.25 }}>
-                {orderNumber}
-              </Typography>
-              {order ? (
-                <Typography variant="body2" color="text.secondary">
-                  {getCustomerName(order)} | {placedAt}
-                </Typography>
-              ) : null}
-            </Box>
-
-            <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-              {order ? (
-                <>
-                  <Chip
-                    label={orderStatus.label}
-                    color={orderStatus.color}
-                    variant="outlined"
-                    size="small"
-                  />
-                  <Chip
-                    label={paymentStatus.label}
-                    color={paymentStatus.color}
-                    variant="outlined"
-                    size="small"
-                  />
-                </>
-              ) : null}
-              <IconButton aria-label="Close order details" onClick={onClose} size="small">
-                <CloseIcon fontSize="small" />
-              </IconButton>
-            </Stack>
-          </Stack>
-
-          {order ? (
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: {
-                  xs: "1fr 1fr",
-                  sm: "repeat(3, minmax(0, 1fr))",
-                  lg: "repeat(5, minmax(0, 1fr))",
-                },
-                gap: 1,
-                mt: 2,
-              }}
-            >
-              {metrics.map((metric) => (
-                <MetricTile key={metric.label} label={metric.label} value={metric.value} />
-              ))}
-            </Box>
-          ) : null}
-        </Box>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle sx={{ pr: 7 }}>
+        Order details
+        <IconButton
+          aria-label="Close order details"
+          onClick={onClose}
+          sx={{ position: "absolute", right: 12, top: 12 }}
+        >
+          <CloseIcon />
+        </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ p: 0, bgcolor: "background.default" }}>
+      <DialogContent dividers>
         {loading ? (
-          <Box sx={{ display: "grid", minHeight: 360, placeItems: "center" }}>
-            <CircularProgress />
-          </Box>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ py: 5 }}>
+            <CircularProgress size={22} />
+            <Typography variant="body2" color="text.secondary">
+              Loading order details...
+            </Typography>
+          </Stack>
         ) : null}
 
         {!loading && order ? (
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) 380px" },
-              minHeight: { md: "calc(92vh - 156px)" },
-            }}
-          >
-            <Box
-              sx={{
-                bgcolor: "background.paper",
-                borderRight: { lg: "1px solid" },
-                borderColor: "divider",
-                minWidth: 0,
-                overflow: "auto",
-                p: { xs: 1.5, md: 2 },
-              }}
+          <Stack spacing={2.5}>
+            <Stack
+              direction={{ xs: "column", md: "row" }}
+              spacing={2}
+              justifyContent="space-between"
+              alignItems={{ xs: "stretch", md: "flex-start" }}
             >
-              <Stack spacing={2}>
-                <ShipmentFulfillmentPanel
-                  actionLoading={actionLoading}
-                  boxTypes={boxTypes}
-                  onCreateProviderOrder={onCreateProviderOrder}
-                  onSyncShipmentTracking={onSyncShipmentTracking}
-                  onUpdateOrderStatus={onUpdateOrderStatus}
-                  order={order}
-                />
+              <CustomerSummary order={order} />
 
-                <InfoPanel
-                  title="Ordered items"
-                  subtitle={`${itemRows.length} item line${itemRows.length === 1 ? "" : "s"}`}
-                >
-                  <DataTable
-                    columns={itemColumns}
-                    rows={itemRows}
-                    getRowId={(item, index) => item?._id || item?.id || item?.productId || item?.sku || index}
-                    emptyMessage="This order has no items."
-                    minWidth={760}
-                    pagination={null}
-                  />
-                </InfoPanel>
+              <Stack spacing={0.75} alignItems={{ xs: "flex-start", md: "flex-end" }}>
+                <Typography variant="subtitle2" fontWeight={800}>
+                  {orderNumber}
+                </Typography>
+                <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                  <LabeledStatusChip label="Order" meta={orderStatus} />
+                  <LabeledStatusChip label="Money" meta={paymentStatus} />
+                </Stack>
               </Stack>
-            </Box>
+            </Stack>
 
-            <Box
-              sx={{
-                minWidth: 0,
-                overflow: "auto",
-                p: { xs: 1.5, md: 2 },
-              }}
+            <Divider />
+
+            <Stack direction={{ xs: "column", sm: "row" }} spacing={2} useFlexGap flexWrap="wrap">
+              <SummaryItem
+                label="Total"
+                value={formatOrderMoney(order?.pricing?.total ?? order?.totalPayable, order?.currency)}
+              />
+              <SummaryItem label="Items" value={Number(order?.itemCount ?? itemRows.length ?? 0).toLocaleString()} />
+              <SummaryItem label="Quantity" value={Number(order?.totalQuantity || 0).toLocaleString()} />
+              <SummaryItem label="Placed" value={placedAt || "-"} />
+              <SummaryItem label="Shiprocket ref" value={shiprocketReference || "Pending"} />
+            </Stack>
+
+            <ShipmentFulfillmentPanel
+              actionLoading={actionLoading}
+              boxTypes={boxTypes}
+              onCreateProviderOrder={onCreateProviderOrder}
+              onSyncShipmentTracking={onSyncShipmentTracking}
+              onUpdateOrderStatus={onUpdateOrderStatus}
+              order={order}
+            />
+
+            <DetailPanel
+              title="Ordered items"
+              subtitle={`${itemRows.length} item line${itemRows.length === 1 ? "" : "s"}`}
             >
-              <Stack spacing={1.5}>
-                <CustomerPanel order={order} />
+              <DataTable
+                columns={itemColumns}
+                rows={itemRows}
+                getRowId={(item, index) => item?._id || item?.id || item?.productId || item?.sku || index}
+                emptyMessage="This order has no items."
+                minWidth={760}
+                pagination={null}
+              />
+            </DetailPanel>
 
-                <InfoPanel title="Delivery">
-                  <Stack spacing={1.5}>
-                    <AddressBlock title="Shipping address" address={order.shippingAddress} />
-                    <Divider />
-                    <AddressBlock title="Billing address" address={order.billingAddress} />
-                  </Stack>
-                </InfoPanel>
-
+            <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="stretch">
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <DeliveryPanel order={order} />
+              </Box>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 <PaymentPanel order={order} />
-                <ReferencePanel order={order} placedAt={placedAt} />
-              </Stack>
-            </Box>
-          </Box>
+              </Box>
+            </Stack>
+
+            <ReferencePanel
+              order={order}
+              placedAt={placedAt}
+              shiprocketReference={shiprocketReference}
+            />
+          </Stack>
         ) : null}
       </DialogContent>
+
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
     </Dialog>
   );
 };

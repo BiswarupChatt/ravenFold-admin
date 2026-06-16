@@ -3,16 +3,13 @@ import {
   Box,
   Button,
   Chip,
-  Divider,
   MenuItem,
-  Paper,
   Stack,
   TextField,
   Typography,
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import SyncIcon from "@mui/icons-material/Sync";
@@ -495,39 +492,25 @@ const ShipmentFulfillmentPanel = ({
   };
 
   return (
-    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-      <Box sx={{ px: 2, py: 1.75 }}>
+    <Box
+      sx={{
+        border: "1px solid",
+        borderColor: "divider",
+        borderRadius: 2,
+        minWidth: 0,
+        p: 1.5,
+      }}
+    >
+      <Stack spacing={2}>
         <Stack
           direction={{ xs: "column", md: "row" }}
           spacing={1.5}
           justifyContent="space-between"
           alignItems={{ xs: "stretch", md: "flex-start" }}
         >
-          <Stack direction="row" spacing={1.25} sx={{ minWidth: 0 }}>
-            <Box
-              sx={{
-                alignItems: "center",
-                bgcolor: "primary.50",
-                borderRadius: 1.5,
-                color: "primary.main",
-                display: "flex",
-                flexShrink: 0,
-                height: 40,
-                justifyContent: "center",
-                width: 40,
-              }}
-            >
-              <LocalShippingOutlinedIcon fontSize="small" />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle1" fontWeight={900}>
-                Shipment
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Create in RavenFold, manage fulfilment in Shiprocket, sync tracking back here.
-              </Typography>
-            </Box>
-          </Stack>
+          <Typography variant="subtitle2" fontWeight={700}>
+            Shipment
+          </Typography>
 
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ xs: "stretch", sm: "center" }}>
             <TextField
@@ -558,11 +541,7 @@ const ShipmentFulfillmentPanel = ({
             ) : null}
           </Stack>
         </Stack>
-      </Box>
 
-      <Divider />
-
-      <Stack spacing={2} sx={{ px: 2, py: 1.75 }}>
         {shipments.length > 1 ? (
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             {shipments.map((shipment) => (
@@ -590,14 +569,9 @@ const ShipmentFulfillmentPanel = ({
             }}
           >
             <Stack spacing={1.5}>
-              <Stack spacing={0.25}>
-                <Typography variant="subtitle2" fontWeight={900}>
-                  Create Shiprocket shipment
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Send order and package details to Shiprocket. Courier and pickup are handled there.
-                </Typography>
-              </Stack>
+              <Typography variant="subtitle2" fontWeight={700}>
+                Create Shiprocket shipment
+              </Typography>
 
               <Box
                 sx={{
@@ -732,14 +706,9 @@ const ShipmentFulfillmentPanel = ({
                 justifyContent="space-between"
                 alignItems={{ xs: "stretch", md: "center" }}
               >
-                <Stack spacing={0.25}>
-                  <Typography variant="subtitle2" fontWeight={900}>
-                    Tracking activity
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Updates refresh automatically when the order opens. Use refresh after changing courier or pickup in Shiprocket.
-                  </Typography>
-                </Stack>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  Tracking activity
+                </Typography>
                 <Stack direction={{ xs: "column", sm: "row" }} spacing={1}>
                   <Button
                     href={SHIPROCKET_DASHBOARD_URL}
@@ -766,7 +735,7 @@ const ShipmentFulfillmentPanel = ({
           </Box>
         ) : null}
       </Stack>
-    </Paper>
+    </Box>
   );
 };
 
