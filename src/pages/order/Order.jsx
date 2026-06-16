@@ -20,17 +20,8 @@ import SectionHeader from "@/components/SectionHeader";
 import { fetchAdminBoxTypes } from "@/lib/api/boxTypeApi";
 import { fetchAdminOrder, fetchAdminOrders, updateAdminOrderStatus } from "@/lib/api/orderApi";
 import {
-  assignAdminShipmentAwb,
-  cancelAdminShipment,
   createAdminProviderOrder,
-  createAdminShipment,
-  fetchAdminCourierOptions,
-  fetchAdminProviderPickupLocations,
-  generateAdminShipmentLabel,
-  generateAdminShipmentManifest,
-  scheduleAdminShipmentPickup,
   syncAdminShipmentTracking,
-  updateAdminShipmentStatus,
 } from "@/lib/api/shippingApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, SEARCH_DEBOUNCE_MS } from "@/lib/utils/utils";
@@ -51,7 +42,6 @@ const Order = () => {
   const [orderDetailsOpen, setOrderDetailsOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [boxTypes, setBoxTypes] = useState([]);
-  const [providerPickupLocations, setProviderPickupLocations] = useState([]);
   const [loadingOrderDetails, setLoadingOrderDetails] = useState(false);
   const [fulfillmentActionLoading, setFulfillmentActionLoading] = useState(false);
 
@@ -197,21 +187,11 @@ const Order = () => {
 
       setSelectedOrder(nextOrder);
       setBoxTypes(boxTypeList.items);
-
-      try {
-        const providerPickupLocationResult = await fetchAdminProviderPickupLocations(authToken, "shiprocket");
-
-        setProviderPickupLocations(providerPickupLocationResult.items || []);
-      } catch (providerPickupLocationError) {
-        setProviderPickupLocations([]);
-        toast.error(providerPickupLocationError.message || "Failed to load Shiprocket pickup locations.");
-      }
     } catch (err) {
       toast.error(err.message || "Failed to load order details.");
       setOrderDetailsOpen(false);
       setSelectedOrder(null);
       setBoxTypes([]);
-      setProviderPickupLocations([]);
     } finally {
       setLoadingOrderDetails(false);
     }
@@ -244,55 +224,11 @@ const Order = () => {
     }
   };
 
-  const handleCreateShipment = async (payload) => {
-    await runFulfillmentAction(
-      () => createAdminShipment(authToken, selectedOrder.id, payload),
-      "Shipment created.",
-      "Failed to create shipment.",
-    );
-  };
-
-  const handleFetchCourierOptions = async (payload) => {
-    return fetchAdminCourierOptions(authToken, selectedOrder.id, payload);
-  };
-
   const handleCreateProviderOrder = async (payload) => {
     await runFulfillmentAction(
       () => createAdminProviderOrder(authToken, selectedOrder.id, payload),
-      "Provider order created.",
-      "Failed to create provider order.",
-    );
-  };
-
-  const handleAssignShipmentAwb = async (shipmentId, payload) => {
-    await runFulfillmentAction(
-      () => assignAdminShipmentAwb(authToken, shipmentId, payload),
-      "AWB assigned.",
-      "Failed to assign AWB.",
-    );
-  };
-
-  const handleScheduleShipmentPickup = async (shipmentId, payload) => {
-    await runFulfillmentAction(
-      () => scheduleAdminShipmentPickup(authToken, shipmentId, payload),
-      "Pickup scheduled.",
-      "Failed to schedule pickup.",
-    );
-  };
-
-  const handleGenerateShipmentLabel = async (shipmentId, payload) => {
-    await runFulfillmentAction(
-      () => generateAdminShipmentLabel(authToken, shipmentId, payload),
-      "Shipment label generated.",
-      "Failed to generate shipment label.",
-    );
-  };
-
-  const handleGenerateShipmentManifest = async (shipmentId, payload) => {
-    await runFulfillmentAction(
-      () => generateAdminShipmentManifest(authToken, shipmentId, payload),
-      "Shipment manifest generated.",
-      "Failed to generate shipment manifest.",
+      "Shiprocket shipment created.",
+      "Failed to create Shiprocket shipment.",
     );
   };
 
@@ -301,22 +237,6 @@ const Order = () => {
       () => syncAdminShipmentTracking(authToken, shipmentId, payload),
       "Shipment tracking synced.",
       "Failed to sync shipment tracking.",
-    );
-  };
-
-  const handleUpdateShipmentStatus = async (shipmentId, payload) => {
-    await runFulfillmentAction(
-      () => updateAdminShipmentStatus(authToken, shipmentId, payload),
-      "Shipment updated.",
-      "Failed to update shipment.",
-    );
-  };
-
-  const handleCancelShipment = async (shipmentId, payload) => {
-    await runFulfillmentAction(
-      () => cancelAdminShipment(authToken, shipmentId, payload),
-      "Shipment cancelled.",
-      "Failed to cancel shipment.",
     );
   };
 
@@ -336,7 +256,6 @@ const Order = () => {
     setOrderDetailsOpen(false);
     setSelectedOrder(null);
     setBoxTypes([]);
-    setProviderPickupLocations([]);
   };
 
   return (
@@ -451,19 +370,10 @@ const Order = () => {
         open={orderDetailsOpen}
         order={selectedOrder}
         loading={loadingOrderDetails}
-        onCancelShipment={handleCancelShipment}
         onClose={closeOrderDetails}
         onCreateProviderOrder={handleCreateProviderOrder}
-        onCreateShipment={handleCreateShipment}
-        onFetchCourierOptions={handleFetchCourierOptions}
-        onGenerateShipmentLabel={handleGenerateShipmentLabel}
-        onGenerateShipmentManifest={handleGenerateShipmentManifest}
-        onAssignShipmentAwb={handleAssignShipmentAwb}
-        onScheduleShipmentPickup={handleScheduleShipmentPickup}
         onSyncShipmentTracking={handleSyncShipmentTracking}
         onUpdateOrderStatus={handleUpdateOrderStatus}
-        providerPickupLocations={providerPickupLocations}
-        onUpdateShipmentStatus={handleUpdateShipmentStatus}
       />
     </>
   );

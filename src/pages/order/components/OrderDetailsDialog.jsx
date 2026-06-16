@@ -240,21 +240,12 @@ const OrderDetailsDialog = ({
   actionLoading = false,
   boxTypes = [],
   loading = false,
-  onAssignShipmentAwb,
-  onCancelShipment,
   onClose,
   onCreateProviderOrder,
-  onCreateShipment,
-  onFetchCourierOptions,
-  onGenerateShipmentLabel,
-  onGenerateShipmentManifest,
-  onScheduleShipmentPickup,
   onSyncShipmentTracking,
   onUpdateOrderStatus,
-  onUpdateShipmentStatus,
   open,
   order,
-  providerPickupLocations = [],
 }) => {
   const orderStatus = getOrderStatusMeta(order?.status);
   const paymentStatus = getPaymentStatusMeta(order?.paymentStatus);
@@ -463,19 +454,10 @@ const OrderDetailsDialog = ({
                 <ShipmentFulfillmentPanel
                   actionLoading={actionLoading}
                   boxTypes={boxTypes}
-                  onAssignShipmentAwb={onAssignShipmentAwb}
-                  onCancelShipment={onCancelShipment}
                   onCreateProviderOrder={onCreateProviderOrder}
-                  onCreateShipment={onCreateShipment}
-                  onFetchCourierOptions={onFetchCourierOptions}
-                  onGenerateShipmentLabel={onGenerateShipmentLabel}
-                  onGenerateShipmentManifest={onGenerateShipmentManifest}
-                  onScheduleShipmentPickup={onScheduleShipmentPickup}
                   onSyncShipmentTracking={onSyncShipmentTracking}
                   onUpdateOrderStatus={onUpdateOrderStatus}
-                  onUpdateShipmentStatus={onUpdateShipmentStatus}
                   order={order}
-                  providerPickupLocations={providerPickupLocations}
                 />
 
                 <InfoPanel

@@ -64,25 +64,6 @@ export const testShippingProviderConnection = async (authToken, providerName = "
   return unwrapResponse(response);
 };
 
-export const fetchAdminProviderPickupLocations = async (authToken, providerName = "shiprocket") => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/providers/${providerName}/pickup-locations`, {
-    headers: getAuthHeaders(authToken),
-  });
-
-  return unwrapResponse(response);
-};
-
-export const fetchAdminCourierOptions = async (authToken, orderId, params = {}) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/shipping/admin/orders/${orderId}/courier-options${buildQueryString(params)}`,
-    {
-      headers: getAuthHeaders(authToken),
-    },
-  );
-
-  return unwrapResponse(response);
-};
-
 export const createPickupLocation = async (authToken, locationPayload) => {
   const response = await fetch(`${API_BASE_URL}/api/shipping/admin/pickup-locations`, {
     method: "POST",
@@ -131,19 +112,6 @@ export const markAdminOrderPacked = async (authToken, orderId, payload = {}) => 
   return unwrapResponse(response);
 };
 
-export const createAdminShipment = async (authToken, orderId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/orders/${orderId}/shipments`, {
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    method: "POST",
-  });
-
-  return unwrapResponse(response);
-};
-
 export const createAdminProviderOrder = async (authToken, orderId, payload = {}) => {
   const response = await fetch(`${API_BASE_URL}/api/shipping/admin/orders/${orderId}/provider-order`, {
     body: JSON.stringify(payload),
@@ -157,86 +125,8 @@ export const createAdminProviderOrder = async (authToken, orderId, payload = {})
   return unwrapResponse(response);
 };
 
-export const assignAdminShipmentAwb = async (authToken, shipmentId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/shipments/${shipmentId}/assign-awb`, {
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    method: "PATCH",
-  });
-
-  return unwrapResponse(response);
-};
-
-export const scheduleAdminShipmentPickup = async (authToken, shipmentId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/shipments/${shipmentId}/schedule-pickup`, {
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    method: "POST",
-  });
-
-  return unwrapResponse(response);
-};
-
-export const generateAdminShipmentLabel = async (authToken, shipmentId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/shipments/${shipmentId}/generate-label`, {
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    method: "POST",
-  });
-
-  return unwrapResponse(response);
-};
-
-export const generateAdminShipmentManifest = async (authToken, shipmentId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/shipments/${shipmentId}/generate-manifest`, {
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    method: "POST",
-  });
-
-  return unwrapResponse(response);
-};
-
 export const syncAdminShipmentTracking = async (authToken, shipmentId, payload = {}) => {
   const response = await fetch(`${API_BASE_URL}/api/shipping/admin/shipments/${shipmentId}/sync-tracking`, {
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    method: "POST",
-  });
-
-  return unwrapResponse(response);
-};
-
-export const updateAdminShipmentStatus = async (authToken, shipmentId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/shipments/${shipmentId}/status`, {
-    body: JSON.stringify(payload),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    method: "PATCH",
-  });
-
-  return unwrapResponse(response);
-};
-
-export const cancelAdminShipment = async (authToken, shipmentId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/shipping/admin/shipments/${shipmentId}/cancel`, {
     body: JSON.stringify(payload),
     headers: {
       "Content-Type": "application/json",
