@@ -25,6 +25,19 @@ import {
 } from "./orderFormatters";
 
 const hasDisplayValue = (value) => value !== null && value !== undefined && value !== "";
+const cleanReferenceValue = (value) => {
+  const normalizedValue = String(value || "").trim();
+
+  return ["", "0", "null", "undefined", "nan"].includes(normalizedValue.toLowerCase())
+    ? ""
+    : normalizedValue;
+};
+
+const getShiprocketReference = (order) => (
+  cleanReferenceValue(order?.shiprocketOrderId) ||
+  cleanReferenceValue(order?.shipment?.providerOrderId) ||
+  cleanReferenceValue(order?.shipment?.providerShipmentId)
+);
 
 const getItemName = (item) =>
   item?.productSnapshot?.name ||
@@ -225,11 +238,7 @@ const ReferencePanel = ({ order, placedAt }) => (
       <DetailLine label="Placed" value={placedAt} />
       <DetailLine
         label="Shiprocket ref"
-        value={
-          order?.shiprocketOrderId ||
-          order?.shipment?.providerOrderId ||
-          order?.shipment?.providerShipmentId
-        }
+        value={getShiprocketReference(order)}
       />
       <DetailLine label="Payment method" value={order?.paymentMethod || order?.payment?.method} />
     </Stack>
@@ -252,6 +261,7 @@ const OrderDetailsDialog = ({
   const placedAt = formatOrderDateTime(order?.placedAt || order?.createdAt);
   const orderNumber = order?.orderNumber || order?.id || "Order details";
   const itemRows = Array.isArray(order?.items) ? order.items : [];
+  const shiprocketReference = getShiprocketReference(order);
   const metrics = [
     {
       label: "Total",
@@ -262,11 +272,7 @@ const OrderDetailsDialog = ({
     { label: "Placed", value: placedAt },
     {
       label: "Shiprocket ref",
-      value:
-        order?.shiprocketOrderId ||
-        order?.shipment?.providerOrderId ||
-        order?.shipment?.providerShipmentId ||
-        "Pending",
+      value: shiprocketReference || "Pending",
     },
   ];
   const itemColumns = [
