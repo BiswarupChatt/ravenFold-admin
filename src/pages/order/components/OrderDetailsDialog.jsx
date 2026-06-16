@@ -187,7 +187,16 @@ const LabeledStatusChip = ({ label, meta }) => (
 
 const CustomerSummary = ({ order }) => (
   <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
-    <Avatar sx={{ bgcolor: "primary.main", width: 42, height: 42 }}>
+    <Avatar
+      alt={getCustomerName(order)}
+      src={order?.user?.avatar || ""}
+      slotProps={{
+        img: {
+          referrerPolicy: "no-referrer",
+        },
+      }}
+      sx={{ bgcolor: "primary.main", width: 42, height: 42 }}
+    >
       {getCustomerInitial(order)}
     </Avatar>
     <Stack spacing={0.25} sx={{ minWidth: 0 }}>
