@@ -1,6 +1,7 @@
 import {
   Alert,
   Autocomplete,
+  Box,
   Button,
   CircularProgress,
   Dialog,
@@ -12,7 +13,51 @@ import {
   Stack,
   Switch,
   TextField,
+  Typography,
 } from "@mui/material";
+
+const PROMOTION_TYPE_EXAMPLES = {
+  BUY_X_GET_Y: {
+    example: "Example: Buy 2 shirts and get 1 shirt free.",
+    note: "Best for bundle-style offers where the cheapest eligible units become free.",
+  },
+  CART_VALUE: {
+    example: "Example: Spend Rs. 5000 and get 10% off.",
+    note: "Useful when you want to reward higher cart values.",
+  },
+  CATEGORY_DISCOUNT: {
+    example: "Example: Flat 15% off on all jackets.",
+    note: "Apply a discount only to products inside selected categories.",
+  },
+  COUPON: {
+    example: "Example: Use WELCOME10 to get 10% off.",
+    note: "Customers must enter the coupon code during cart or checkout.",
+  },
+  FIRST_ORDER: {
+    example: "Example: First order users get 12% off.",
+    note: "Only customers with no previous successful order can use it.",
+  },
+  FIXED_DISCOUNT: {
+    example: "Example: Get Rs. 500 off on the order.",
+    note: "Reduces a fixed amount instead of a percentage.",
+  },
+  FREE_SHIPPING: {
+    example: "Example: Free shipping on eligible orders.",
+    note: "Only the shipping charge is discounted.",
+  },
+  NEW_USER: {
+    example: "Example: New accounts get 10% off for their first 7 days.",
+    note: "Useful for short-window onboarding offers.",
+  },
+  PERCENTAGE_DISCOUNT: {
+    example: "Example: Get 20% off on all products.",
+    note: "Simple percentage discount across the selected scope.",
+  },
+  PRODUCT_DISCOUNT: {
+    example: "Example: Get 25% off on selected products only.",
+    note: "Use this when only specific SKUs should be discounted.",
+  },
+};
 
 const formatOptionLabel = (option = {}) => {
   const secondaryLabel = option?.sku || option?.code || "";
@@ -45,6 +90,7 @@ const PromotionDialog = ({
   const usesDiscountValue = !["BUY_X_GET_Y", "FREE_SHIPPING"].includes(promotionType);
   const usesProductScope = promotionType === "PRODUCT_DISCOUNT" || applicableOn === "SPECIFIC_PRODUCTS";
   const usesCategoryScope = promotionType === "CATEGORY_DISCOUNT" || applicableOn === "SPECIFIC_CATEGORIES";
+  const typeExample = PROMOTION_TYPE_EXAMPLES[promotionType] || null;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
@@ -79,6 +125,29 @@ const PromotionDialog = ({
               ))}
             </TextField>
           </Stack>
+
+          {typeExample ? (
+            <Box
+              sx={{
+                bgcolor: "rgba(248, 245, 240, 0.8)",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 2,
+                px: 1.5,
+                py: 1.25,
+              }}
+            >
+              <Typography variant="body2" fontWeight={700}>
+                Offer Example
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.4 }}>
+                {typeExample.example}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.75 }}>
+                {typeExample.note}
+              </Typography>
+            </Box>
+          ) : null}
 
           <TextField
             fullWidth
@@ -211,6 +280,7 @@ const PromotionDialog = ({
             <TextField
               fullWidth
               inputProps={{ min: 0, step: 1 }}
+              helperText="Higher priority wins when multiple non-stackable promotions compete for the same item."
               label="Priority"
               name="priority"
               type="number"
@@ -319,6 +389,15 @@ const PromotionDialog = ({
               label="Automatic"
             />
           </Stack>
+
+          <Box sx={{ mt: -0.5 }}>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+              Priority decides which promotion should win first when more than one promotion can apply.
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.35 }}>
+              Stackable means this promotion can be combined with other stackable promotions instead of replacing them.
+            </Typography>
+          </Box>
         </Stack>
       </DialogContent>
       <DialogActions>
