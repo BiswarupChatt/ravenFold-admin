@@ -1,6 +1,6 @@
-import { useMemo } from "react";
+import { Suspense, useMemo } from "react";
 import { useRoutes } from "react-router-dom";
-import { ThemeProvider, CssBaseline } from "@mui/material";
+import { ThemeProvider, CssBaseline, Box, CircularProgress } from "@mui/material";
 import { useAtomValue } from "jotai";
 
 import { appRoutes } from "./routes/dashboardRoutes";
@@ -27,13 +27,27 @@ export default function App() {
   }, [themeMode]);
 
   const routes = useRoutes(appRoutes);
+  const loadingFallback = (
+    <Box
+      sx={{
+        alignItems: "center",
+        display: "flex",
+        height: "100vh",
+        justifyContent: "center",
+      }}
+    >
+      <CircularProgress size={28} />
+    </Box>
+  );
 
   return (
     <ThemeProvider theme={theme}>
       <ToastProvider>
         <StateBootstrap />
         <CssBaseline />
-        {routes}
+        <Suspense fallback={loadingFallback}>
+          {routes}
+        </Suspense>
       </ToastProvider>
     </ThemeProvider>
   );

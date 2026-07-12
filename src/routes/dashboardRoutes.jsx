@@ -1,30 +1,31 @@
+import { lazy } from "react";
 import { Navigate } from "react-router-dom";
 
 import ROUTES from "./routes";
 
-import DashboardLayout from "../layout/dashboardLayout/DashboardLayout";
-import Dashboard from "../pages/dashboard/Dashboard";
-import Account from "../pages/account/Account";
-import Settings from "../pages/settings/Settings";
-import Category from "../pages/other/category/Category";
-import Product from "../pages/product/Product";
-import ProductDetailsPage from "../pages/product/ProductDetailsPage";
-import Inventory from "../pages/inventory/Inventory";
-import Cart from "../pages/other/cart/Cart";
-import Order from "../pages/order/Order";
-import Payment from "../pages/other/payment/Payment";
-import Other from "../pages/other/Other";
-import BoxTypes from "../pages/other/boxTypes/BoxTypes";
-import Coupon from "../pages/other/coupon/Coupon";
-import PickupLocations from "../pages/other/pickupLocations/PickupLocations";
-import Review from "../pages/other/review/Review";
-import Customer from "../pages/customer/Customer";
-import NotFound from "../pages/NotFound";
+const DashboardLayout = lazy(() => import("../layout/dashboardLayout/DashboardLayout"));
+const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
+const Account = lazy(() => import("../pages/account/Account"));
+const Settings = lazy(() => import("../pages/Settings/Settings"));
+const Category = lazy(() => import("../pages/other/category/Category"));
+const Product = lazy(() => import("../pages/product/Product"));
+const ProductDetailsPage = lazy(() => import("../pages/product/ProductDetailsPage"));
+const Inventory = lazy(() => import("../pages/inventory/Inventory"));
+const Cart = lazy(() => import("../pages/other/cart/Cart"));
+const Order = lazy(() => import("../pages/order/Order"));
+const Payment = lazy(() => import("../pages/other/payment/Payment"));
+const Other = lazy(() => import("../pages/other/Other"));
+const BoxTypes = lazy(() => import("../pages/other/boxTypes/BoxTypes"));
+const Coupon = lazy(() => import("../pages/other/coupon/Coupon"));
+const PickupLocations = lazy(() => import("../pages/other/pickupLocations/PickupLocations"));
+const Review = lazy(() => import("../pages/other/review/Review"));
+const Customer = lazy(() => import("../pages/customer/Customer"));
+const NotFound = lazy(() => import("../pages/NotFound"));
 
 // Auth layout / pages
-import AuthLayout from "../layout/authLayout/AuthLayout";
-import Login from "../pages/auth/Login";
-import Signup from "../pages/auth/SignUp";
+const AuthLayout = lazy(() => import("../layout/authLayout/AuthLayout"));
+const Login = lazy(() => import("../pages/auth/Login"));
+const Signup = lazy(() => import("../pages/auth/SignUp"));
 
 export const appRoutes = [
   {
