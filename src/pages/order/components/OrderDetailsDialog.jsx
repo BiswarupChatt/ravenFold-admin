@@ -235,16 +235,37 @@ const PaymentPanel = ({ order }) => (
         negative
       />
       <TotalRow
-        label="Coupon discount"
-        value={order?.pricing?.couponDiscount ?? order?.couponDiscount}
+        label="Promotion discount"
+        value={order?.productDiscountAmount ?? order?.pricing?.couponDiscount ?? order?.couponDiscount}
         currency={order?.currency}
         negative
       />
+      {(order?.shippingDiscountAmount || 0) > 0 ? (
+        <TotalRow
+          label="Shipping discount"
+          value={order?.shippingDiscountAmount}
+          currency={order?.currency}
+          negative
+        />
+      ) : null}
       <TotalRow
         label="Shipping"
         value={order?.pricing?.shippingCharge ?? order?.shippingCharge}
         currency={order?.currency}
       />
+      {Array.isArray(order?.appliedPromotions) && order.appliedPromotions.length ? (
+        <>
+          <Divider />
+          <Stack spacing={0.45}>
+            {order.appliedPromotions.map((promotion) => (
+              <Typography key={`${promotion.promotionId}:${promotion.couponCode || promotion.title}`} variant="caption" color="text.secondary">
+                {promotion.title || promotion.couponCode}
+                {promotion.couponCode ? ` (${promotion.couponCode})` : ""}
+              </Typography>
+            ))}
+          </Stack>
+        </>
+      ) : null}
       <Divider />
       <TotalRow
         label="Total payable"

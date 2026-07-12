@@ -55,7 +55,7 @@ export const SIDEBAR_ITEMS = [
         icon: PaymentsIcon,
       },
       {
-        name: "Coupon",
+        name: "Promotions",
         path: ROUTES.OTHER_COUPON,
         icon: ConfirmationNumberIcon,
       },
