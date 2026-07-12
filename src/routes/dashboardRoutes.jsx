@@ -17,7 +17,6 @@ const Payment = lazy(() => import("../pages/other/payment/Payment"));
 const Other = lazy(() => import("../pages/other/Other"));
 const BoxTypes = lazy(() => import("../pages/other/boxTypes/BoxTypes"));
 const Coupon = lazy(() => import("../pages/other/coupon/Coupon"));
-const PickupLocations = lazy(() => import("../pages/other/pickupLocations/PickupLocations"));
 const Review = lazy(() => import("../pages/other/review/Review"));
 const Customer = lazy(() => import("../pages/customer/Customer"));
 const NotFound = lazy(() => import("../pages/NotFound"));
@@ -52,7 +51,6 @@ export const appRoutes = [
       { path: ROUTES.OTHER_COUPON.slice(1), element: <Coupon /> },
       { path: ROUTES.OTHER_REVIEW.slice(1), element: <Review /> },
       { path: ROUTES.OTHER_BOX_TYPES.slice(1), element: <BoxTypes /> },
-      { path: ROUTES.OTHER_PICKUP_LOCATIONS.slice(1), element: <PickupLocations /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },
       { path: ROUTES.SETTINGS.slice(1), element: <Settings /> },

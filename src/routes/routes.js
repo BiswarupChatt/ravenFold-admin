@@ -18,7 +18,6 @@ const ROUTES = {
   OTHER_COUPON: "/other/coupon",
   OTHER_REVIEW: "/other/review",
   OTHER_BOX_TYPES: "/other/box-types",
-  OTHER_PICKUP_LOCATIONS: "/other/pickup-locations",
   CUSTOMER: "/customer",
 
   NOT_FOUND: "*",
