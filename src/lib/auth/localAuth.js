@@ -56,13 +56,35 @@ export const loginWithAdminUser = async (email, password) => {
 
 export const loginWithFrontendUser = loginWithAdminUser;
 
-export const resetPassword = async (oldPassword, newPassword) => {
+export const resetPassword = async (authToken, oldPassword, newPassword) => {
+  if (!authToken) {
+    throw new Error("Authentication required.");
+  }
+
   if (!oldPassword || !newPassword) {
     throw new Error("Please fill in all fields.");
   }
 
+  const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${authToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      currentPassword: oldPassword,
+      newPassword,
+    }),
+  });
+
+  const payload = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(payload?.message || "Failed to reset password.");
+  }
+
   return {
-    success: true,
-    message: "Password updated locally.",
+    success: payload?.success ?? true,
+    message: payload?.message || "Password updated successfully.",
   };
 };

@@ -14,7 +14,7 @@ import {
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 import { resetPassword } from "@/lib/auth/localAuth";
 
-const ResetPasswordForm = () => {
+const ResetPasswordForm = ({ authToken }) => {
     const [formData, setFormData] = useState({
         oldPassword: "",
         newPassword: "",
@@ -48,14 +48,18 @@ const ResetPasswordForm = () => {
             setError("Please fill in all fields.");
             return;
         }
+        if (!authToken) {
+            setError("Authentication required.");
+            return;
+        }
 
         setLoading(true);
         try {
-            const res = await resetPassword(formData.oldPassword, formData.newPassword);
+            const res = await resetPassword(authToken, formData.oldPassword, formData.newPassword);
             setSuccess(res.message || "Password updated successfully!");
             setFormData({ oldPassword: "", newPassword: "", confirmPassword: "" });
         } catch (err) {
-            const msg = err.response?.data?.message || "Failed to reset password.";
+            const msg = err?.message || "Failed to reset password.";
             setError(msg);
         } finally {
             setLoading(false);

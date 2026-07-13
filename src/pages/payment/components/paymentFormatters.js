@@ -8,7 +8,6 @@ export const PAYMENT_TABS = [
 export const PROVIDER_OPTIONS = [
   { label: "All providers", value: "all" },
   { label: "Razorpay", value: "razorpay" },
-  { label: "Juspay", value: "juspay" },
 ];
 
 export const MONEY_STATUS_OPTIONS = [
