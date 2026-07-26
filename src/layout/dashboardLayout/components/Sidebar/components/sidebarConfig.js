@@ -7,6 +7,7 @@ import WarehouseIcon from "@mui/icons-material/Warehouse";
 import ShoppingCartIcon from "@mui/icons-material/ShoppingCart";
 import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
 import PaymentsIcon from "@mui/icons-material/Payments";
+import RequestQuoteIcon from "@mui/icons-material/RequestQuote";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
@@ -34,6 +35,11 @@ export const SIDEBAR_ITEMS = [
     name: "Order",
     path: ROUTES.ORDER,
     icon: ReceiptLongIcon,
+  },
+  {
+    name: "GST",
+    path: ROUTES.GST,
+    icon: RequestQuoteIcon,
   },
   {
     name: "Other",

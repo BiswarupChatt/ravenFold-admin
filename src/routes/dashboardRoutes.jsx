@@ -13,6 +13,7 @@ const ProductDetailsPage = lazy(() => import("../pages/product/ProductDetailsPag
 const Inventory = lazy(() => import("../pages/inventory/Inventory"));
 const Cart = lazy(() => import("../pages/other/cart/Cart"));
 const Order = lazy(() => import("../pages/order/Order"));
+const Gst = lazy(() => import("../pages/gst/Gst"));
 const Payment = lazy(() => import("../pages/other/payment/Payment"));
 const Other = lazy(() => import("../pages/other/Other"));
 const BoxTypes = lazy(() => import("../pages/other/boxTypes/BoxTypes"));
@@ -45,6 +46,7 @@ export const appRoutes = [
       { path: ROUTES.CART.slice(1), element: <Navigate to={ROUTES.OTHER_CART} replace /> },
       { path: ROUTES.OTHER_CART.slice(1), element: <Cart /> },
       { path: ROUTES.ORDER.slice(1), element: <Order /> },
+      { path: ROUTES.GST.slice(1), element: <Gst /> },
       { path: ROUTES.PAYMENT.slice(1), element: <Navigate to={ROUTES.OTHER_PAYMENT} replace /> },
       { path: ROUTES.OTHER_PAYMENT.slice(1), element: <Payment /> },
       { path: ROUTES.OTHER.slice(1), element: <Other /> },

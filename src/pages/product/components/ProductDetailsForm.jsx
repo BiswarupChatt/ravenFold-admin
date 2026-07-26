@@ -338,6 +338,89 @@ const ProductOrganizationPanel = memo(function ProductOrganizationPanel({
   );
 });
 
+const ProductGstPanel = memo(function ProductGstPanel({
+  action,
+  editable,
+  formData,
+  onChange,
+}) {
+  return (
+    <DetailPanel title="GST details" action={action} accentColor="warning">
+      {editable ? (
+        <Stack spacing={2}>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+            <TextField
+              label="HSN code"
+              name="gstHsnCode"
+              value={formData.gstHsnCode}
+              onChange={onChange}
+              fullWidth
+              size="small"
+              inputProps={{ inputMode: "numeric", pattern: "[0-9]*" }}
+            />
+            <TextField
+              select
+              label="Pricing"
+              name="gstPricingMode"
+              value={formData.gstPricingMode}
+              onChange={onChange}
+              fullWidth
+              size="small"
+            >
+              <MenuItem value="inclusive">GST inclusive</MenuItem>
+              <MenuItem value="exclusive">GST exclusive</MenuItem>
+            </TextField>
+          </Stack>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+            <TextField label="GST %" name="gstRate" type="number" value={formData.gstRate} onChange={onChange} fullWidth size="small" inputProps={{ min: 0, max: 100, step: "0.001" }} />
+            <TextField label="CGST %" name="gstCgstRate" type="number" value={formData.gstCgstRate} fullWidth size="small" inputProps={{ readOnly: true, min: 0, max: 100, step: "0.001" }} helperText="Auto: GST / 2" />
+            <TextField label="SGST %" name="gstSgstRate" type="number" value={formData.gstSgstRate} fullWidth size="small" inputProps={{ readOnly: true, min: 0, max: 100, step: "0.001" }} helperText="Auto: GST / 2" />
+          </Stack>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+            <TextField label="IGST %" name="gstIgstRate" type="number" value={formData.gstIgstRate} fullWidth size="small" inputProps={{ readOnly: true, min: 0, max: 100, step: "0.001" }} helperText="Auto: GST" />
+            <TextField label="Cess %" name="gstCessRate" type="number" value={formData.gstCessRate} onChange={onChange} fullWidth size="small" inputProps={{ min: 0, max: 100, step: "0.001" }} />
+            <FormControlLabel
+              control={<Switch checked={formData.gstExempt} onChange={onChange} name="gstExempt" />}
+              label="GST exempt"
+              sx={{ alignSelf: "center", minWidth: 160 }}
+            />
+          </Stack>
+          {formData.gstExempt ? (
+            <TextField
+              label="Exemption reason"
+              name="gstExemptionReason"
+              value={formData.gstExemptionReason}
+              onChange={onChange}
+              fullWidth
+              size="small"
+              multiline
+              minRows={2}
+            />
+          ) : null}
+        </Stack>
+      ) : (
+        <Stack spacing={1.25}>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <ReadOnlyField label="HSN code" value={formData.gstHsnCode || "-"} />
+            <ReadOnlyField label="Pricing" value={formData.gstPricingMode === "exclusive" ? "GST exclusive" : "GST inclusive"} />
+            <ReadOnlyField label="GST exempt" value={formData.gstExempt ? "Yes" : "No"} />
+          </Stack>
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+            <ReadOnlyField label="GST" value={`${formData.gstRate || 0}%`} />
+            <ReadOnlyField label="CGST" value={`${formData.gstCgstRate || 0}%`} />
+            <ReadOnlyField label="SGST" value={`${formData.gstSgstRate || 0}%`} />
+            <ReadOnlyField label="IGST" value={`${formData.gstIgstRate || 0}%`} />
+            <ReadOnlyField label="Cess" value={`${formData.gstCessRate || 0}%`} />
+          </Stack>
+          {formData.gstExempt ? (
+            <ReadOnlyField label="Exemption reason" value={formData.gstExemptionReason || "-"} multiline />
+          ) : null}
+        </Stack>
+      )}
+    </DetailPanel>
+  );
+});
+
 const ProductDetailsForm = ({
   initialEditable,
   formData,
@@ -474,6 +557,48 @@ const ProductDetailsForm = ({
     savedFormData.shippingClass,
     savedFormData.shippingFreeShippingEligible,
   ]);
+  const gstFormData = useMemo(() => ({
+    gstCessRate: formData.gstCessRate,
+    gstCgstRate: formData.gstCgstRate,
+    gstExempt: formData.gstExempt,
+    gstExemptionReason: formData.gstExemptionReason,
+    gstHsnCode: formData.gstHsnCode,
+    gstIgstRate: formData.gstIgstRate,
+    gstPricingMode: formData.gstPricingMode,
+    gstRate: formData.gstRate,
+    gstSgstRate: formData.gstSgstRate,
+  }), [
+    formData.gstCessRate,
+    formData.gstCgstRate,
+    formData.gstExempt,
+    formData.gstExemptionReason,
+    formData.gstHsnCode,
+    formData.gstIgstRate,
+    formData.gstPricingMode,
+    formData.gstRate,
+    formData.gstSgstRate,
+  ]);
+  const savedGstFormData = useMemo(() => ({
+    gstCessRate: savedFormData.gstCessRate,
+    gstCgstRate: savedFormData.gstCgstRate,
+    gstExempt: savedFormData.gstExempt,
+    gstExemptionReason: savedFormData.gstExemptionReason,
+    gstHsnCode: savedFormData.gstHsnCode,
+    gstIgstRate: savedFormData.gstIgstRate,
+    gstPricingMode: savedFormData.gstPricingMode,
+    gstRate: savedFormData.gstRate,
+    gstSgstRate: savedFormData.gstSgstRate,
+  }), [
+    savedFormData.gstCessRate,
+    savedFormData.gstCgstRate,
+    savedFormData.gstExempt,
+    savedFormData.gstExemptionReason,
+    savedFormData.gstHsnCode,
+    savedFormData.gstIgstRate,
+    savedFormData.gstPricingMode,
+    savedFormData.gstRate,
+    savedFormData.gstSgstRate,
+  ]);
   const attributesFormData = useMemo(() => ({
     attributes: formData.attributes,
   }), [formData.attributes]);
@@ -540,6 +665,10 @@ const ProductDetailsForm = ({
     getProductFormSectionSignature(shippingFormData, PRODUCT_FORM_SECTION_IDS.SHIPPING) !==
       getProductFormSectionSignature(savedShippingFormData, PRODUCT_FORM_SECTION_IDS.SHIPPING)
   ), [shippingFormData, savedShippingFormData]);
+  const gstDirty = useMemo(() => (
+    getProductFormSectionSignature(gstFormData, PRODUCT_FORM_SECTION_IDS.GST) !==
+      getProductFormSectionSignature(savedGstFormData, PRODUCT_FORM_SECTION_IDS.GST)
+  ), [gstFormData, savedGstFormData]);
   const attributesDirty = useMemo(() => (
     getProductFormSectionSignature(attributesFormData, PRODUCT_FORM_SECTION_IDS.ATTRIBUTES) !==
       getProductFormSectionSignature(savedAttributesFormData, PRODUCT_FORM_SECTION_IDS.ATTRIBUTES)
@@ -554,6 +683,7 @@ const ProductDetailsForm = ({
     [PRODUCT_FORM_SECTION_IDS.ORGANIZATION]: organizationDirty,
     [PRODUCT_FORM_SECTION_IDS.MEDIA]: mediaDirty,
     [PRODUCT_FORM_SECTION_IDS.SHIPPING]: shippingDirty,
+    [PRODUCT_FORM_SECTION_IDS.GST]: gstDirty,
     [PRODUCT_FORM_SECTION_IDS.ATTRIBUTES]: attributesDirty,
     [PRODUCT_FORM_SECTION_IDS.SEO]: seoDirty,
   }), [
@@ -561,6 +691,7 @@ const ProductDetailsForm = ({
     settingsDirty,
     organizationDirty,
     mediaDirty,
+    gstDirty,
     shippingDirty,
     attributesDirty,
     seoDirty,
@@ -719,6 +850,10 @@ const ProductDetailsForm = ({
   const shippingSaveAction = useMemo(
     () => getSectionSaveButton(PRODUCT_FORM_SECTION_IDS.SHIPPING, shippingDirty),
     [getSectionSaveButton, shippingDirty]
+  );
+  const gstSaveAction = useMemo(
+    () => getSectionSaveButton(PRODUCT_FORM_SECTION_IDS.GST, gstDirty),
+    [getSectionSaveButton, gstDirty]
   );
   const attributesSaveAction = useMemo(
     () => getSectionSaveButton(PRODUCT_FORM_SECTION_IDS.ATTRIBUTES, attributesDirty),
@@ -905,6 +1040,13 @@ const ProductDetailsForm = ({
             editable={editable}
             formData={shippingFormData}
             saveAction={shippingSaveAction}
+            onChange={onChange}
+          />
+
+          <ProductGstPanel
+            action={gstSaveAction}
+            editable={editable}
+            formData={gstFormData}
             onChange={onChange}
           />
 

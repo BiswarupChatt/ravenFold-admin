@@ -63,6 +63,15 @@ const EMPTY_FORM = {
   shippingDimensionUnit: "cm",
   shippingClass: "",
   shippingFreeShippingEligible: false,
+  gstHsnCode: "",
+  gstRate: "0",
+  gstCgstRate: "0",
+  gstSgstRate: "0",
+  gstIgstRate: "0",
+  gstCessRate: "0",
+  gstPricingMode: "inclusive",
+  gstExempt: false,
+  gstExemptionReason: "",
   seoTitle: "",
   seoDescription: "",
   seoKeywords: "",
@@ -100,6 +109,17 @@ const buildPayload = (formData) => {
       shippingClass: normalizeText(formData.shippingClass),
       isFreeShippingEligible: Boolean(formData.shippingFreeShippingEligible),
     },
+    gst: {
+      hsnCode: normalizeText(formData.gstHsnCode),
+      gstRate: formData.gstRate === "" ? 0 : formData.gstRate,
+      cgstRate: formData.gstCgstRate === "" ? 0 : formData.gstCgstRate,
+      sgstRate: formData.gstSgstRate === "" ? 0 : formData.gstSgstRate,
+      igstRate: formData.gstIgstRate === "" ? 0 : formData.gstIgstRate,
+      cessRate: formData.gstCessRate === "" ? 0 : formData.gstCessRate,
+      pricingMode: formData.gstPricingMode,
+      exempt: Boolean(formData.gstExempt),
+      exemptionReason: normalizeText(formData.gstExemptionReason),
+    },
     seo: {
       title: normalizeText(formData.seoTitle),
       description: normalizeText(formData.seoDescription),
@@ -120,6 +140,23 @@ const buildPayload = (formData) => {
   }
 
   return payload;
+};
+
+const deriveGstBreakup = (gstRateValue) => {
+  const gstRate = Number(gstRateValue);
+
+  if (!Number.isFinite(gstRate) || gstRate < 0) {
+    return null;
+  }
+
+  const halfRate = Number((gstRate / 2).toFixed(3));
+  const totalRate = Number(gstRate.toFixed(3));
+
+  return {
+    gstCgstRate: String(halfRate),
+    gstIgstRate: String(totalRate),
+    gstSgstRate: String(halfRate),
+  };
 };
 
 const buildDetailsPayload = (formData) => {
@@ -182,6 +219,20 @@ const buildShippingPayload = (formData) => ({
   },
 });
 
+const buildGstPayload = (formData) => ({
+  gst: {
+    hsnCode: normalizeText(formData.gstHsnCode),
+    gstRate: formData.gstRate === "" ? 0 : formData.gstRate,
+    cgstRate: formData.gstCgstRate === "" ? 0 : formData.gstCgstRate,
+    sgstRate: formData.gstSgstRate === "" ? 0 : formData.gstSgstRate,
+    igstRate: formData.gstIgstRate === "" ? 0 : formData.gstIgstRate,
+    cessRate: formData.gstCessRate === "" ? 0 : formData.gstCessRate,
+    pricingMode: formData.gstPricingMode,
+    exempt: Boolean(formData.gstExempt),
+    exemptionReason: normalizeText(formData.gstExemptionReason),
+  },
+});
+
 const buildAttributesPayload = (formData) => ({
   attributes: normalizeAttributes(formData.attributes),
 });
@@ -210,6 +261,8 @@ const buildSectionPayload = (sectionId, formData) => {
       return buildMediaPayload(formData);
     case PRODUCT_FORM_SECTION_IDS.SHIPPING:
       return buildShippingPayload(formData);
+    case PRODUCT_FORM_SECTION_IDS.GST:
+      return buildGstPayload(formData);
     case PRODUCT_FORM_SECTION_IDS.ATTRIBUTES:
       return buildAttributesPayload(formData);
     case PRODUCT_FORM_SECTION_IDS.SEO:
@@ -304,11 +357,45 @@ const validateShippingPayload = (payload) => {
   return "";
 };
 
+const validateGstPayload = (payload) => {
+  const gst = payload.gst || {};
+  const rates = [
+    ["GST rate", gst.gstRate],
+    ["CGST rate", gst.cgstRate],
+    ["SGST rate", gst.sgstRate],
+    ["IGST rate", gst.igstRate],
+    ["Cess rate", gst.cessRate],
+  ];
+
+  for (const [label, value] of rates) {
+    const rate = Number(value || 0);
+
+    if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+      return `${label} must be between 0 and 100.`;
+    }
+  }
+
+  if (gst.hsnCode && !/^\d{4}(\d{2})?(\d{2})?$/.test(String(gst.hsnCode))) {
+    return "HSN code must be 4, 6, or 8 digits.";
+  }
+
+  if (Number(gst.cgstRate || 0) + Number(gst.sgstRate || 0) !== Number(gst.gstRate || 0)) {
+    return "CGST and SGST together must match the GST rate.";
+  }
+
+  if (Number(gst.igstRate || 0) !== Number(gst.gstRate || 0)) {
+    return "IGST must match the GST rate.";
+  }
+
+  return "";
+};
+
 const validatePayload = (payload) => (
   validateProductDetailsPayload(payload) ||
   validateOrganizationPayload(payload) ||
   validateAttributesPayload(payload) ||
-  validateShippingPayload(payload)
+  validateShippingPayload(payload) ||
+  validateGstPayload(payload)
 );
 
 const validateSectionPayload = (sectionId, payload) => {
@@ -321,6 +408,8 @@ const validateSectionPayload = (sectionId, payload) => {
       return validateAttributesPayload(payload);
     case PRODUCT_FORM_SECTION_IDS.SHIPPING:
       return validateShippingPayload(payload);
+    case PRODUCT_FORM_SECTION_IDS.GST:
+      return validateGstPayload(payload);
     default:
       return "";
   }
@@ -333,6 +422,7 @@ const getProductId = (product) => product?.id || product?._id || "";
 const productToFormData = (product) => {
   const shipping = product.shipping || {};
   const seo = product.seo || {};
+  const gst = product.gst || {};
 
   return {
     name: product.name || "",
@@ -368,6 +458,15 @@ const productToFormData = (product) => {
     shippingDimensionUnit: shipping.dimensions?.unit || "cm",
     shippingClass: shipping.shippingClass || "",
     shippingFreeShippingEligible: Boolean(shipping.isFreeShippingEligible),
+    gstHsnCode: gst.hsnCode || "",
+    gstRate: String(gst.gstRate ?? 0),
+    gstCgstRate: String(gst.cgstRate ?? 0),
+    gstSgstRate: String(gst.sgstRate ?? 0),
+    gstIgstRate: String(gst.igstRate ?? 0),
+    gstCessRate: String(gst.cessRate ?? 0),
+    gstPricingMode: gst.pricingMode || "inclusive",
+    gstExempt: Boolean(gst.exempt),
+    gstExemptionReason: gst.exemptionReason || "",
     seoTitle: seo.title || product.metaTitle || "",
     seoDescription: seo.description || product.metaDescription || "",
     seoKeywords: Array.isArray(seo.keywords) ? seo.keywords.join(", ") : "",
@@ -476,6 +575,7 @@ const ProductDetailsPage = ({ mode }) => {
     setPageFormData((currentFormData) => ({
       ...currentFormData,
       [name]: type === "checkbox" ? checked : value,
+      ...(name === "gstRate" ? deriveGstBreakup(value) || {} : {}),
     }));
   }, [setPageFormData]);
 

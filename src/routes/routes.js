@@ -12,6 +12,7 @@ const ROUTES = {
   CART: "/cart",
   OTHER_CART: "/other/cart",
   ORDER: "/order",
+  GST: "/gst",
   PAYMENT: "/payment",
   OTHER_PAYMENT: "/other/payment",
   OTHER: "/other",

@@ -4,6 +4,7 @@ export const PRODUCT_FORM_SECTION_IDS = {
   ORGANIZATION: "organization",
   MEDIA: "media",
   SHIPPING: "shipping",
+  GST: "gst",
   ATTRIBUTES: "attributes",
   SEO: "seo",
 };
@@ -14,6 +15,7 @@ export const PRODUCT_FORM_SECTION_LABELS = {
   [PRODUCT_FORM_SECTION_IDS.ORGANIZATION]: "Product organization",
   [PRODUCT_FORM_SECTION_IDS.MEDIA]: "Media",
   [PRODUCT_FORM_SECTION_IDS.SHIPPING]: "Shipping",
+  [PRODUCT_FORM_SECTION_IDS.GST]: "GST",
   [PRODUCT_FORM_SECTION_IDS.ATTRIBUTES]: "Attributes",
   [PRODUCT_FORM_SECTION_IDS.SEO]: "SEO",
 };
@@ -24,6 +26,7 @@ export const PRODUCT_FORM_SECTION_ORDER = [
   PRODUCT_FORM_SECTION_IDS.ORGANIZATION,
   PRODUCT_FORM_SECTION_IDS.MEDIA,
   PRODUCT_FORM_SECTION_IDS.SHIPPING,
+  PRODUCT_FORM_SECTION_IDS.GST,
   PRODUCT_FORM_SECTION_IDS.ATTRIBUTES,
   PRODUCT_FORM_SECTION_IDS.SEO,
 ];
@@ -60,6 +63,17 @@ export const PRODUCT_FORM_SECTION_FIELDS = {
     "shippingDimensionUnit",
     "shippingClass",
     "shippingFreeShippingEligible",
+  ],
+  [PRODUCT_FORM_SECTION_IDS.GST]: [
+    "gstHsnCode",
+    "gstRate",
+    "gstCgstRate",
+    "gstSgstRate",
+    "gstIgstRate",
+    "gstCessRate",
+    "gstPricingMode",
+    "gstExempt",
+    "gstExemptionReason",
   ],
   [PRODUCT_FORM_SECTION_IDS.ATTRIBUTES]: [
     "attributes",
