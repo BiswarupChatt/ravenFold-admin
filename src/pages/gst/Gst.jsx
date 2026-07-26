@@ -32,7 +32,7 @@ import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, formatCurrency, formatDate } 
 import { useToast } from "@/hooks/ToastContext";
 
 const EMPTY_CONFIG = {
-  authorisedSignatory: { designation: "", imageUrl: "", name: "" },
+  authorisedSignatory: { designation: "Authorised Signatory", imageUrl: "", name: "Aurax & Co" },
   bankDetails: { accountName: "", accountNumber: "", bankName: "", branchName: "", ifsc: "" },
   brandName: "Raven Fold",
   businessLegalName: "Aurax & Co",
@@ -42,16 +42,66 @@ const EMPTY_CONFIG = {
   email: "",
   gstin: "",
   invoiceNotes: "",
-  invoiceNumberFormat: "{PREFIX}/{FY}/{SEQ}",
-  invoicePrefix: "RF",
   invoiceTerms: "",
-  nextInvoiceNumber: 1,
   pan: "",
   registeredAddress: { addressLine1: "", addressLine2: "", city: "", country: "India", pincode: "", state: "", stateCode: "" },
-  shippingGstRate: 0,
-  shippingGstTreatment: "taxable",
   tradeName: "",
   useFinancialYearNumbering: true,
+};
+
+const GST_STATE_OPTIONS = [
+  { code: "01", name: "Jammu and Kashmir" },
+  { code: "02", name: "Himachal Pradesh" },
+  { code: "03", name: "Punjab" },
+  { code: "04", name: "Chandigarh" },
+  { code: "05", name: "Uttarakhand" },
+  { code: "06", name: "Haryana" },
+  { code: "07", name: "Delhi" },
+  { code: "08", name: "Rajasthan" },
+  { code: "09", name: "Uttar Pradesh" },
+  { code: "10", name: "Bihar" },
+  { code: "11", name: "Sikkim" },
+  { code: "12", name: "Arunachal Pradesh" },
+  { code: "13", name: "Nagaland" },
+  { code: "14", name: "Manipur" },
+  { code: "15", name: "Mizoram" },
+  { code: "16", name: "Tripura" },
+  { code: "17", name: "Meghalaya" },
+  { code: "18", name: "Assam" },
+  { code: "19", name: "West Bengal" },
+  { code: "20", name: "Jharkhand" },
+  { code: "21", name: "Odisha" },
+  { code: "22", name: "Chhattisgarh" },
+  { code: "23", name: "Madhya Pradesh" },
+  { code: "24", name: "Gujarat" },
+  { code: "26", name: "Dadra and Nagar Haveli and Daman and Diu" },
+  { code: "27", name: "Maharashtra" },
+  { code: "29", name: "Karnataka" },
+  { code: "30", name: "Goa" },
+  { code: "31", name: "Lakshadweep" },
+  { code: "32", name: "Kerala" },
+  { code: "33", name: "Tamil Nadu" },
+  { code: "34", name: "Puducherry" },
+  { code: "35", name: "Andaman and Nicobar Islands" },
+  { code: "36", name: "Telangana" },
+  { code: "37", name: "Andhra Pradesh" },
+  { code: "38", name: "Ladakh" },
+  { code: "97", name: "Other Territory" },
+];
+
+const getStateCodeByName = (stateName = "") => (
+  GST_STATE_OPTIONS.find((state) => state.name === stateName)?.code || ""
+);
+
+const getInvoiceNumberPreview = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+  const startYear = month >= 4 ? year : year - 1;
+  const endYear = startYear + 1;
+  const quarter = month >= 4 && month <= 6 ? 1 : month >= 7 && month <= 9 ? 2 : month >= 10 && month <= 12 ? 3 : 4;
+
+  return `RF${String(startYear).slice(-2)}${String(endYear).slice(-2)}${quarter}00001`;
 };
 
 const normalizeConfig = (config = {}) => ({
@@ -79,8 +129,11 @@ const setNestedValue = (source, path, value) => {
 };
 
 const buildConfigPayload = (form) => ({
-  authorisedSignatory: form.authorisedSignatory,
-  bankDetails: form.bankDetails,
+  authorisedSignatory: {
+    ...(form.authorisedSignatory || {}),
+    designation: form.authorisedSignatory?.designation || "Authorised Signatory",
+    name: form.authorisedSignatory?.name || "Aurax & Co",
+  },
   brandName: form.brandName,
   businessLegalName: form.businessLegalName,
   businessLogoUrl: form.businessLogoUrl,
@@ -89,14 +142,9 @@ const buildConfigPayload = (form) => ({
   email: form.email,
   gstin: form.gstin,
   invoiceNotes: form.invoiceNotes,
-  invoiceNumberFormat: form.invoiceNumberFormat,
-  invoicePrefix: form.invoicePrefix,
   invoiceTerms: form.invoiceTerms,
-  nextInvoiceNumber: form.nextInvoiceNumber,
   pan: form.pan,
   registeredAddress: form.registeredAddress,
-  shippingGstRate: form.shippingGstRate,
-  shippingGstTreatment: form.shippingGstTreatment,
   tradeName: form.tradeName,
   useFinancialYearNumbering: Boolean(form.useFinancialYearNumbering),
 });
@@ -118,10 +166,15 @@ const ConfigurationTab = ({ form, loading, onChange, onSave, saving }) => (
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <TextField label="GSTIN" name="gstin" value={form.gstin} onChange={onChange} fullWidth size="small" />
         <TextField label="PAN" name="pan" value={form.pan} onChange={onChange} fullWidth size="small" />
-        <TextField label="State code" name="registeredAddress.stateCode" value={form.registeredAddress.stateCode} onChange={onChange} fullWidth size="small" />
+        <TextField label="State code" value={form.registeredAddress.stateCode} fullWidth size="small" InputProps={{ readOnly: true }} />
       </Stack>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="State" name="registeredAddress.state" value={form.registeredAddress.state} onChange={onChange} fullWidth size="small" />
+        <TextField select label="State" name="registeredAddress.state" value={form.registeredAddress.state} onChange={onChange} fullWidth size="small">
+          <MenuItem value="">Select state</MenuItem>
+          {GST_STATE_OPTIONS.map((state) => (
+            <MenuItem key={state.code} value={state.name}>{state.name}</MenuItem>
+          ))}
+        </TextField>
         <TextField label="City" name="registeredAddress.city" value={form.registeredAddress.city} onChange={onChange} fullWidth size="small" />
         <TextField label="PIN code" name="registeredAddress.pincode" value={form.registeredAddress.pincode} onChange={onChange} fullWidth size="small" />
       </Stack>
@@ -133,29 +186,11 @@ const ConfigurationTab = ({ form, loading, onChange, onSave, saving }) => (
         <TextField label="Logo URL" name="businessLogoUrl" value={form.businessLogoUrl} onChange={onChange} fullWidth size="small" />
       </Stack>
       <Divider />
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="Invoice prefix" name="invoicePrefix" value={form.invoicePrefix} onChange={onChange} fullWidth size="small" />
-        <TextField label="Invoice format" name="invoiceNumberFormat" value={form.invoiceNumberFormat} onChange={onChange} fullWidth size="small" />
-        <TextField label="Starting number" name="nextInvoiceNumber" type="number" value={form.nextInvoiceNumber} onChange={onChange} fullWidth size="small" inputProps={{ min: 1 }} />
-      </Stack>
+      <TextField label="Invoice format" value={getInvoiceNumberPreview()} fullWidth size="small" InputProps={{ readOnly: true }} />
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <TextField label="Default GST %" name="defaultGstRate" type="number" value={form.defaultGstRate} onChange={onChange} fullWidth size="small" inputProps={{ min: 0, max: 100, step: "0.001" }} />
-        <TextField select label="Shipping GST" name="shippingGstTreatment" value={form.shippingGstTreatment} onChange={onChange} fullWidth size="small">
-          <MenuItem value="taxable">Taxable</MenuItem>
-          <MenuItem value="exempt">Exempt</MenuItem>
-        </TextField>
-        <TextField label="Shipping GST %" name="shippingGstRate" type="number" value={form.shippingGstRate} onChange={onChange} fullWidth size="small" inputProps={{ min: 0, max: 100, step: "0.001" }} />
       </Stack>
       <Divider />
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="Signatory name" name="authorisedSignatory.name" value={form.authorisedSignatory.name} onChange={onChange} fullWidth size="small" />
-        <TextField label="Designation" name="authorisedSignatory.designation" value={form.authorisedSignatory.designation} onChange={onChange} fullWidth size="small" />
-      </Stack>
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="Bank name" name="bankDetails.bankName" value={form.bankDetails.bankName} onChange={onChange} fullWidth size="small" />
-        <TextField label="Account number" name="bankDetails.accountNumber" value={form.bankDetails.accountNumber} onChange={onChange} fullWidth size="small" />
-        <TextField label="IFSC" name="bankDetails.ifsc" value={form.bankDetails.ifsc} onChange={onChange} fullWidth size="small" />
-      </Stack>
       <TextField label="Invoice terms" name="invoiceTerms" value={form.invoiceTerms} onChange={onChange} fullWidth size="small" multiline minRows={2} />
       <TextField label="Invoice notes" name="invoiceNotes" value={form.invoiceNotes} onChange={onChange} fullWidth size="small" multiline minRows={2} />
       <Stack direction="row" justifyContent="flex-end">
@@ -312,7 +347,20 @@ const Gst = () => {
   const handleChange = (event) => {
     const { name, value } = event.target;
 
-    setForm((current) => setNestedValue(current, name, value));
+    setForm((current) => {
+      if (name === "registeredAddress.state") {
+        return {
+          ...current,
+          registeredAddress: {
+            ...(current.registeredAddress || {}),
+            state: value,
+            stateCode: getStateCodeByName(value),
+          },
+        };
+      }
+
+      return setNestedValue(current, name, value);
+    });
   };
 
   const handleSave = async () => {
