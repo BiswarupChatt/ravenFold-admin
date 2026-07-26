@@ -34,7 +34,8 @@ import { useToast } from "@/hooks/ToastContext";
 const EMPTY_CONFIG = {
   authorisedSignatory: { designation: "", imageUrl: "", name: "" },
   bankDetails: { accountName: "", accountNumber: "", bankName: "", branchName: "", ifsc: "" },
-  businessLegalName: "",
+  brandName: "Raven Fold",
+  businessLegalName: "Aurax & Co",
   businessLogoUrl: "",
   contactNumber: "",
   defaultGstRate: 0,
@@ -80,6 +81,7 @@ const setNestedValue = (source, path, value) => {
 const buildConfigPayload = (form) => ({
   authorisedSignatory: form.authorisedSignatory,
   bankDetails: form.bankDetails,
+  brandName: form.brandName,
   businessLegalName: form.businessLegalName,
   businessLogoUrl: form.businessLogoUrl,
   contactNumber: form.contactNumber,
@@ -109,7 +111,8 @@ const ConfigurationTab = ({ form, loading, onChange, onSave, saving }) => (
         </Typography>
       </Box>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="Legal name" name="businessLegalName" value={form.businessLegalName} onChange={onChange} fullWidth size="small" />
+        <TextField label="Brand name" name="brandName" value={form.brandName} onChange={onChange} fullWidth size="small" />
+        <TextField label="Registered company name" name="businessLegalName" value={form.businessLegalName} onChange={onChange} fullWidth size="small" />
         <TextField label="Trade name" name="tradeName" value={form.tradeName} onChange={onChange} fullWidth size="small" />
       </Stack>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
