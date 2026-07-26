@@ -4,6 +4,10 @@ import {
   Alert,
   Box,
   Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   MenuItem,
   Paper,
@@ -15,8 +19,9 @@ import {
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
 import EditIcon from "@mui/icons-material/Edit";
-import RefreshIcon from "@mui/icons-material/Refresh";
+import EmailIcon from "@mui/icons-material/Email";
 import SaveIcon from "@mui/icons-material/Save";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import DataTable from "@/components/DataTable";
 import SectionHeader from "@/components/SectionHeader";
@@ -25,7 +30,7 @@ import {
   fetchGstConfiguration,
   downloadAdminInvoice,
   downloadGstReport,
-  regenerateInvoicePdf,
+  fetchAdminInvoicePdfBlob,
   updateGstConfiguration,
 } from "@/lib/api/gstApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
@@ -226,6 +231,13 @@ const InvoicesTab = ({ authToken }) => {
   const [pagination, setPagination] = useState(DEFAULT_PAGINATION);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [preview, setPreview] = useState({
+    error: "",
+    invoice: null,
+    loading: false,
+    open: false,
+    pdfUrl: "",
+  });
 
   const loadInvoices = useCallback(async () => {
     setLoading(true);
@@ -248,6 +260,56 @@ const InvoicesTab = ({ authToken }) => {
     loadInvoices();
   }, [loadInvoices]);
 
+  useEffect(() => () => {
+    if (preview.pdfUrl) {
+      URL.revokeObjectURL(preview.pdfUrl);
+    }
+  }, [preview.pdfUrl]);
+
+  const closePreview = () => {
+    setPreview({
+      error: "",
+      invoice: null,
+      loading: false,
+      open: false,
+      pdfUrl: "",
+    });
+  };
+
+  const viewInvoice = useCallback(async (invoice) => {
+    setPreview({
+      error: "",
+      invoice,
+      loading: true,
+      open: true,
+      pdfUrl: "",
+    });
+
+    try {
+      const blob = await fetchAdminInvoicePdfBlob(authToken, invoice.id);
+      const pdfUrl = URL.createObjectURL(blob);
+
+      setPreview((current) => {
+        if (!current.open || current.invoice?.id !== invoice.id) {
+          URL.revokeObjectURL(pdfUrl);
+          return current;
+        }
+
+        return {
+          ...current,
+          loading: false,
+          pdfUrl,
+        };
+      });
+    } catch (err) {
+      setPreview((current) => ({
+        ...current,
+        error: err.message || "Failed to load invoice PDF.",
+        loading: false,
+      }));
+    }
+  }, [authToken]);
+
   const columns = useMemo(() => [
     { field: "invoiceNumber", header: "Invoice", minWidth: 180 },
     { field: "orderNumber", header: "Order", minWidth: 150 },
@@ -259,79 +321,111 @@ const InvoicesTab = ({ authToken }) => {
     { header: "Total", align: "right", minWidth: 120, render: (row) => formatCurrency(row.totals?.grandTotal, "INR") },
     {
       header: "Actions",
-      minWidth: 220,
+      minWidth: 120,
       render: (row) => (
         <Stack direction="row" spacing={1}>
           <Button
-            onClick={async () => {
-              try {
-                await downloadAdminInvoice(authToken, row.id, row.invoiceNumber);
-              } catch (err) {
-                toast.error(err.message || "Failed to download invoice.");
-              }
-            }}
+            onClick={() => viewInvoice(row)}
             size="small"
-            startIcon={<DownloadIcon />}
+            startIcon={<VisibilityIcon />}
           >
-            PDF
-          </Button>
-          <Button
-            size="small"
-            startIcon={<RefreshIcon />}
-            onClick={async () => {
-              try {
-                await regenerateInvoicePdf(authToken, row.id);
-                toast.success("Invoice PDF regenerated.");
-                await loadInvoices();
-              } catch (err) {
-                toast.error(err.message || "Failed to regenerate invoice PDF.");
-              }
-            }}
-          >
-            Regenerate
+            View
           </Button>
         </Stack>
       ),
     },
-  ], [authToken, loadInvoices, toast]);
+  ], [viewInvoice]);
 
   return (
-    <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
-      <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between" sx={{ p: 2 }}>
-        <Box>
-          <Typography variant="h6" fontWeight={700}>GST Invoices</Typography>
-          <Typography variant="body2" color="text.secondary">Search and export invoice data for return preparation.</Typography>
+    <>
+      <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
+        <Stack direction={{ xs: "column", md: "row" }} spacing={1.5} justifyContent="space-between" sx={{ p: 2 }}>
+          <Box>
+            <Typography variant="h6" fontWeight={700}>GST Invoices</Typography>
+            <Typography variant="body2" color="text.secondary">Search and export invoice data for return preparation.</Typography>
+          </Box>
+          <Button
+            onClick={async () => {
+              try {
+                await downloadGstReport(authToken, params);
+              } catch (err) {
+                toast.error(err.message || "Failed to export GST report.");
+              }
+            }}
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+          >
+            Export CSV
+          </Button>
+        </Stack>
+        <Divider />
+        <Box sx={{ p: 2 }}>
+          {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
+          <DataTable
+            columns={columns}
+            rows={invoices}
+            loading={loading}
+            minWidth={1280}
+            pagination={{
+              ...pagination,
+              onPageChange: (page) => setParams((current) => ({ ...current, page })),
+              onRowsPerPageChange: (limit) => setParams((current) => ({ ...current, limit, page: 1 })),
+            }}
+          />
         </Box>
-        <Button
-          onClick={async () => {
-            try {
-              await downloadGstReport(authToken, params);
-            } catch (err) {
-              toast.error(err.message || "Failed to export GST report.");
-            }
-          }}
-          variant="outlined"
-          startIcon={<DownloadIcon />}
-        >
-          Export CSV
-        </Button>
-      </Stack>
-      <Divider />
-      <Box sx={{ p: 2 }}>
-        {error ? <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert> : null}
-        <DataTable
-          columns={columns}
-          rows={invoices}
-          loading={loading}
-          minWidth={1280}
-          pagination={{
-            ...pagination,
-            onPageChange: (page) => setParams((current) => ({ ...current, page })),
-            onRowsPerPageChange: (limit) => setParams((current) => ({ ...current, limit, page: 1 })),
-          }}
-        />
-      </Box>
-    </Paper>
+      </Paper>
+
+      <Dialog fullWidth maxWidth="lg" open={preview.open} onClose={closePreview}>
+        <DialogTitle>
+          Tax Invoice {preview.invoice?.invoiceNumber ? `- ${preview.invoice.invoiceNumber}` : ""}
+        </DialogTitle>
+        <DialogContent dividers sx={{ bgcolor: "grey.100", p: 0 }}>
+          {preview.error ? <Alert severity="error" sx={{ m: 2 }}>{preview.error}</Alert> : null}
+          {preview.loading ? (
+            <Box sx={{ alignItems: "center", display: "flex", minHeight: 160, justifyContent: "center" }}>
+              <Typography color="text.secondary">Loading invoice PDF...</Typography>
+            </Box>
+          ) : null}
+          {preview.pdfUrl ? (
+            <Box
+              component="iframe"
+              src={preview.pdfUrl}
+              title={preview.invoice?.invoiceNumber ? `Invoice ${preview.invoice.invoiceNumber}` : "Invoice preview"}
+              sx={{
+                border: 0,
+                display: "block",
+                height: { xs: "72vh", md: "78vh" },
+                width: "100%",
+              }}
+            />
+          ) : null}
+          {!preview.loading && !preview.pdfUrl && !preview.error ? (
+            <Typography color="text.secondary" sx={{ p: 2 }}>No invoice selected.</Typography>
+          ) : null}
+        </DialogContent>
+        <DialogActions>
+          <Button disabled startIcon={<EmailIcon />}>
+            Send invoice to customer email
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button onClick={closePreview}>Close</Button>
+          <Button
+            disabled={!preview.invoice}
+            onClick={async () => {
+              try {
+                await downloadAdminInvoice(authToken, preview.invoice.id, preview.invoice.invoiceNumber);
+              } catch (err) {
+                toast.error(err.message || "Failed to download invoice.");
+              }
+            }}
+            startIcon={<DownloadIcon />}
+            variant="contained"
+          >
+            Download
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 };
 

@@ -73,26 +73,11 @@ export const fetchAdminInvoices = async (authToken, params = {}) => {
   };
 };
 
-export const regenerateInvoicePdf = async (authToken, invoiceId) => {
-  const response = await fetch(`${API_BASE_URL}/api/gst/admin/invoices/${invoiceId}/regenerate-pdf`, {
-    headers: getAuthHeaders(authToken, true),
-    method: "POST",
-  });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
-
-  return payload?.data || {};
-};
-
 export const getAdminInvoiceDownloadUrl = (invoiceId) => (
   `${API_BASE_URL}/api/gst/admin/invoices/${invoiceId}/download`
 );
 
-export const downloadAdminInvoice = async (authToken, invoiceId, invoiceNumber = "gst-invoice") => {
+export const fetchAdminInvoicePdfBlob = async (authToken, invoiceId) => {
   const response = await fetch(getAdminInvoiceDownloadUrl(invoiceId), {
     headers: getAuthHeaders(authToken),
   });
@@ -101,7 +86,11 @@ export const downloadAdminInvoice = async (authToken, invoiceId, invoiceNumber =
     throw new Error(await getErrorMessage(response));
   }
 
-  const blob = await response.blob();
+  return response.blob();
+};
+
+export const downloadAdminInvoice = async (authToken, invoiceId, invoiceNumber = "gst-invoice") => {
+  const blob = await fetchAdminInvoicePdfBlob(authToken, invoiceId);
   const blobUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
