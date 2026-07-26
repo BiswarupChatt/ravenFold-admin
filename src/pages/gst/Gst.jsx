@@ -14,6 +14,7 @@ import {
   Typography,
 } from "@mui/material";
 import DownloadIcon from "@mui/icons-material/Download";
+import EditIcon from "@mui/icons-material/Edit";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SaveIcon from "@mui/icons-material/Save";
 
@@ -50,43 +51,43 @@ const EMPTY_CONFIG = {
 };
 
 const GST_STATE_OPTIONS = [
-  { code: "01", name: "Jammu and Kashmir" },
-  { code: "02", name: "Himachal Pradesh" },
-  { code: "03", name: "Punjab" },
-  { code: "04", name: "Chandigarh" },
-  { code: "05", name: "Uttarakhand" },
-  { code: "06", name: "Haryana" },
-  { code: "07", name: "Delhi" },
-  { code: "08", name: "Rajasthan" },
-  { code: "09", name: "Uttar Pradesh" },
-  { code: "10", name: "Bihar" },
-  { code: "11", name: "Sikkim" },
-  { code: "12", name: "Arunachal Pradesh" },
-  { code: "13", name: "Nagaland" },
-  { code: "14", name: "Manipur" },
-  { code: "15", name: "Mizoram" },
-  { code: "16", name: "Tripura" },
-  { code: "17", name: "Meghalaya" },
-  { code: "18", name: "Assam" },
-  { code: "19", name: "West Bengal" },
-  { code: "20", name: "Jharkhand" },
-  { code: "21", name: "Odisha" },
-  { code: "22", name: "Chhattisgarh" },
-  { code: "23", name: "Madhya Pradesh" },
-  { code: "24", name: "Gujarat" },
-  { code: "26", name: "Dadra and Nagar Haveli and Daman and Diu" },
-  { code: "27", name: "Maharashtra" },
-  { code: "29", name: "Karnataka" },
-  { code: "30", name: "Goa" },
-  { code: "31", name: "Lakshadweep" },
-  { code: "32", name: "Kerala" },
-  { code: "33", name: "Tamil Nadu" },
-  { code: "34", name: "Puducherry" },
   { code: "35", name: "Andaman and Nicobar Islands" },
-  { code: "36", name: "Telangana" },
   { code: "37", name: "Andhra Pradesh" },
+  { code: "12", name: "Arunachal Pradesh" },
+  { code: "18", name: "Assam" },
+  { code: "10", name: "Bihar" },
+  { code: "04", name: "Chandigarh" },
+  { code: "22", name: "Chhattisgarh" },
+  { code: "26", name: "Dadra and Nagar Haveli and Daman and Diu" },
+  { code: "07", name: "Delhi" },
+  { code: "30", name: "Goa" },
+  { code: "24", name: "Gujarat" },
+  { code: "06", name: "Haryana" },
+  { code: "02", name: "Himachal Pradesh" },
+  { code: "01", name: "Jammu and Kashmir" },
+  { code: "20", name: "Jharkhand" },
+  { code: "29", name: "Karnataka" },
+  { code: "32", name: "Kerala" },
   { code: "38", name: "Ladakh" },
+  { code: "31", name: "Lakshadweep" },
+  { code: "23", name: "Madhya Pradesh" },
+  { code: "27", name: "Maharashtra" },
+  { code: "14", name: "Manipur" },
+  { code: "17", name: "Meghalaya" },
+  { code: "15", name: "Mizoram" },
+  { code: "13", name: "Nagaland" },
+  { code: "21", name: "Odisha" },
   { code: "97", name: "Other Territory" },
+  { code: "34", name: "Puducherry" },
+  { code: "03", name: "Punjab" },
+  { code: "08", name: "Rajasthan" },
+  { code: "11", name: "Sikkim" },
+  { code: "33", name: "Tamil Nadu" },
+  { code: "36", name: "Telangana" },
+  { code: "16", name: "Tripura" },
+  { code: "09", name: "Uttar Pradesh" },
+  { code: "05", name: "Uttarakhand" },
+  { code: "19", name: "West Bengal" },
 ];
 
 const getStateCodeByName = (stateName = "") => (
@@ -149,58 +150,74 @@ const buildConfigPayload = (form) => ({
   useFinancialYearNumbering: Boolean(form.useFinancialYearNumbering),
 });
 
-const ConfigurationTab = ({ form, loading, onChange, onSave, saving }) => (
+const ConfigurationTab = ({ editable, form, loading, onCancel, onChange, onEdit, onSave, saving }) => {
+  const fieldDisabled = loading || saving || !editable;
+
+  return (
   <Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
     <Stack spacing={2}>
-      <Box>
-        <Typography variant="h6" fontWeight={700}>GST Configuration</Typography>
-        <Typography variant="body2" color="text.secondary">
-          Values are snapshotted into orders and invoices at generation time.
-        </Typography>
-      </Box>
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="Brand name" name="brandName" value={form.brandName} onChange={onChange} fullWidth size="small" />
-        <TextField label="Registered company name" name="businessLegalName" value={form.businessLegalName} onChange={onChange} fullWidth size="small" />
-        <TextField label="Trade name" name="tradeName" value={form.tradeName} onChange={onChange} fullWidth size="small" />
+      <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5} justifyContent="space-between">
+        <Box>
+          <Typography variant="h6" fontWeight={700}>GST Configuration</Typography>
+          <Typography variant="body2" color="text.secondary">
+            Values are snapshotted into orders and invoices at generation time.
+          </Typography>
+        </Box>
+        {!editable ? (
+          <Button variant="outlined" startIcon={<EditIcon />} disabled={loading || saving} onClick={onEdit}>
+            Edit
+          </Button>
+        ) : null}
       </Stack>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="GSTIN" name="gstin" value={form.gstin} onChange={onChange} fullWidth size="small" />
-        <TextField label="PAN" name="pan" value={form.pan} onChange={onChange} fullWidth size="small" />
-        <TextField label="State code" value={form.registeredAddress.stateCode} fullWidth size="small" InputProps={{ readOnly: true }} />
+        <TextField disabled={fieldDisabled} label="Brand name" name="brandName" value={form.brandName} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="Registered company name" name="businessLegalName" value={form.businessLegalName} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="Trade name" name="tradeName" value={form.tradeName} onChange={onChange} fullWidth size="small" />
       </Stack>
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField select label="State" name="registeredAddress.state" value={form.registeredAddress.state} onChange={onChange} fullWidth size="small">
+        <TextField disabled={fieldDisabled} label="GSTIN" name="gstin" value={form.gstin} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="PAN" name="pan" value={form.pan} onChange={onChange} fullWidth size="small" />
+        <TextField disabled label="State code" value={form.registeredAddress.stateCode} fullWidth size="small" InputProps={{ readOnly: true }} />
+      </Stack>
+      <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+        <TextField disabled={fieldDisabled} select label="State" name="registeredAddress.state" value={form.registeredAddress.state} onChange={onChange} fullWidth size="small">
           <MenuItem value="">Select state</MenuItem>
           {GST_STATE_OPTIONS.map((state) => (
             <MenuItem key={state.code} value={state.name}>{state.name}</MenuItem>
           ))}
         </TextField>
-        <TextField label="City" name="registeredAddress.city" value={form.registeredAddress.city} onChange={onChange} fullWidth size="small" />
-        <TextField label="PIN code" name="registeredAddress.pincode" value={form.registeredAddress.pincode} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="City" name="registeredAddress.city" value={form.registeredAddress.city} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="PIN code" name="registeredAddress.pincode" value={form.registeredAddress.pincode} onChange={onChange} fullWidth size="small" />
       </Stack>
-      <TextField label="Registered address line 1" name="registeredAddress.addressLine1" value={form.registeredAddress.addressLine1} onChange={onChange} fullWidth size="small" />
-      <TextField label="Registered address line 2" name="registeredAddress.addressLine2" value={form.registeredAddress.addressLine2} onChange={onChange} fullWidth size="small" />
+      <TextField disabled={fieldDisabled} label="Registered address line 1" name="registeredAddress.addressLine1" value={form.registeredAddress.addressLine1} onChange={onChange} fullWidth size="small" />
+      <TextField disabled={fieldDisabled} label="Registered address line 2" name="registeredAddress.addressLine2" value={form.registeredAddress.addressLine2} onChange={onChange} fullWidth size="small" />
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="Contact number" name="contactNumber" value={form.contactNumber} onChange={onChange} fullWidth size="small" />
-        <TextField label="Email" name="email" value={form.email} onChange={onChange} fullWidth size="small" />
-        <TextField label="Logo URL" name="businessLogoUrl" value={form.businessLogoUrl} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="Contact number" name="contactNumber" value={form.contactNumber} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="Email" name="email" value={form.email} onChange={onChange} fullWidth size="small" />
+        <TextField disabled={fieldDisabled} label="Logo URL" name="businessLogoUrl" value={form.businessLogoUrl} onChange={onChange} fullWidth size="small" />
       </Stack>
       <Divider />
-      <TextField label="Invoice format" value={getInvoiceNumberPreview()} fullWidth size="small" InputProps={{ readOnly: true }} />
+      <TextField disabled label="Invoice format" value={getInvoiceNumberPreview()} fullWidth size="small" InputProps={{ readOnly: true }} />
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
-        <TextField label="Default GST %" name="defaultGstRate" type="number" value={form.defaultGstRate} onChange={onChange} fullWidth size="small" inputProps={{ min: 0, max: 100, step: "0.001" }} />
+        <TextField disabled={fieldDisabled} label="Default GST %" name="defaultGstRate" type="number" value={form.defaultGstRate} onChange={onChange} fullWidth size="small" inputProps={{ min: 0, max: 100, step: "0.001" }} />
       </Stack>
       <Divider />
-      <TextField label="Invoice terms" name="invoiceTerms" value={form.invoiceTerms} onChange={onChange} fullWidth size="small" multiline minRows={2} />
-      <TextField label="Invoice notes" name="invoiceNotes" value={form.invoiceNotes} onChange={onChange} fullWidth size="small" multiline minRows={2} />
-      <Stack direction="row" justifyContent="flex-end">
-        <Button variant="contained" startIcon={<SaveIcon />} disabled={loading || saving} onClick={onSave}>
-          {saving ? "Saving..." : "Save GST Settings"}
-        </Button>
-      </Stack>
+      <TextField disabled={fieldDisabled} label="Invoice terms" name="invoiceTerms" value={form.invoiceTerms} onChange={onChange} fullWidth size="small" multiline minRows={2} />
+      <TextField disabled={fieldDisabled} label="Invoice notes" name="invoiceNotes" value={form.invoiceNotes} onChange={onChange} fullWidth size="small" multiline minRows={2} />
+      {editable ? (
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Button variant="text" disabled={saving} onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="contained" startIcon={<SaveIcon />} disabled={loading || saving} onClick={onSave}>
+            {saving ? "Saving..." : "Save GST Settings"}
+          </Button>
+        </Stack>
+      ) : null}
     </Stack>
   </Paper>
-);
+  );
+};
 
 const InvoicesTab = ({ authToken }) => {
   const toast = useToast();
@@ -323,6 +340,8 @@ const Gst = () => {
   const toast = useToast();
   const [tab, setTab] = useState("config");
   const [form, setForm] = useState(EMPTY_CONFIG);
+  const [savedForm, setSavedForm] = useState(EMPTY_CONFIG);
+  const [editingConfig, setEditingConfig] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -332,7 +351,11 @@ const Gst = () => {
     setError("");
 
     try {
-      setForm(normalizeConfig(await fetchGstConfiguration(authToken)));
+      const loadedConfig = normalizeConfig(await fetchGstConfiguration(authToken));
+
+      setForm(loadedConfig);
+      setSavedForm(loadedConfig);
+      setEditingConfig(false);
     } catch (err) {
       setError(err.message || "Failed to load GST configuration.");
     } finally {
@@ -368,8 +391,11 @@ const Gst = () => {
 
     try {
       const updatedConfig = await updateGstConfiguration(authToken, buildConfigPayload(form));
+      const normalizedConfig = normalizeConfig(updatedConfig);
 
-      setForm(normalizeConfig(updatedConfig));
+      setForm(normalizedConfig);
+      setSavedForm(normalizedConfig);
+      setEditingConfig(false);
       toast.success("GST configuration saved.");
     } catch (err) {
       toast.error(err.message || "Failed to save GST configuration.");
@@ -387,7 +413,19 @@ const Gst = () => {
         <Tab label="Invoices" value="invoices" />
       </Tabs>
       {tab === "config" ? (
-        <ConfigurationTab form={form} loading={loading} onChange={handleChange} onSave={handleSave} saving={saving} />
+        <ConfigurationTab
+          editable={editingConfig}
+          form={form}
+          loading={loading}
+          onCancel={() => {
+            setForm(savedForm);
+            setEditingConfig(false);
+          }}
+          onChange={handleChange}
+          onEdit={() => setEditingConfig(true)}
+          onSave={handleSave}
+          saving={saving}
+        />
       ) : (
         <InvoicesTab authToken={authToken} />
       )}
