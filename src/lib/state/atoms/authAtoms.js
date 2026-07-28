@@ -14,6 +14,8 @@ export const userDataAtom = atomWithStorage(
     {
         id: null,
         email: null,
+        firstName: null,
+        lastName: null,
         name: null,
         role: null
     },

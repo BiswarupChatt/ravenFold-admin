@@ -12,6 +12,7 @@ import {
 } from "@mui/material";
 import Button from "@mui/material/Button";
 import { useEffect, useState } from "react";
+import { getUserDisplayName } from "@/lib/utils/utils";
 
 const STATUS_COLOR = {
   APPROVED: "success",
@@ -91,7 +92,7 @@ function ReviewDetailsDialog({
             </Stack>
 
             <Box sx={{ border: 1, borderColor: "divider", borderRadius: 2, p: 2 }}>
-              <SummaryRow label="Customer" value={review.customer?.name} />
+              <SummaryRow label="Customer" value={getUserDisplayName(review.customer)} />
               <SummaryRow label="Email" value={review.customer?.email} />
               <SummaryRow label="Order" value={review.order?.orderNumber} />
               <SummaryRow label="Submitted" value={formatDate(review.createdAt)} />

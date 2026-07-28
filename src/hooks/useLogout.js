@@ -14,6 +14,8 @@ export const useLogout = () => {
 		setUserData({
 			id: null,
 			email: null,
+			firstName: null,
+			lastName: null,
 			name: null,
 			role: null
 		});

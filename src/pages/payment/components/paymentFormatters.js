@@ -1,4 +1,4 @@
-import { formatCurrency, formatDateTime } from "@/lib/utils/utils";
+import { formatCurrency, formatDateTime, getUserDisplayName } from "@/lib/utils/utils";
 
 export const PAYMENT_TABS = [
   { label: "Money Ledger", value: "ledger" },
@@ -67,10 +67,8 @@ export const getOrderLabel = (row = {}) => {
 
 export const getCustomerLabel = (row = {}) => {
   return (
-    row.user?.name ||
-    row.user?.email ||
-    row.order?.user?.name ||
-    row.order?.user?.email ||
+    getUserDisplayName(row.user) ||
+    getUserDisplayName(row.order?.user) ||
     row.order?.shippingAddress?.fullName ||
     "Unknown customer"
   );

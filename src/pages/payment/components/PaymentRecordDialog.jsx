@@ -31,6 +31,7 @@ import {
   getProviderLabel,
   getStatusMeta,
 } from "./paymentFormatters";
+import { getUserDisplayName } from "@/lib/utils/utils";
 
 const REFUND_ORDER_STATUS_OPTIONS = [
   { label: "Cancel order", value: "cancelled" },
@@ -413,7 +414,7 @@ function PaymentRecordDialog({
                   <Stack spacing={1.25}>
                     <DetailItem label="Reason" value={record.reason} />
                     <DetailItem label="Failure reason" value={record.failureReason} />
-                    {isRefund ? <DetailItem label="Requested by" value={record.requestedByUser?.name || record.requestedBy} /> : null}
+                    {isRefund ? <DetailItem label="Requested by" value={getUserDisplayName(record.requestedByUser) || record.requestedBy} /> : null}
                   </Stack>
                 </DetailPanel>
               </Box>

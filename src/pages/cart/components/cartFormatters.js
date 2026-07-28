@@ -1,4 +1,4 @@
-import { formatCurrency, formatDateTime } from "@/lib/utils/utils";
+import { formatCurrency, formatDateTime, getUserDisplayName } from "@/lib/utils/utils";
 
 export const CART_STATUS_OPTIONS = [
   { value: "all", label: "All" },
@@ -26,7 +26,7 @@ export const formatCartDateTime = (value) => {
 };
 
 export const getCustomerName = (cart) => {
-  return cart?.user?.name || cart?.user?.email || "Unknown customer";
+  return getUserDisplayName(cart?.user) || "Unknown customer";
 };
 
 export const getCustomerInitial = (cart) => {

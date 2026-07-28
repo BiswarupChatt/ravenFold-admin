@@ -1,4 +1,4 @@
-import { formatCurrency, formatDateTime } from "@/lib/utils/utils";
+import { formatCurrency, formatDateTime, getUserDisplayName } from "@/lib/utils/utils";
 
 export const ORDER_STATUS_OPTIONS = [
   { value: "all", label: "All" },
@@ -55,7 +55,7 @@ export const formatOrderDateTime = (value) => {
 };
 
 export const getCustomerName = (order) => {
-  return order?.user?.name || order?.user?.email || order?.shippingAddress?.fullName || "Unknown customer";
+  return getUserDisplayName(order?.user) || order?.shippingAddress?.fullName || "Unknown customer";
 };
 
 export const getCustomerInitial = (order) => {

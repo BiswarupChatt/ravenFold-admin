@@ -36,6 +36,7 @@ import {
   DEFAULT_PAGINATION,
   DEFAULT_TABLE_PARAMS,
   SEARCH_DEBOUNCE_MS,
+  getUserDisplayName,
 } from "@/lib/utils/utils";
 import ReviewDetailsDialog from "./ReviewDetailsDialog";
 
@@ -281,7 +282,7 @@ function Review() {
       render: (review) => (
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="body2" fontWeight={700} noWrap>
-            {review.customer?.name || "Customer"}
+            {getUserDisplayName(review.customer) || "Customer"}
           </Typography>
           <Typography variant="caption" color="text.secondary" noWrap>
             {review.customer?.email || "-"}

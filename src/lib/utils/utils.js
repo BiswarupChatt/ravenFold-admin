@@ -49,6 +49,12 @@ export const normalizeText = (value) => {
   return String(value).trim();
 };
 
+export const getUserDisplayName = (user = {}) => {
+  return normalizeText([user.firstName, user.lastName].filter(Boolean).join(" "))
+    || normalizeText(user.name)
+    || normalizeText(user.email);
+};
+
 export const formatNumber = (value) => {
   if (value === null || value === undefined || value === "") {
     return "0";
