@@ -17,6 +17,7 @@ const ROUTES = {
   OTHER_PAYMENT: "/other/payment",
   OTHER: "/other",
   OTHER_COUPON: "/other/coupon",
+  OTHER_ANNOUNCEMENT_BANNERS: "/other/announcement-banners",
   OTHER_REVIEW: "/other/review",
   OTHER_BOX_TYPES: "/other/box-types",
   CUSTOMER: "/customer",

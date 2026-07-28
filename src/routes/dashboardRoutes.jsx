@@ -18,6 +18,7 @@ const Payment = lazy(() => import("../pages/other/payment/Payment"));
 const Other = lazy(() => import("../pages/other/Other"));
 const BoxTypes = lazy(() => import("../pages/other/boxTypes/BoxTypes"));
 const Coupon = lazy(() => import("../pages/other/coupon/Coupon"));
+const AnnouncementBanner = lazy(() => import("../pages/other/announcementBanner/AnnouncementBanner"));
 const Review = lazy(() => import("../pages/other/review/Review"));
 const Customer = lazy(() => import("../pages/customer/Customer"));
 const NotFound = lazy(() => import("../pages/NotFound"));
@@ -51,6 +52,7 @@ export const appRoutes = [
       { path: ROUTES.OTHER_PAYMENT.slice(1), element: <Payment /> },
       { path: ROUTES.OTHER.slice(1), element: <Other /> },
       { path: ROUTES.OTHER_COUPON.slice(1), element: <Coupon /> },
+      { path: ROUTES.OTHER_ANNOUNCEMENT_BANNERS.slice(1), element: <AnnouncementBanner /> },
       { path: ROUTES.OTHER_REVIEW.slice(1), element: <Review /> },
       { path: ROUTES.OTHER_BOX_TYPES.slice(1), element: <BoxTypes /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },

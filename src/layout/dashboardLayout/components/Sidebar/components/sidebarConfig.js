@@ -12,6 +12,7 @@ import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
+import CampaignIcon from "@mui/icons-material/Campaign";
 
 import ROUTES from "../../../../../routes/routes";
 
@@ -64,6 +65,11 @@ export const SIDEBAR_ITEMS = [
         name: "Promotions",
         path: ROUTES.OTHER_COUPON,
         icon: ConfirmationNumberIcon,
+      },
+      {
+        name: "Announcement Banners",
+        path: ROUTES.OTHER_ANNOUNCEMENT_BANNERS,
+        icon: CampaignIcon,
       },
       {
         name: "Review",
