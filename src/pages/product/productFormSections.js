@@ -51,6 +51,7 @@ export const PRODUCT_FORM_SECTION_FIELDS = {
     "tags",
   ],
   [PRODUCT_FORM_SECTION_IDS.MEDIA]: [
+    "imageAssets",
     "imageUrls",
   ],
   [PRODUCT_FORM_SECTION_IDS.SHIPPING]: [

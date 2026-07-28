@@ -24,6 +24,7 @@ import {
   fetchAdminCategories,
   fetchAdminCategoryTree,
   updateCategory,
+  uploadCategoryImage,
 } from "@/lib/api/categoryApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import {
@@ -43,7 +44,7 @@ const EMPTY_FORM = {
   name: "",
   slug: "",
   parentCategoryId: "",
-  image: "",
+  imageAsset: null,
   isActive: true,
 };
 
@@ -60,7 +61,7 @@ const buildPayload = (formData) => {
   const payload = {
     name: normalizeText(formData.name),
     parentCategoryId: formData.parentCategoryId || null,
-    image: normalizeText(formData.image),
+    image: formData.imageAsset?.url ? formData.imageAsset : null,
     isActive: Boolean(formData.isActive),
   };
 
@@ -89,6 +90,7 @@ const Category = () => {
   const [formError, setFormError] = useState("");
   const [editingCategory, setEditingCategory] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
   const [deletingCategory, setDeletingCategory] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState("");
@@ -202,7 +204,7 @@ const Category = () => {
       name: category.name || "",
       slug: category.slug || "",
       parentCategoryId: category.parentCategoryId || "",
-      image: category.image || "",
+      imageAsset: category.imageAsset || category.image || null,
       isActive: Boolean(category.isActive),
     });
     setFormError("");
@@ -240,6 +242,55 @@ const Category = () => {
     setCreateFormData(EMPTY_FORM);
     setFormData(EMPTY_FORM);
     setFormError("");
+  };
+
+  const handleCategoryImageUpload = async (file) => {
+    if (!file) {
+      return;
+    }
+
+    setImageUploading(true);
+    setFormError("");
+
+    try {
+      const imageAsset = await uploadCategoryImage(authToken, file);
+
+      if (!imageAsset?.url) {
+        throw new Error("Image upload did not return a URL.");
+      }
+
+      setFormData((currentFormData) => {
+        const nextFormData = {
+          ...currentFormData,
+          imageAsset,
+        };
+
+        if (!editingCategory) {
+          setCreateFormData(nextFormData);
+        }
+
+        return nextFormData;
+      });
+    } catch (err) {
+      setFormError(err.message || "Failed to upload category image.");
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
+  const handleRemoveCategoryImage = () => {
+    setFormData((currentFormData) => {
+      const nextFormData = {
+        ...currentFormData,
+        imageAsset: null,
+      };
+
+      if (!editingCategory) {
+        setCreateFormData(nextFormData);
+      }
+
+      return nextFormData;
+    });
   };
 
   const handleSubmit = async () => {
@@ -431,12 +482,15 @@ const Category = () => {
         formError={formError}
         saving={saving}
         editingCategory={editingCategory}
+        imageUploading={imageUploading}
         categoryRows={categoryRows}
         disabledParentIds={disabledParentIds}
         getHierarchyColor={getHierarchyColor}
         onClose={handleCloseDialog}
         onClear={handleClearForm}
         onChange={handleFormChange}
+        onImageUpload={handleCategoryImageUpload}
+        onRemoveImage={handleRemoveCategoryImage}
         onSubmit={handleSubmit}
       />
 

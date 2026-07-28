@@ -76,7 +76,7 @@ const ProductStockDrawer = ({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const primaryImage = Array.isArray(product?.images) ? product.images[0] : "";
+  const primaryImage = Array.isArray(product?.images) ? product.images[0]?.url || "" : "";
   const productHasVariants = Boolean(product?.hasVariants);
   const selectedTargetReady = Boolean(product && (!productHasVariants || selectedVariant));
 

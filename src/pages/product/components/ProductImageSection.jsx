@@ -303,7 +303,7 @@ const ProductImageSection = ({
         {editable && imageUrls.length > 0 ? (
           <Stack spacing={0.75}>
             <Typography variant="caption" color="text.secondary">
-              Image URLs
+              Uploaded images
             </Typography>
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {imageUrls.map((imageUrl, index) => (

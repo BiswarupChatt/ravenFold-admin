@@ -1,4 +1,5 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { uploadImages } from "@/lib/api/uploadApi";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
   .replace(/\/$/, "")
@@ -14,16 +15,6 @@ const getErrorMessage = async (response) => {
   }
 };
 
-const getCloudinaryErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.error?.message || "Cloudinary upload failed.";
-  } catch (error) {
-    return "Cloudinary upload failed.";
-  }
-};
-
 const getAuthHeaders = (authToken, hasBody = false) => {
   if (!authToken) {
     throw new Error("Please sign in again to manage products.");
@@ -33,22 +24,6 @@ const getAuthHeaders = (authToken, hasBody = false) => {
     ...(hasBody ? { "Content-Type": "application/json" } : {}),
     Authorization: `Bearer ${authToken}`,
   };
-};
-
-const getProductImageUploadSignature = async (authToken) => {
-  const response = await fetch(`${API_BASE_URL}/api/products/uploads/cloudinary-signature`, {
-    method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify({}),
-  });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
-
-  return payload?.data || {};
 };
 
 export const fetchAdminProducts = async (authToken, params = {}) => {
@@ -87,48 +62,7 @@ export const fetchAdminProduct = async (authToken, productIdOrSlug) => {
 };
 
 export const uploadProductImages = async (authToken, files = []) => {
-  const fileList = Array.from(files);
-
-  if (fileList.length === 0) {
-    return [];
-  }
-
-  const { apiKey, cloudName, params = {}, signature } = await getProductImageUploadSignature(authToken);
-
-  if (!apiKey || !cloudName || !signature) {
-    throw new Error("Cloudinary upload signature response is incomplete.");
-  }
-
-  return Promise.all(
-    fileList.map(async (file) => {
-      const formData = new FormData();
-
-      formData.append("file", file);
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== null && value !== undefined && value !== "") {
-          formData.append(key, value);
-        }
-      });
-      formData.append("api_key", apiKey);
-      formData.append("signature", signature);
-
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error(await getCloudinaryErrorMessage(response));
-      }
-
-      const payload = await response.json();
-
-      return {
-        publicId: payload.public_id,
-        url: payload.secure_url,
-      };
-    })
-  );
+  return uploadImages(authToken, files, "product");
 };
 
 export const createProduct = async (authToken, productPayload) => {

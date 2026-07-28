@@ -1,4 +1,5 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { uploadImage } from "@/lib/api/uploadApi";
 
 const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
   .replace(/\/$/, "")
@@ -53,6 +54,10 @@ export const updateGstConfiguration = async (authToken, payload) => {
   const responsePayload = await response.json();
 
   return responsePayload?.data || {};
+};
+
+export const uploadGstImage = async (authToken, file) => {
+  return uploadImage(authToken, file, "gst");
 };
 
 export const fetchAdminInvoices = async (authToken, params = {}) => {

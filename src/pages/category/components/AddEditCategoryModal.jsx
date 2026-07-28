@@ -14,11 +14,14 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 const AddEditCategoryModal = ({
   open,
   formData,
   formError,
+  imageUploading,
   saving,
   editingCategory,
   categoryRows,
@@ -27,6 +30,8 @@ const AddEditCategoryModal = ({
   onClose,
   onClear,
   onChange,
+  onImageUpload,
+  onRemoveImage,
   onSubmit,
 }) => {
   return (
@@ -92,13 +97,64 @@ const AddEditCategoryModal = ({
             ))}
           </TextField>
 
-          <TextField
-            label="Image URL"
-            name="image"
-            value={formData.image}
-            onChange={onChange}
-            fullWidth
-          />
+          <Stack spacing={1}>
+            <Typography variant="subtitle2" fontWeight={700}>
+              Category image
+            </Typography>
+            {formData.image ? (
+              <Box
+                sx={{
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 1,
+                  overflow: "hidden",
+                  width: 140,
+                }}
+              >
+                <Box
+                  component="img"
+                  src={formData.image}
+                  alt=""
+                  sx={{ display: "block", height: 120, objectFit: "cover", width: "100%" }}
+                />
+              </Box>
+            ) : null}
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              <Button
+                component="label"
+                disabled={saving || imageUploading}
+                startIcon={imageUploading ? <CircularProgress size={16} /> : <CloudUploadIcon />}
+                variant="outlined"
+              >
+                {formData.image ? "Replace image" : "Upload image"}
+                <input
+                  accept="image/*"
+                  hidden
+                  type="file"
+                  onChange={(event) => {
+                    const [file] = Array.from(event.target.files || []);
+
+                    if (file) {
+                      onImageUpload(file);
+                    }
+
+                    event.target.value = "";
+                  }}
+                />
+              </Button>
+              {formData.image ? (
+                <Button
+                  color="error"
+                  disabled={saving || imageUploading}
+                  onClick={onRemoveImage}
+                  startIcon={<DeleteOutlineIcon />}
+                  variant="outlined"
+                >
+                  Remove
+                </Button>
+              ) : null}
+            </Stack>
+          </Stack>
 
           <FormControlLabel
             control={

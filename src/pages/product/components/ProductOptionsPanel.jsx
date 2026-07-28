@@ -43,7 +43,7 @@ export const EMPTY_OPTION_FORM = {
   displayStyle: "button",
   name: "",
   optionType: "other",
-  sizeGuideImageUrl: "",
+  sizeGuideImageAsset: null,
   sortOrder: "",
   values: "",
 };
@@ -99,7 +99,7 @@ const getOptionDraft = (option = {}) => ({
   displayStyle: option.displayStyle || (option.optionType === "color" ? "swatch" : "button"),
   name: option.name || "",
   optionType: option.optionType || "other",
-  sizeGuideImageUrl: option.sizeGuideImageUrl || "",
+  sizeGuideImageAsset: option.sizeGuideImageAsset || null,
   sortOrder: option.sortOrder === undefined || option.sortOrder === null ? "" : String(option.sortOrder),
   values: "",
 });
@@ -113,23 +113,30 @@ const isSizeOption = (option = {}) => option.optionType === "size";
 
 function SizeGuideField({
   busy,
-  label,
-  onChange,
+  onRemove,
   onUpload,
   uploading,
   value,
 }) {
   return (
-    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} alignItems={{ sm: "center" }}>
-      <TextField
-        label={label}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        disabled={busy}
-        fullWidth
-        size="small"
-        helperText="Upload an image or paste a hosted image URL."
-      />
+    <Stack spacing={1}>
+      {value ? (
+        <Box
+          component="img"
+          src={value}
+          alt=""
+          sx={{
+            border: "1px solid",
+            borderColor: "divider",
+            borderRadius: 1,
+            display: "block",
+            height: 96,
+            objectFit: "contain",
+            width: 144,
+          }}
+        />
+      ) : null}
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
       <Button
         component="label"
         disabled={busy || uploading}
@@ -153,6 +160,12 @@ function SizeGuideField({
           }}
         />
       </Button>
+      {value ? (
+        <Button disabled={busy || uploading} onClick={onRemove} variant="outlined" color="error">
+          Remove
+        </Button>
+      ) : null}
+      </Stack>
     </Stack>
   );
 }
@@ -161,6 +174,7 @@ function OptionMetaFields({
   busy,
   form,
   onChange,
+  onSizeGuideRemove,
   onSizeGuideUpload,
   sizeGuideUploading,
 }) {
@@ -212,11 +226,10 @@ function OptionMetaFields({
       {form.optionType === "size" ? (
         <SizeGuideField
           busy={busy}
-          label="Size guide image URL"
-          onChange={(value) => onChange("sizeGuideImageUrl", value)}
+          onRemove={onSizeGuideRemove}
           onUpload={onSizeGuideUpload}
           uploading={sizeGuideUploading}
-          value={form.sizeGuideImageUrl}
+          value={form.sizeGuideImageAsset?.url || ""}
         />
       ) : null}
     </Stack>
@@ -305,9 +318,11 @@ const ProductOptionsPanel = ({
   onDeleteOption,
   onDeleteOptionValue,
   onEditingOptionChange,
+  onEditingOptionSizeGuideRemove,
   onEditingOptionSizeGuideUpload,
   onEditingValueChange,
   onOptionFormChange,
+  onOptionFormSizeGuideRemove,
   onOptionFormSizeGuideUpload,
   onStartEditOption,
   onStartEditValue,
@@ -394,6 +409,7 @@ const ProductOptionsPanel = ({
                           busy={busy}
                           form={optionDraft}
                           onChange={onEditingOptionChange}
+                          onSizeGuideRemove={onEditingOptionSizeGuideRemove}
                           onSizeGuideUpload={onEditingOptionSizeGuideUpload}
                           sizeGuideUploading={editingOptionSizeGuideUploading}
                         />
@@ -416,7 +432,7 @@ const ProductOptionsPanel = ({
                               </Typography>
                               <Chip size="small" label={getOptionTypeLabel(option.optionType)} />
                               <Chip size="small" label={option.displayStyle || "button"} variant="outlined" />
-                              {isSizeOption(option) && option.sizeGuideImageUrl ? (
+                              {isSizeOption(option) && option.sizeGuideImageAsset?.url ? (
                                 <Chip size="small" label="Size guide" color="success" variant="outlined" />
                               ) : null}
                             </Stack>
@@ -598,6 +614,7 @@ const ProductOptionsPanel = ({
               busy={busy}
               form={optionForm}
               onChange={onOptionFormChange}
+              onSizeGuideRemove={onOptionFormSizeGuideRemove}
               onSizeGuideUpload={onOptionFormSizeGuideUpload}
               sizeGuideUploading={optionFormSizeGuideUploading}
             />

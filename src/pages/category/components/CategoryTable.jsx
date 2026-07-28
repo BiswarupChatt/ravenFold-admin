@@ -70,9 +70,9 @@ const CategoryTable = ({
       header: "Image",
       minWidth: 220,
       render: (category) =>
-        category.image ? (
+        category.image?.url ? (
           <Typography variant="body2" color="primary" noWrap sx={{ maxWidth: 220 }}>
-            {category.image}
+            {category.image.url}
           </Typography>
         ) : (
           <Typography variant="body2" color="text.secondary">

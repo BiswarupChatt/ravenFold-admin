@@ -50,7 +50,6 @@ import {
   createLocalImagePreviews,
   formatMoney,
   getVariantLabel as getSharedVariantLabel,
-  joinLines,
   moveArrayItem as moveImage,
   revokeLocalImagePreviews,
   splitCommaSeparatedValues,
@@ -70,6 +69,7 @@ const EMPTY_VARIANT_FORM = {
   price: "",
   salePrice: "",
   images: "",
+  imageAssets: [],
   isActive: true,
 };
 
@@ -96,11 +96,46 @@ const getVariantFromResponse = (response) => response?.data || null;
 
 const getVariantId = (variant) => variant?.id || variant?._id || "";
 
+const normalizeImageAsset = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value !== "object") {
+    return null;
+  }
+
+  const url = String(value.url || "").trim();
+
+  if (!url) {
+    return null;
+  }
+
+  return {
+    publicId: String(value.publicId || "").trim(),
+    url,
+  };
+};
+
+const normalizeImageAssets = (value = []) => (
+  Array.isArray(value) ? value.map(normalizeImageAsset).filter(Boolean) : []
+);
+
+const getImageUrls = (assets = []) => normalizeImageAssets(assets).map((asset) => asset.url);
+
+const getImagePayload = (form) => {
+  const assetsByUrl = new Map(
+    normalizeImageAssets(form.imageAssets).map((asset) => [asset.url, asset])
+  );
+
+  return splitLines(form.images).map((url) => assetsByUrl.get(url)).filter(Boolean);
+};
+
 const getOptionDraftFromOption = (option = {}) => ({
   displayStyle: option.displayStyle || (option.optionType === "color" ? "swatch" : "button"),
   name: option.name || "",
   optionType: option.optionType || "other",
-  sizeGuideImageUrl: option.sizeGuideImageUrl || "",
+  sizeGuideImageAsset: option.sizeGuideImageAsset || null,
   sortOrder: option.sortOrder === null || option.sortOrder === undefined ? "" : String(option.sortOrder),
   values: "",
 });
@@ -132,7 +167,8 @@ const buildVariantFormFromVariant = (variant = {}, options = []) => {
     optionValues,
     price: variant.price === null || variant.price === undefined ? "" : String(variant.price),
     salePrice: variant.salePrice === null || variant.salePrice === undefined ? "" : String(variant.salePrice),
-    images: Array.isArray(variant.images) ? joinLines(variant.images) : "",
+    imageAssets: normalizeImageAssets(variant.imageAssets || variant.images),
+    images: getImageUrls(variant.imageAssets || variant.images).join("\n"),
     isActive: variant.isActive !== false,
   };
 };
@@ -142,7 +178,7 @@ const buildVariantPayloadFromVariant = (variant = {}, changes = {}) => ({
   optionValues: Array.isArray(variant.optionValues) ? variant.optionValues : [],
   price: variant.price,
   salePrice: variant.salePrice === undefined ? null : variant.salePrice,
-  images: Array.isArray(variant.images) ? variant.images : [],
+  images: normalizeImageAssets(variant.imageAssets || variant.images),
   isActive: variant.isActive !== false,
   ...changes,
 });
@@ -291,24 +327,23 @@ const ProductVariantsPanel = ({
 
   const uploadSingleOptionImage = async (file) => {
     const [uploadedImage] = await uploadProductImages(authToken, [file]);
-    const imageUrl = uploadedImage?.url || "";
 
-    if (!imageUrl) {
+    if (!uploadedImage?.url) {
       throw new Error("Image upload did not return a URL.");
     }
 
-    return imageUrl;
+    return uploadedImage;
   };
 
   const handleOptionFormSizeGuideUpload = async (file) => {
     setOptionFormSizeGuideUploading(true);
 
     try {
-      const imageUrl = await uploadSingleOptionImage(file);
+      const imageAsset = await uploadSingleOptionImage(file);
 
       setOptionForm((currentForm) => ({
         ...currentForm,
-        sizeGuideImageUrl: imageUrl,
+        sizeGuideImageAsset: imageAsset,
       }));
       toast.success("Size guide image uploaded.");
     } catch (err) {
@@ -322,11 +357,11 @@ const ProductVariantsPanel = ({
     setEditingOptionSizeGuideUploading(true);
 
     try {
-      const imageUrl = await uploadSingleOptionImage(file);
+      const imageAsset = await uploadSingleOptionImage(file);
 
       setEditingOptionDraft((currentDraft) => ({
         ...currentDraft,
-        sizeGuideImageUrl: imageUrl,
+        sizeGuideImageAsset: imageAsset,
       }));
       toast.success("Size guide image uploaded.");
     } catch (err) {
@@ -351,7 +386,7 @@ const ProductVariantsPanel = ({
         displayStyle: optionForm.displayStyle,
         name,
         optionType: optionForm.optionType,
-        sizeGuideImageUrl: optionForm.optionType === "size" ? optionForm.sizeGuideImageUrl : "",
+        sizeGuideImageAsset: optionForm.optionType === "size" ? optionForm.sizeGuideImageAsset : null,
         sortOrder: optionForm.sortOrder,
         values: splitCommaSeparatedValues(optionForm.values),
       });
@@ -387,9 +422,9 @@ const ProductVariantsPanel = ({
         displayStyle: editingOptionDraft.displayStyle,
         name,
         optionType: editingOptionDraft.optionType,
-        sizeGuideImageUrl: editingOptionDraft.optionType === "size"
-          ? editingOptionDraft.sizeGuideImageUrl
-          : "",
+        sizeGuideImageAsset: editingOptionDraft.optionType === "size"
+          ? editingOptionDraft.sizeGuideImageAsset
+          : null,
         sortOrder: editingOptionDraft.sortOrder,
       });
       setEditingOptionId("");
@@ -547,7 +582,13 @@ const ProductVariantsPanel = ({
   };
 
   const handleVariantImagesChange = (imageUrls) => {
-    handleVariantFormChange("images", joinLines(imageUrls));
+    setVariantForm((currentForm) => ({
+      ...currentForm,
+      imageAssets: imageUrls.map((imageUrl) => (
+        normalizeImageAssets(currentForm.imageAssets).find((asset) => asset.url === imageUrl)
+      )).filter(Boolean),
+      images: imageUrls.join("\n"),
+    }));
   };
 
   const queueVariantImageFiles = (files) => {
@@ -656,7 +697,7 @@ const ProductVariantsPanel = ({
         .filter((optionValue) => optionValue.value || optionValue.valueId),
       price: variantForm.price,
       salePrice: variantForm.salePrice === "" ? null : variantForm.salePrice,
-      images: splitLines(variantForm.images),
+      images: getImagePayload(variantForm),
       isActive: Boolean(variantForm.isActive),
     };
   };
@@ -706,7 +747,7 @@ const ProductVariantsPanel = ({
     try {
       const uploadedImages = await uploadProductImages(authToken, variantImageFiles);
 
-      return uploadedImages.map((image) => image.url).filter(Boolean);
+      return uploadedImages.filter((image) => image?.url);
     } finally {
       setVariantUploadingImages(false);
     }
@@ -725,13 +766,13 @@ const ProductVariantsPanel = ({
 
     try {
       if (isEditingVariant) {
-        const uploadedUrls = await uploadQueuedVariantImages();
+        const uploadedImages = await uploadQueuedVariantImages();
 
         await updateProductVariant(authToken, productId, variantForm.id, {
           ...payload,
           images: [
             ...payload.images,
-            ...uploadedUrls,
+            ...uploadedImages,
           ],
         });
         toast.success("Product variant updated.");
@@ -746,12 +787,12 @@ const ProductVariantsPanel = ({
             toast.warning("Product variant created, but image upload was skipped.");
           } else {
             try {
-              const uploadedUrls = await uploadQueuedVariantImages();
+              const uploadedImages = await uploadQueuedVariantImages();
 
               await updateProductVariant(authToken, productId, createdVariantId, {
                 images: [
                   ...payload.images,
-                  ...uploadedUrls,
+                  ...uploadedImages,
                 ],
               });
             } catch (err) {
@@ -879,12 +920,20 @@ const ProductVariantsPanel = ({
             ? { displayStyle: getDisplayStyleForType(value) }
             : {}),
         }))}
+        onEditingOptionSizeGuideRemove={() => setEditingOptionDraft((current) => ({
+          ...current,
+          sizeGuideImageAsset: null,
+        }))}
         onEditingOptionSizeGuideUpload={handleEditingOptionSizeGuideUpload}
         onEditingValueChange={(field, value) => setEditingValue((current) => ({
           ...current,
           [field]: value,
         }))}
         onOptionFormChange={handleOptionFormChange}
+        onOptionFormSizeGuideRemove={() => setOptionForm((current) => ({
+          ...current,
+          sizeGuideImageAsset: null,
+        }))}
         onOptionFormSizeGuideUpload={handleOptionFormSizeGuideUpload}
         onStartEditOption={handleStartEditOption}
         onStartEditValue={handleStartEditValue}
@@ -1101,7 +1150,10 @@ const ProductVariantsPanel = ({
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredVariants.length > 0 ? filteredVariants.map((variant) => (
+                {filteredVariants.length > 0 ? filteredVariants.map((variant) => {
+                  const primaryVariantImage = getImageUrls(variant.images)[0] || "";
+
+                  return (
                   <TableRow key={variant.id} hover sx={{ "& td": { py: 1.25 } }}>
                     <TableCell sx={{ width: 96 }}>
                       <Box
@@ -1109,7 +1161,7 @@ const ProductVariantsPanel = ({
                           width: 74,
                           height: 74,
                           border: "1px dashed",
-                          borderColor: variant.images?.[0] ? "secondary.light" : "divider",
+                          borderColor: primaryVariantImage ? "secondary.light" : "divider",
                           borderRadius: 1,
                           bgcolor: "background.default",
                           display: "grid",
@@ -1117,10 +1169,10 @@ const ProductVariantsPanel = ({
                           overflow: "hidden",
                         }}
                       >
-                        {variant.images?.[0] ? (
+                        {primaryVariantImage ? (
                           <Box
                             component="img"
-                            src={variant.images[0]}
+                            src={primaryVariantImage}
                             alt=""
                             sx={{ width: "100%", height: "100%", objectFit: "cover" }}
                           />
@@ -1213,7 +1265,8 @@ const ProductVariantsPanel = ({
                       ) : null}
                     </TableCell>
                   </TableRow>
-                )) : (
+                  );
+                }) : (
                   <TableRow>
                     <TableCell colSpan={5}>
                       <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>

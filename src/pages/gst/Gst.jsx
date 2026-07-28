@@ -32,6 +32,7 @@ import {
   downloadGstReport,
   fetchAdminInvoicePdfBlob,
   updateGstConfiguration,
+  uploadGstImage,
 } from "@/lib/api/gstApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { DEFAULT_PAGINATION, DEFAULT_TABLE_PARAMS, formatCurrency, formatDate } from "@/lib/utils/utils";
@@ -42,7 +43,7 @@ const EMPTY_CONFIG = {
   bankDetails: { accountName: "", accountNumber: "", bankName: "", branchName: "", ifsc: "" },
   brandName: "Raven Fold",
   businessLegalName: "Aurax & Co",
-  businessLogoUrl: "",
+  businessLogoAsset: null,
   contactNumber: "",
   defaultGstRate: 0,
   email: "",
@@ -142,7 +143,7 @@ const buildConfigPayload = (form) => ({
   },
   brandName: form.brandName,
   businessLegalName: form.businessLegalName,
-  businessLogoUrl: form.businessLogoUrl,
+  businessLogoAsset: form.businessLogoAsset,
   contactNumber: form.contactNumber,
   defaultGstRate: form.defaultGstRate,
   email: form.email,
@@ -155,7 +156,19 @@ const buildConfigPayload = (form) => ({
   useFinancialYearNumbering: Boolean(form.useFinancialYearNumbering),
 });
 
-const ConfigurationTab = ({ editable, form, loading, onCancel, onChange, onEdit, onSave, saving }) => {
+const ConfigurationTab = ({
+  editable,
+  form,
+  logoUploading,
+  loading,
+  onCancel,
+  onChange,
+  onEdit,
+  onLogoRemove,
+  onLogoUpload,
+  onSave,
+  saving,
+}) => {
   const fieldDisabled = loading || saving || !editable;
 
   return (
@@ -199,7 +212,52 @@ const ConfigurationTab = ({ editable, form, loading, onCancel, onChange, onEdit,
       <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
         <TextField disabled={fieldDisabled} label="Contact number" name="contactNumber" value={form.contactNumber} onChange={onChange} fullWidth size="small" />
         <TextField disabled={fieldDisabled} label="Email" name="email" value={form.email} onChange={onChange} fullWidth size="small" />
-        <TextField disabled={fieldDisabled} label="Logo URL" name="businessLogoUrl" value={form.businessLogoUrl} onChange={onChange} fullWidth size="small" />
+      </Stack>
+      <Stack spacing={1}>
+        <Typography variant="subtitle2" fontWeight={700}>Business logo</Typography>
+        {form.businessLogoAsset?.url ? (
+          <Box
+            component="img"
+            src={form.businessLogoAsset.url}
+            alt=""
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1,
+              display: "block",
+              maxHeight: 88,
+              maxWidth: 180,
+              objectFit: "contain",
+              p: 1,
+            }}
+          />
+        ) : null}
+        {editable ? (
+          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+            <Button component="label" disabled={fieldDisabled || logoUploading} variant="outlined">
+              {logoUploading ? "Uploading..." : form.businessLogoAsset?.url ? "Replace logo" : "Upload logo"}
+              <input
+                accept="image/*"
+                hidden
+                type="file"
+                onChange={(event) => {
+                  const [file] = Array.from(event.target.files || []);
+
+                  if (file) {
+                    onLogoUpload(file);
+                  }
+
+                  event.target.value = "";
+                }}
+              />
+            </Button>
+            {form.businessLogoAsset?.url ? (
+              <Button color="error" disabled={fieldDisabled || logoUploading} onClick={onLogoRemove} variant="outlined">
+                Remove
+              </Button>
+            ) : null}
+          </Stack>
+        ) : null}
       </Stack>
       <Divider />
       <TextField disabled label="Invoice format" value={getInvoiceNumberPreview()} fullWidth size="small" InputProps={{ readOnly: true }} />
@@ -438,6 +496,7 @@ const Gst = () => {
   const [editingConfig, setEditingConfig] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const [error, setError] = useState("");
 
   const loadConfig = useCallback(async () => {
@@ -480,6 +539,34 @@ const Gst = () => {
     });
   };
 
+  const handleLogoUpload = async (file) => {
+    setLogoUploading(true);
+
+    try {
+      const logoAsset = await uploadGstImage(authToken, file);
+
+      if (!logoAsset?.url) {
+        throw new Error("Logo upload did not return a URL.");
+      }
+
+      setForm((current) => ({
+        ...current,
+        businessLogoAsset: logoAsset,
+      }));
+    } catch (err) {
+      toast.error(err.message || "Failed to upload logo.");
+    } finally {
+      setLogoUploading(false);
+    }
+  };
+
+  const handleLogoRemove = () => {
+    setForm((current) => ({
+      ...current,
+      businessLogoAsset: null,
+    }));
+  };
+
   const handleSave = async () => {
     setSaving(true);
 
@@ -510,6 +597,7 @@ const Gst = () => {
         <ConfigurationTab
           editable={editingConfig}
           form={form}
+          logoUploading={logoUploading}
           loading={loading}
           onCancel={() => {
             setForm(savedForm);
@@ -517,6 +605,8 @@ const Gst = () => {
           }}
           onChange={handleChange}
           onEdit={() => setEditingConfig(true)}
+          onLogoRemove={handleLogoRemove}
+          onLogoUpload={handleLogoUpload}
           onSave={handleSave}
           saving={saving}
         />

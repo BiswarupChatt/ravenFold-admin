@@ -26,7 +26,6 @@ import {
   PRODUCT_STATUSES,
   flattenCategoryTree,
   getHierarchyColor,
-  joinLines,
   normalizeAttributes,
   normalizeText,
   splitCommaSeparatedValues,
@@ -52,6 +51,7 @@ const EMPTY_FORM = {
   shortDescription: "",
   description: "",
   imageUrls: "",
+  imageAssets: [],
   tags: "",
   attributes: [],
   shippingRequiresShipping: true,
@@ -81,6 +81,43 @@ const EMPTY_FORM = {
   isFeatured: false,
 };
 
+const normalizeImageAsset = (value) => {
+  if (!value) {
+    return null;
+  }
+
+  if (typeof value !== "object") {
+    return null;
+  }
+
+  const url = normalizeText(value.url);
+
+  if (!url) {
+    return null;
+  }
+
+  return {
+    publicId: normalizeText(value.publicId),
+    url,
+  };
+};
+
+const normalizeImageAssets = (value = []) => (
+  Array.isArray(value)
+    ? value.map(normalizeImageAsset).filter(Boolean)
+    : []
+);
+
+const getImageUrls = (assets = []) => normalizeImageAssets(assets).map((asset) => asset.url);
+
+const getImagePayload = (formData) => {
+  const assetsByUrl = new Map(
+    normalizeImageAssets(formData.imageAssets).map((asset) => [asset.url, asset])
+  );
+
+  return splitLines(formData.imageUrls).map((url) => assetsByUrl.get(url)).filter(Boolean);
+};
+
 const buildPayload = (formData) => {
   const payload = {
     name: normalizeText(formData.name),
@@ -91,7 +128,7 @@ const buildPayload = (formData) => {
     status: formData.status,
     shortDescription: normalizeText(formData.shortDescription),
     description: normalizeText(formData.description),
-    images: splitLines(formData.imageUrls),
+    images: getImagePayload(formData),
     tags: splitCommaSeparatedValues(formData.tags),
     attributes: normalizeAttributes(formData.attributes),
     shipping: {
@@ -198,7 +235,7 @@ const buildOrganizationPayload = (formData) => {
 };
 
 const buildMediaPayload = (formData) => ({
-  images: splitLines(formData.imageUrls),
+  images: getImagePayload(formData),
 });
 
 const buildShippingPayload = (formData) => ({
@@ -438,7 +475,8 @@ const productToFormData = (product) => {
     status: product.status || "draft",
     shortDescription: product.shortDescription || "",
     description: product.description || "",
-    imageUrls: Array.isArray(product.images) ? product.images.join("\n") : "",
+    imageAssets: normalizeImageAssets(product.imageAssets || product.images),
+    imageUrls: getImageUrls(product.imageAssets || product.images).join("\n"),
     tags: Array.isArray(product.tags) ? product.tags.join(", ") : "",
     attributes: normalizeAttributes(product.attributes),
     shippingRequiresShipping: shipping.requiresShipping !== false,
@@ -592,7 +630,10 @@ const ProductDetailsPage = ({ mode }) => {
   const handleImagesChange = useCallback((imageUrls) => {
     setPageFormData((currentFormData) => ({
       ...currentFormData,
-      imageUrls: joinLines(imageUrls),
+      imageAssets: imageUrls.map((imageUrl) => (
+        normalizeImageAssets(currentFormData.imageAssets).find((asset) => asset.url === imageUrl)
+      )).filter(Boolean),
+      imageUrls: imageUrls.join("\n"),
     }));
   }, [setPageFormData]);
 
@@ -682,7 +723,7 @@ const ProductDetailsPage = ({ mode }) => {
     try {
       const uploadedImages = await uploadProductImages(authToken, pendingImageFiles);
 
-      return uploadedImages.map((image) => image.url).filter(Boolean);
+      return uploadedImages.filter((image) => image?.url);
     } finally {
       setUploadingImages(false);
     }
@@ -705,11 +746,11 @@ const ProductDetailsPage = ({ mode }) => {
 
     try {
       if (sectionId === PRODUCT_FORM_SECTION_IDS.MEDIA) {
-        const uploadedUrls = await uploadPendingImages();
+        const uploadedImages = await uploadPendingImages();
 
         payload.images = [
           ...payload.images,
-          ...uploadedUrls,
+          ...uploadedImages,
         ];
       }
 
@@ -761,13 +802,13 @@ const ProductDetailsPage = ({ mode }) => {
 
     try {
       if (editingProduct) {
-        const uploadedUrls = await uploadPendingImages();
+        const uploadedImages = await uploadPendingImages();
 
         await updateProduct(authToken, editingProduct.id, {
           ...payload,
           images: [
             ...payload.images,
-            ...uploadedUrls,
+            ...uploadedImages,
           ],
         });
 
@@ -787,12 +828,12 @@ const ProductDetailsPage = ({ mode }) => {
 
       if (pendingImageFiles.length > 0) {
         try {
-          const uploadedUrls = await uploadPendingImages();
+          const uploadedImages = await uploadPendingImages();
 
           await updateProduct(authToken, createdProductId, {
             images: [
               ...payload.images,
-              ...uploadedUrls,
+              ...uploadedImages,
             ],
           });
         } catch (err) {

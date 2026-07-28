@@ -510,11 +510,13 @@ const ProductDetailsForm = ({
     tags: savedFormData.tags,
   }), [savedFormData.categoryId, savedFormData.slug, savedFormData.tags]);
   const mediaFormData = useMemo(() => ({
+    imageAssets: formData.imageAssets,
     imageUrls: formData.imageUrls,
-  }), [formData.imageUrls]);
+  }), [formData.imageAssets, formData.imageUrls]);
   const savedMediaFormData = useMemo(() => ({
+    imageAssets: savedFormData.imageAssets,
     imageUrls: savedFormData.imageUrls,
-  }), [savedFormData.imageUrls]);
+  }), [savedFormData.imageAssets, savedFormData.imageUrls]);
   const shippingFormData = useMemo(() => ({
     shippingRequiresShipping: formData.shippingRequiresShipping,
     shippingWeightValue: formData.shippingWeightValue,

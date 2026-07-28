@@ -29,13 +29,15 @@ const ProductTable = ({
   onPageChange,
   onRowsPerPageChange,
 }) => {
+  const getImageUrl = (image) => image?.url || "";
+
   const productColumns = [
     {
       id: "product",
       header: "Product",
       minWidth: 260,
       render: (product) => {
-        const primaryImage = Array.isArray(product.images) ? product.images[0] : "";
+        const primaryImage = getImageUrl(Array.isArray(product.images) ? product.images[0] : null);
 
         return (
           <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
