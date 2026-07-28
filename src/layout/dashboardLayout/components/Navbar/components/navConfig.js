@@ -23,7 +23,6 @@ export const getNavItems = (handleLogout) => [
     icon: UserRoundIcon,
     children: [
       { name: "Account", path: ROUTES.ACCOUNT },
-      { name: "Settings", path: ROUTES.SETTINGS },
       { name: "Logout", action: handleLogout },
     ],
   },

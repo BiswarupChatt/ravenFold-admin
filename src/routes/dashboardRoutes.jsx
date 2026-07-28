@@ -6,7 +6,6 @@ import ROUTES from "./routes";
 const DashboardLayout = lazy(() => import("../layout/dashboardLayout/DashboardLayout"));
 const Dashboard = lazy(() => import("../pages/dashboard/Dashboard"));
 const Account = lazy(() => import("../pages/account/Account"));
-const Settings = lazy(() => import("../pages/Settings/Settings"));
 const Category = lazy(() => import("../pages/other/category/Category"));
 const Product = lazy(() => import("../pages/product/Product"));
 const ProductDetailsPage = lazy(() => import("../pages/product/ProductDetailsPage"));
@@ -57,7 +56,6 @@ export const appRoutes = [
       { path: ROUTES.OTHER_BOX_TYPES.slice(1), element: <BoxTypes /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },
-      { path: ROUTES.SETTINGS.slice(1), element: <Settings /> },
       { path: ROUTES.NOT_FOUND, element: <NotFound /> },
     ],
   },

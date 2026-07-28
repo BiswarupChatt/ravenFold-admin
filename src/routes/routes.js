@@ -3,7 +3,6 @@
 const ROUTES = {
   ROOT: "/dashboard",
 
-  SETTINGS: "/settings",
   ACCOUNT: "/account",
   CATEGORY: "/category",
   OTHER_CATEGORY: "/other/category",
