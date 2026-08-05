@@ -19,6 +19,7 @@ const ROUTES = {
   OTHER_ANNOUNCEMENT_BANNERS: "/other/announcement-banners",
   OTHER_REVIEW: "/other/review",
   OTHER_BOX_TYPES: "/other/box-types",
+  POLICY_PAGES: "/policy-pages",
   CUSTOMER: "/customer",
 
   NOT_FOUND: "*",

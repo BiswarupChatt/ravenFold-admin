@@ -1,0 +1,99 @@
+.richTextEditor {
+  border: 1px solid var(--editor-border, rgba(0, 0, 0, 0.23));
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.richTextEditor:focus-within {
+  border-color: #1976d2;
+  box-shadow: 0 0 0 1px #1976d2;
+}
+
+.richTextEditorToolbar {
+  align-items: center;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px;
+}
+
+.richTextEditorSurface {
+  min-height: 260px;
+  outline: none;
+  padding: 16px;
+}
+
+.richTextEditorSurface[data-placeholder]:empty::before {
+  color: rgba(0, 0, 0, 0.42);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.richTextEditorSurface[aria-disabled="true"] {
+  background: rgba(0, 0, 0, 0.04);
+  cursor: not-allowed;
+}
+
+.richTextEditorCk {
+  background: #ffffff;
+}
+
+.richTextEditorCk .ck.ck-toolbar {
+  border: 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+.richTextEditorCk .ck.ck-editor__main > .ck-editor__editable {
+  border: 0;
+  min-height: 300px;
+  padding: 16px;
+}
+
+.richTextEditorCk .ck.ck-editor__main > .ck-editor__editable.ck-focused {
+  border: 0;
+  box-shadow: none;
+}
+
+.richTextEditorCk .ck-content {
+  font-family: "Inter", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.richTextEditorSurface p,
+.richTextEditorSurface blockquote,
+.richTextEditorSurface ul,
+.richTextEditorSurface ol {
+  margin: 0 0 12px;
+}
+
+.richTextEditorSurface h1,
+.richTextEditorSurface h2,
+.richTextEditorSurface h3 {
+  margin: 0 0 14px;
+}
+
+.richTextEditorSurface blockquote {
+  border-left: 3px solid #d9461f;
+  color: rgba(0, 0, 0, 0.66);
+  padding-left: 14px;
+}
+
+.richTextEditorSurface a {
+  color: #1976d2;
+}
+
+.align-left {
+  text-align: left;
+}
+
+.align-center {
+  text-align: center;
+}
+
+.align-right {
+  text-align: right;
+}
+
+.align-justify {
+  text-align: justify;
+}

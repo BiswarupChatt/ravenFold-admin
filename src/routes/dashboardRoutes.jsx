@@ -20,6 +20,8 @@ const Coupon = lazy(() => import("../pages/other/coupon/Coupon"));
 const AnnouncementBanner = lazy(() => import("../pages/other/announcementBanner/AnnouncementBanner"));
 const Review = lazy(() => import("../pages/other/review/Review"));
 const Customer = lazy(() => import("../pages/customer/Customer"));
+const PolicyPages = lazy(() => import("../pages/policy/PolicyPages"));
+const PolicyPageDetails = lazy(() => import("../pages/policy/PolicyPageDetails"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
 // Auth layout / pages
@@ -54,6 +56,10 @@ export const appRoutes = [
       { path: ROUTES.OTHER_ANNOUNCEMENT_BANNERS.slice(1), element: <AnnouncementBanner /> },
       { path: ROUTES.OTHER_REVIEW.slice(1), element: <Review /> },
       { path: ROUTES.OTHER_BOX_TYPES.slice(1), element: <BoxTypes /> },
+      { path: `${ROUTES.POLICY_PAGES.slice(1)}/new`, element: <PolicyPageDetails mode="create" /> },
+      { path: `${ROUTES.POLICY_PAGES.slice(1)}/:policyId/edit`, element: <PolicyPageDetails mode="edit" /> },
+      { path: `${ROUTES.POLICY_PAGES.slice(1)}/:policyId`, element: <Navigate to="edit" replace /> },
+      { path: ROUTES.POLICY_PAGES.slice(1), element: <PolicyPages /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },
       { path: ROUTES.NOT_FOUND, element: <NotFound /> },

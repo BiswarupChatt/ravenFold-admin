@@ -13,6 +13,7 @@ import ConfirmationNumberIcon from "@mui/icons-material/ConfirmationNumber";
 import RateReviewIcon from "@mui/icons-material/RateReview";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
 import CampaignIcon from "@mui/icons-material/Campaign";
+import ArticleIcon from "@mui/icons-material/Article";
 
 import ROUTES from "../../../../../routes/routes";
 
@@ -80,6 +81,11 @@ export const SIDEBAR_ITEMS = [
         name: "Box Types",
         path: ROUTES.OTHER_BOX_TYPES,
         icon: AllInboxIcon,
+      },
+      {
+        name: "Policy Pages",
+        path: ROUTES.POLICY_PAGES,
+        icon: ArticleIcon,
       },
     ],
   },
