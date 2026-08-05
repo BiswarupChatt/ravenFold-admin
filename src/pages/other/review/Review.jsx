@@ -36,6 +36,7 @@ import {
   DEFAULT_PAGINATION,
   DEFAULT_TABLE_PARAMS,
   SEARCH_DEBOUNCE_MS,
+  formatDate,
   getUserDisplayName,
 } from "@/lib/utils/utils";
 import ReviewDetailsDialog from "./ReviewDetailsDialog";
@@ -70,18 +71,6 @@ const getStatusLabel = (status = "") => {
   }
 
   return status.charAt(0) + status.slice(1).toLowerCase();
-};
-
-const formatDate = (value) => {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
 };
 
 const getActionSuccessMessage = (action) => {

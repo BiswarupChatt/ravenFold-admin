@@ -12,25 +12,13 @@ import {
 } from "@mui/material";
 import Button from "@mui/material/Button";
 import { useEffect, useState } from "react";
-import { getUserDisplayName } from "@/lib/utils/utils";
+import { formatDate, getUserDisplayName } from "@/lib/utils/utils";
 
 const STATUS_COLOR = {
   APPROVED: "success",
   HIDDEN: "default",
   PENDING: "warning",
   REJECTED: "error",
-};
-
-const formatDate = (value) => {
-  if (!value) {
-    return "-";
-  }
-
-  return new Intl.DateTimeFormat("en-IN", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
 };
 
 const SummaryRow = ({ label, value }) => (

@@ -104,13 +104,12 @@ const Panel = ({ children, title }) => (
   </Paper>
 );
 
-const PolicyPageDetails = ({ mode = "view" }) => {
+const PolicyPageDetails = ({ mode = "edit" }) => {
   const { policyId } = useParams();
   const authToken = useAtomValue(authTokenAtom);
   const navigate = useNavigate();
   const toast = useToast();
   const isCreateMode = mode === "create";
-  const isViewMode = mode === "view";
   const [formData, setFormData] = useState(EMPTY_FORM);
   const [savedFormData, setSavedFormData] = useState(EMPTY_FORM);
   const [policy, setPolicy] = useState(null);
@@ -123,8 +122,8 @@ const PolicyPageDetails = ({ mode = "view" }) => {
   const [restoringVersionId, setRestoringVersionId] = useState("");
 
   const dirty = useMemo(() => (
-    !isViewMode && getSignature(formData) !== getSignature(savedFormData)
-  ), [formData, isViewMode, savedFormData]);
+    getSignature(formData) !== getSignature(savedFormData)
+  ), [formData, savedFormData]);
 
   const loadPolicy = useCallback(async () => {
     if (isCreateMode) {
@@ -300,7 +299,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
     }
   };
 
-  const savePanel = !isViewMode ? (
+  const savePanel = (
     <Panel title="Save Changes">
       <Box>
         <Typography variant="body2" fontWeight={700}>
@@ -320,7 +319,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
         Save
       </Button>
     </Panel>
-  ) : null;
+  );
 
   if (loading) {
     return (
@@ -361,7 +360,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
             <Box sx={{ minWidth: 0 }}>
               <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
                 <Typography variant="h5" fontWeight={800}>
-                  {isCreateMode ? "Add Policy" : isViewMode ? policy.title : `Edit ${policy.title}`}
+                  {isCreateMode ? "Add Policy" : `Edit ${policy.title}`}
                 </Typography>
                 {!isCreateMode ? (
                   <Chip
@@ -406,7 +405,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
             <Panel title="Policy Content">
               <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
                 <TextField
-                  disabled={saving || isViewMode}
+                  disabled={saving}
                   fullWidth
                   label="Title"
                   required
@@ -414,7 +413,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
                   onChange={(event) => setField("title", event.target.value)}
                 />
                 <TextField
-                  disabled={saving || isViewMode || policy?.isSystemPolicy}
+                  disabled={saving || policy?.isSystemPolicy}
                   fullWidth
                   helperText={policy?.isSystemPolicy ? "System policy slugs cannot be changed." : "Public URL slug."}
                   label="Slug"
@@ -429,7 +428,6 @@ const PolicyPageDetails = ({ mode = "view" }) => {
                 error={formData.status === "published" && isEditorHtmlEmpty(formData.contentHtml) ? "Content is required before publishing." : ""}
                 onChange={(html) => setField("contentHtml", html)}
                 placeholder="Write the policy content..."
-                readOnly={isViewMode}
                 value={formData.contentHtml}
               />
             </Panel>
@@ -445,7 +443,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
           >
             <Panel title="Publishing">
               <TextField
-                disabled={saving || isViewMode}
+                disabled={saving}
                 fullWidth
                 helperText={formData.status === "published" ? "Published policies are live immediately after saving." : "Draft policies are hidden from customers."}
                 label="Status"
@@ -467,14 +465,14 @@ const PolicyPageDetails = ({ mode = "view" }) => {
                 control={(
                   <Switch
                     checked={Boolean(formData.showInFooter)}
-                    disabled={saving || isViewMode}
+                    disabled={saving}
                     onChange={(event) => setField("showInFooter", event.target.checked)}
                   />
                 )}
                 label="Show in footer"
               />
               <TextField
-                disabled={saving || isViewMode || !formData.showInFooter}
+                disabled={saving || !formData.showInFooter}
                 fullWidth
                 helperText="Leave blank to use the policy title."
                 inputProps={{ maxLength: 60 }}
@@ -484,7 +482,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
                 onChange={(event) => setField("footerLabel", event.target.value)}
               />
               <TextField
-                disabled={saving || isViewMode || !formData.showInFooter}
+                disabled={saving || !formData.showInFooter}
                 fullWidth
                 inputProps={{ step: 1 }}
                 label="Footer sort order"
@@ -497,7 +495,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
 
             <Panel title="SEO">
               <TextField
-                disabled={saving || isViewMode}
+                disabled={saving}
                 fullWidth
                 inputProps={{ maxLength: 70 }}
                 label="SEO Title"
@@ -506,7 +504,7 @@ const PolicyPageDetails = ({ mode = "view" }) => {
                 onChange={(event) => setField("seoTitle", event.target.value)}
               />
               <TextField
-                disabled={saving || isViewMode}
+                disabled={saving}
                 fullWidth
                 inputProps={{ maxLength: 180 }}
                 label="SEO Description"
