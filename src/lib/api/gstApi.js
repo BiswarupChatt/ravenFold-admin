@@ -107,6 +107,21 @@ export const downloadAdminInvoice = async (authToken, invoiceId, invoiceNumber =
   URL.revokeObjectURL(blobUrl);
 };
 
+export const sendAdminInvoiceEmail = async (authToken, invoiceId) => {
+  const response = await fetch(`${API_BASE_URL}/api/gst/admin/invoices/${invoiceId}/email`, {
+    headers: getAuthHeaders(authToken),
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    throw new Error(await getErrorMessage(response));
+  }
+
+  const payload = await response.json();
+
+  return payload?.data || {};
+};
+
 export const downloadGstReport = async (authToken, params = {}) => {
   const response = await fetch(getGstReportExportUrl(params), {
     headers: getAuthHeaders(authToken),

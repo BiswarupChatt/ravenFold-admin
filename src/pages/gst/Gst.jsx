@@ -31,6 +31,7 @@ import {
   downloadAdminInvoice,
   downloadGstReport,
   fetchAdminInvoicePdfBlob,
+  sendAdminInvoiceEmail,
   updateGstConfiguration,
   uploadGstImage,
 } from "@/lib/api/gstApi";
@@ -296,6 +297,7 @@ const InvoicesTab = ({ authToken }) => {
     open: false,
     pdfUrl: "",
   });
+  const [sendingInvoiceId, setSendingInvoiceId] = useState("");
 
   const loadInvoices = useCallback(async () => {
     setLoading(true);
@@ -367,6 +369,23 @@ const InvoicesTab = ({ authToken }) => {
       }));
     }
   }, [authToken]);
+
+  const handleSendInvoiceEmail = useCallback(async () => {
+    if (!preview.invoice?.id) {
+      return;
+    }
+
+    setSendingInvoiceId(preview.invoice.id);
+
+    try {
+      const result = await sendAdminInvoiceEmail(authToken, preview.invoice.id);
+      toast.success(`Invoice sent to ${result.recipientEmail || "customer email"}.`);
+    } catch (err) {
+      toast.error(err.message || "Failed to send invoice email.");
+    } finally {
+      setSendingInvoiceId("");
+    }
+  }, [authToken, preview.invoice, toast]);
 
   const columns = useMemo(() => [
     { field: "invoiceNumber", header: "Invoice", minWidth: 180 },
@@ -462,8 +481,12 @@ const InvoicesTab = ({ authToken }) => {
           ) : null}
         </DialogContent>
         <DialogActions>
-          <Button disabled startIcon={<EmailIcon />}>
-            Send invoice to customer email
+          <Button
+            disabled={!preview.invoice || sendingInvoiceId === preview.invoice.id}
+            onClick={handleSendInvoiceEmail}
+            startIcon={<EmailIcon />}
+          >
+            {sendingInvoiceId === preview.invoice?.id ? "Sending..." : "Send invoice to customer email"}
           </Button>
           <Box sx={{ flex: 1 }} />
           <Button onClick={closePreview}>Close</Button>
