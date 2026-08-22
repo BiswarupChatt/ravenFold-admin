@@ -1,43 +1,16 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { apiRequest } from "@/lib/api/apiClient";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
-
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Review request failed.";
-  } catch {
-    return "Review request failed.";
-  }
-};
-
-const getAuthHeaders = (authToken, hasBody = false) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to manage reviews.");
-  }
-
-  return {
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-    Authorization: `Bearer ${authToken}`,
-  };
-};
-
-const unwrapResponse = async (response) => {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
-};
+const AUTH_MESSAGE = "Please sign in again to manage reviews.";
+const ERROR_MESSAGE = "Review request failed.";
 
 export const fetchAdminReviews = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/reviews${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/admin/reviews${buildQueryString(params)}`,
   });
-  const payload = await unwrapResponse(response);
   const data = payload?.data || {};
 
   return {
@@ -48,21 +21,25 @@ export const fetchAdminReviews = async (authToken, params = {}) => {
 };
 
 export const fetchAdminReview = async (authToken, reviewId) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/reviews/${reviewId}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/admin/reviews/${reviewId}`,
   });
-  const payload = await unwrapResponse(response);
 
   return payload?.data || null;
 };
 
 const mutateReview = async (authToken, reviewId, action, payload = null, method = "PATCH") => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/reviews/${reviewId}${action}`, {
-    body: payload ? JSON.stringify(payload) : undefined,
-    headers: getAuthHeaders(authToken, Boolean(payload)),
+  const result = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: payload || undefined,
+    errorMessage: ERROR_MESSAGE,
     method,
+    url: `/api/admin/reviews/${reviewId}${action}`,
   });
-  const result = await unwrapResponse(response);
 
   return result?.data || null;
 };

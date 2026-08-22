@@ -1,36 +1,10 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { apiRequest } from "@/lib/api/apiClient";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
+const AUTH_MESSAGE = "Please sign in again to manage inventory.";
+const ERROR_MESSAGE = "Inventory request failed.";
 
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Inventory request failed.";
-  } catch (error) {
-    return "Inventory request failed.";
-  }
-};
-
-const getAuthHeaders = (authToken, hasBody = false) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to manage inventory.");
-  }
-
-  return {
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-    Authorization: `Bearer ${authToken}`,
-  };
-};
-
-const parseInventoryListResponse = async (response, fallbackParams = {}) => {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
+const parseInventoryListResponse = (payload, fallbackParams = {}) => {
   const data = payload?.data || {};
 
   return {
@@ -39,105 +13,127 @@ const parseInventoryListResponse = async (response, fallbackParams = {}) => {
   };
 };
 
-const parseSingleInventoryResponse = async (response) => {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
-
-  return payload?.data || null;
-};
+const parseSingleInventoryResponse = (payload) => payload?.data || null;
 
 export const fetchAdminInventoryStocks = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/inventory/admin${buildQueryString(params)}`,
   });
 
-  return parseInventoryListResponse(response, params);
+  return parseInventoryListResponse(payload, params);
 };
 
 export const fetchAdminInventoryStockForTarget = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin/item${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/inventory/admin/item${buildQueryString(params)}`,
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const createInventoryStock = async (authToken, stockPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: stockPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(stockPayload),
+    url: "/api/inventory/admin",
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const updateInventoryStock = async (authToken, inventoryStockId, stockPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin/${inventoryStockId}`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: stockPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "PATCH",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(stockPayload),
+    url: `/api/inventory/admin/${inventoryStockId}`,
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const deleteInventoryStock = async (authToken, inventoryStockId) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin/${inventoryStockId}`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
     method: "DELETE",
-    headers: getAuthHeaders(authToken),
+    url: `/api/inventory/admin/${inventoryStockId}`,
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const adjustInventoryStock = async (authToken, adjustmentPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin/adjust`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: adjustmentPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(adjustmentPayload),
+    url: "/api/inventory/admin/adjust",
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const reserveInventoryStock = async (authToken, reservationPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin/reserve`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: reservationPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(reservationPayload),
+    url: "/api/inventory/admin/reserve",
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const releaseInventoryReservation = async (authToken, reservationPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin/release`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: reservationPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(reservationPayload),
+    url: "/api/inventory/admin/release",
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const commitInventorySale = async (authToken, salePayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/admin/commit`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: salePayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(salePayload),
+    url: "/api/inventory/admin/commit",
   });
 
-  return parseSingleInventoryResponse(response);
+  return parseSingleInventoryResponse(payload);
 };
 
 export const fetchAdminStockMovements = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/inventory/movements/admin${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/inventory/movements/admin${buildQueryString(params)}`,
   });
 
-  return parseInventoryListResponse(response, params);
+  return parseInventoryListResponse(payload, params);
 };

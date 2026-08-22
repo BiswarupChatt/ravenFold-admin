@@ -17,6 +17,7 @@
     "@mui/icons-material": "^7.3.5",
     "@mui/material": "^7.3.5",
     "@tailwindcss/vite": "^4.1.11",
+    "axios": "^1.19.0",
     "ckeditor5": "^48.4.0",
     "jotai": "^2.15.0",
     "qrcode.react": "^4.2.0",

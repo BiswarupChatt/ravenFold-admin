@@ -1,39 +1,16 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { apiRequest } from "@/lib/api/apiClient";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
-
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Order request failed.";
-  } catch (error) {
-    return "Order request failed.";
-  }
-};
-
-const getAuthHeaders = (authToken) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to manage orders.");
-  }
-
-  return {
-    Authorization: `Bearer ${authToken}`,
-  };
-};
+const AUTH_MESSAGE = "Please sign in again to manage orders.";
+const ERROR_MESSAGE = "Order request failed.";
 
 export const fetchAdminOrders = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/orders/admin${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/orders/admin${buildQueryString(params)}`,
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
   const data = payload?.data || {};
 
   return {
@@ -43,34 +20,25 @@ export const fetchAdminOrders = async (authToken, params = {}) => {
 };
 
 export const fetchAdminOrder = async (authToken, orderId) => {
-  const response = await fetch(`${API_BASE_URL}/api/orders/admin/${orderId}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/orders/admin/${orderId}`,
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
 
   return payload?.data || null;
 };
 
 export const updateAdminOrderStatus = async (authToken, orderId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/orders/admin/${orderId}/status`, {
+  const responsePayload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: payload,
+    errorMessage: ERROR_MESSAGE,
     method: "PATCH",
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
-    body: JSON.stringify(payload),
+    url: `/api/orders/admin/${orderId}/status`,
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const responsePayload = await response.json();
 
   return responsePayload?.data || null;
 };

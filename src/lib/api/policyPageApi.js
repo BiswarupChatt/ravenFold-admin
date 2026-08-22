@@ -1,43 +1,16 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { apiRequest } from "@/lib/api/apiClient";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
-
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Policy page request failed.";
-  } catch {
-    return "Policy page request failed.";
-  }
-};
-
-const getAuthHeaders = (authToken, hasBody = false) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to manage policy pages.");
-  }
-
-  return {
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-    Authorization: `Bearer ${authToken}`,
-  };
-};
-
-const unwrapResponse = async (response) => {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
-};
+const AUTH_MESSAGE = "Please sign in again to manage policy pages.";
+const ERROR_MESSAGE = "Policy page request failed.";
 
 export const fetchAdminPolicies = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/admin/policies${buildQueryString(params)}`,
   });
-  const payload = await unwrapResponse(response);
   const data = payload?.data || {};
 
   return {
@@ -47,85 +20,97 @@ export const fetchAdminPolicies = async (authToken, params = {}) => {
 };
 
 export const fetchAdminPolicy = async (authToken, policyIdOrSlug) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyIdOrSlug}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/admin/policies/${policyIdOrSlug}`,
   });
-  const payload = await unwrapResponse(response);
 
   return payload?.data || null;
 };
 
 export const createPolicy = async (authToken, policyPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: policyPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(policyPayload),
+    url: "/api/admin/policies",
   });
-
-  return unwrapResponse(response);
 };
 
 export const updatePolicy = async (authToken, policyId, policyPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyId}`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: policyPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "PATCH",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(policyPayload),
+    url: `/api/admin/policies/${policyId}`,
   });
-
-  return unwrapResponse(response);
 };
 
 export const publishPolicy = async (authToken, policyId, payload = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyId}/publish`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: payload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(payload),
+    url: `/api/admin/policies/${policyId}/publish`,
   });
-
-  return unwrapResponse(response);
 };
 
 export const unpublishPolicy = async (authToken, policyId) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyId}/unpublish`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken),
+    url: `/api/admin/policies/${policyId}/unpublish`,
   });
-
-  return unwrapResponse(response);
 };
 
 export const deletePolicy = async (authToken, policyId) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyId}`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
     method: "DELETE",
-    headers: getAuthHeaders(authToken),
+    url: `/api/admin/policies/${policyId}`,
   });
-
-  return unwrapResponse(response);
 };
 
 export const previewPolicy = async (authToken, policyIdOrSlug) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyIdOrSlug}/preview`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/admin/policies/${policyIdOrSlug}/preview`,
   });
-  const payload = await unwrapResponse(response);
 
   return payload?.data || null;
 };
 
 export const fetchPolicyVersions = async (authToken, policyId) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyId}/versions`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/admin/policies/${policyId}/versions`,
   });
-  const payload = await unwrapResponse(response);
 
   return Array.isArray(payload?.data) ? payload.data : [];
 };
 
 export const restorePolicyVersion = async (authToken, policyId, versionId) => {
-  const response = await fetch(`${API_BASE_URL}/api/admin/policies/${policyId}/versions/${versionId}/restore`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken),
+    url: `/api/admin/policies/${policyId}/versions/${versionId}/restore`,
   });
-
-  return unwrapResponse(response);
 };

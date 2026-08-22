@@ -1,46 +1,16 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { apiRequest } from "@/lib/api/apiClient";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
-
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Announcement banner request failed.";
-  } catch {
-    return "Announcement banner request failed.";
-  }
-};
-
-const getAuthHeaders = (authToken, hasBody = false) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to manage announcement banners.");
-  }
-
-  return {
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-    Authorization: `Bearer ${authToken}`,
-  };
-};
-
-const unwrapResponse = async (response) => {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
-};
+const AUTH_MESSAGE = "Please sign in again to manage announcement banners.";
+const ERROR_MESSAGE = "Announcement banner request failed.";
 
 export const fetchAdminAnnouncementBanners = async (authToken, params = {}) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/announcement-banners${buildQueryString(params)}`,
-    {
-      headers: getAuthHeaders(authToken),
-    },
-  );
-  const payload = await unwrapResponse(response);
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/announcement-banners${buildQueryString(params)}`,
+  });
   const data = payload?.data || {};
 
   return {
@@ -50,40 +20,44 @@ export const fetchAdminAnnouncementBanners = async (authToken, params = {}) => {
 };
 
 export const createAnnouncementBanner = async (authToken, bannerPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/announcement-banners`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: bannerPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(bannerPayload),
+    url: "/api/announcement-banners",
   });
-
-  return unwrapResponse(response);
 };
 
 export const updateAnnouncementBanner = async (authToken, bannerId, bannerPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/announcement-banners/${bannerId}`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: bannerPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "PATCH",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(bannerPayload),
+    url: `/api/announcement-banners/${bannerId}`,
   });
-
-  return unwrapResponse(response);
 };
 
 export const updateAnnouncementBannerStatus = async (authToken, bannerId, isActive) => {
-  const response = await fetch(`${API_BASE_URL}/api/announcement-banners/${bannerId}/status`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: { isActive },
+    errorMessage: ERROR_MESSAGE,
     method: "PATCH",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify({ isActive }),
+    url: `/api/announcement-banners/${bannerId}/status`,
   });
-
-  return unwrapResponse(response);
 };
 
 export const deleteAnnouncementBanner = async (authToken, bannerId) => {
-  const response = await fetch(`${API_BASE_URL}/api/announcement-banners/${bannerId}`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
     method: "DELETE",
-    headers: getAuthHeaders(authToken),
+    url: `/api/announcement-banners/${bannerId}`,
   });
-
-  return unwrapResponse(response);
 };

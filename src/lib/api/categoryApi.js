@@ -1,44 +1,17 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { apiRequest } from "@/lib/api/apiClient";
 import { uploadImage } from "@/lib/api/uploadApi";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
-
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Category request failed.";
-  } catch (error) {
-    return "Category request failed.";
-  }
-};
-
-const getAuthHeaders = (authToken, hasBody = false) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to manage categories.");
-  }
-
-  return {
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-    Authorization: `Bearer ${authToken}`,
-  };
-};
+const AUTH_MESSAGE = "Please sign in again to manage categories.";
+const ERROR_MESSAGE = "Category request failed.";
 
 export const fetchAdminCategories = async (authToken, params = {}) => {
-  const response = await fetch(
-    `${API_BASE_URL}/api/categories/admin${buildQueryString(params)}`,
-    {
-      headers: getAuthHeaders(authToken),
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/categories/admin${buildQueryString(params)}`,
+  });
   const data = payload?.data || {};
 
   return {
@@ -48,58 +21,46 @@ export const fetchAdminCategories = async (authToken, params = {}) => {
 };
 
 export const fetchAdminCategoryTree = async (authToken) => {
-  const response = await fetch(`${API_BASE_URL}/api/categories/admin/tree`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: "/api/categories/admin/tree",
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
 
   return Array.isArray(payload?.data) ? payload.data : [];
 };
 
 export const createCategory = async (authToken, categoryPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/categories`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: categoryPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(categoryPayload),
+    url: "/api/categories",
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
 };
 
 export const updateCategory = async (authToken, categoryId, categoryPayload) => {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: categoryPayload,
+    errorMessage: ERROR_MESSAGE,
     method: "PATCH",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify(categoryPayload),
+    url: `/api/categories/${categoryId}`,
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
 };
 
 export const deleteCategory = async (authToken, categoryId) => {
-  const response = await fetch(`${API_BASE_URL}/api/categories/${categoryId}`, {
+  return apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
     method: "DELETE",
-    headers: getAuthHeaders(authToken),
+    url: `/api/categories/${categoryId}`,
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  return response.json();
 };
 
 export const uploadCategoryImage = async (authToken, file) => {

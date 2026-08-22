@@ -1,30 +1,6 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
+import { apiRequest } from "@/lib/api/apiClient";
+
 const ADMIN_ROLES = new Set(["admin", "super_admin"]);
-
-const getErrorPayload = async (response) => {
-  try {
-    return await response.json();
-  } catch (error) {
-    return null;
-  }
-};
-
-const getErrorMessage = (payload, fallback = "Login failed. Please try again.") => (
-  payload?.message || fallback
-);
-
-const getAuthHeaders = (authToken, hasBody = false) => {
-  if (!authToken) {
-    throw new Error("Authentication required.");
-  }
-
-  return {
-    Authorization: `Bearer ${authToken}`,
-    ...(hasBody ? { "Content-Type": "application/json" } : {}),
-  };
-};
 
 const normalizeAuthResponse = (payload) => {
   const token = payload?.data?.token;
@@ -49,27 +25,24 @@ const normalizeAuthResponse = (payload) => {
 };
 
 export const loginWithAdminUser = async (email, password, mfaCode = "") => {
-  const response = await fetch(`${API_BASE_URL}/api/auth/admin/login`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
+  try {
+    const payload = await apiRequest({
+      data: {
       email: email.trim(),
       ...(mfaCode.trim() ? { mfaCode: mfaCode.trim() } : {}),
       password,
-    }),
-  });
+      },
+      errorMessage: "Login failed. Please try again.",
+      method: "POST",
+      requireAuth: false,
+      url: "/api/auth/admin/login",
+    });
 
-  if (!response.ok) {
-    const payload = await getErrorPayload(response);
-    const error = new Error(getErrorMessage(payload));
-
-    error.mfaRequired = Boolean(payload?.details?.mfaRequired);
+    return normalizeAuthResponse(payload);
+  } catch (error) {
+    error.mfaRequired = Boolean(error?.response?.data?.details?.mfaRequired);
     throw error;
   }
-
-  return normalizeAuthResponse(await response.json());
 };
 
 export const loginWithFrontendUser = loginWithAdminUser;
@@ -83,20 +56,17 @@ export const resetPassword = async (authToken, oldPassword, newPassword) => {
     throw new Error("Please fill in all fields.");
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
-    method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify({
+  const payload = await apiRequest({
+    authMessage: "Authentication required.",
+    authToken,
+    data: {
       currentPassword: oldPassword,
       newPassword,
-    }),
+    },
+    errorMessage: "Failed to reset password.",
+    method: "POST",
+    url: "/api/auth/change-password",
   });
-
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(payload?.message || "Failed to reset password.");
-  }
 
   return {
     success: payload?.success ?? true,
@@ -105,58 +75,50 @@ export const resetPassword = async (authToken, oldPassword, newPassword) => {
 };
 
 export const getAdminMfaStatus = async (authToken) => {
-  const response = await fetch(`${API_BASE_URL}/api/auth/admin/mfa`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: "Authentication required.",
+    authToken,
+    errorMessage: "Failed to fetch MFA status.",
+    url: "/api/auth/admin/mfa",
   });
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(payload?.message || "Failed to fetch MFA status.");
-  }
 
   return payload?.data || { enabled: false, pendingSetup: false };
 };
 
 export const createAdminMfaSetup = async (authToken) => {
-  const response = await fetch(`${API_BASE_URL}/api/auth/admin/mfa/setup`, {
+  const payload = await apiRequest({
+    authMessage: "Authentication required.",
+    authToken,
+    errorMessage: "Failed to start MFA setup.",
     method: "POST",
-    headers: getAuthHeaders(authToken),
+    url: "/api/auth/admin/mfa/setup",
   });
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(payload?.message || "Failed to start MFA setup.");
-  }
 
   return payload?.data || null;
 };
 
 export const enableAdminMfa = async (authToken, code) => {
-  const response = await fetch(`${API_BASE_URL}/api/auth/admin/mfa/enable`, {
+  const payload = await apiRequest({
+    authMessage: "Authentication required.",
+    authToken,
+    data: { code },
+    errorMessage: "Failed to enable MFA.",
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify({ code }),
+    url: "/api/auth/admin/mfa/enable",
   });
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(payload?.message || "Failed to enable MFA.");
-  }
 
   return payload?.data || { enabled: true };
 };
 
 export const disableAdminMfa = async (authToken, code) => {
-  const response = await fetch(`${API_BASE_URL}/api/auth/admin/mfa/disable`, {
+  const payload = await apiRequest({
+    authMessage: "Authentication required.",
+    authToken,
+    data: { code },
+    errorMessage: "Failed to disable MFA.",
     method: "POST",
-    headers: getAuthHeaders(authToken, true),
-    body: JSON.stringify({ code }),
+    url: "/api/auth/admin/mfa/disable",
   });
-  const payload = await response.json().catch(() => null);
-
-  if (!response.ok) {
-    throw new Error(payload?.message || "Failed to disable MFA.");
-  }
 
   return payload?.data || { enabled: false };
 };

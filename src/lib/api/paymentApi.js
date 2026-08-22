@@ -1,35 +1,10 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
+import { apiRequest } from "@/lib/api/apiClient";
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
+const AUTH_MESSAGE = "Please sign in again to manage payments.";
+const ERROR_MESSAGE = "Payment request failed.";
 
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Payment request failed.";
-  } catch {
-    return "Payment request failed.";
-  }
-};
-
-const getAuthHeaders = (authToken) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to manage payments.");
-  }
-
-  return {
-    Authorization: `Bearer ${authToken}`,
-  };
-};
-
-const unwrapListResponse = async (response, params = {}) => {
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
+const unwrapListResponse = (payload, params = {}) => {
   const data = payload?.data || {};
 
   return {
@@ -39,44 +14,47 @@ const unwrapListResponse = async (response, params = {}) => {
 };
 
 export const fetchAdminPayments = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/payments/admin/payments${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/payments/admin/payments${buildQueryString(params)}`,
   });
 
-  return unwrapListResponse(response, params);
+  return unwrapListResponse(payload, params);
 };
 
 export const fetchAdminPaymentAttempts = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/payments/admin/attempts${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/payments/admin/attempts${buildQueryString(params)}`,
   });
 
-  return unwrapListResponse(response, params);
+  return unwrapListResponse(payload, params);
 };
 
 export const fetchAdminRefunds = async (authToken, params = {}) => {
-  const response = await fetch(`${API_BASE_URL}/api/payments/refunds/admin${buildQueryString(params)}`, {
-    headers: getAuthHeaders(authToken),
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    errorMessage: ERROR_MESSAGE,
+    url: `/api/payments/refunds/admin${buildQueryString(params)}`,
   });
 
-  return unwrapListResponse(response, params);
+  return unwrapListResponse(payload, params);
 };
 
 export const createAdminRefund = async (authToken, refundData) => {
-  const response = await fetch(`${API_BASE_URL}/api/payments/refunds/admin`, {
-    body: JSON.stringify(refundData),
-    headers: {
-      "Content-Type": "application/json",
-      ...getAuthHeaders(authToken),
-    },
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: refundData,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
+    url: "/api/payments/refunds/admin",
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
 
   return payload?.data || null;
 };

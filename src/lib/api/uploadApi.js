@@ -1,26 +1,7 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "")
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
+import { apiRequest } from "@/lib/api/apiClient";
 
-const getErrorMessage = async (response) => {
-  try {
-    const payload = await response.json();
-
-    return payload?.message || "Image upload failed.";
-  } catch {
-    return "Image upload failed.";
-  }
-};
-
-const getAuthHeaders = (authToken) => {
-  if (!authToken) {
-    throw new Error("Please sign in again to upload images.");
-  }
-
-  return {
-    Authorization: `Bearer ${authToken}`,
-  };
-};
+const AUTH_MESSAGE = "Please sign in again to upload images.";
+const ERROR_MESSAGE = "Image upload failed.";
 
 const normalizeImageAsset = (asset) => {
   if (!asset?.url) {
@@ -39,17 +20,14 @@ export const uploadImage = async (authToken, file, folderKey = "product") => {
   formData.append("image", file);
   formData.append("folderKey", folderKey);
 
-  const response = await fetch(`${API_BASE_URL}/api/uploads/images`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: formData,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken),
-    body: formData,
+    url: "/api/uploads/images",
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
 
   return normalizeImageAsset(payload?.data);
 };
@@ -66,17 +44,14 @@ export const uploadImages = async (authToken, files = [], folderKey = "product")
   fileList.forEach((file) => formData.append("images", file));
   formData.append("folderKey", folderKey);
 
-  const response = await fetch(`${API_BASE_URL}/api/uploads/images/multiple`, {
+  const payload = await apiRequest({
+    authMessage: AUTH_MESSAGE,
+    authToken,
+    data: formData,
+    errorMessage: ERROR_MESSAGE,
     method: "POST",
-    headers: getAuthHeaders(authToken),
-    body: formData,
+    url: "/api/uploads/images/multiple",
   });
-
-  if (!response.ok) {
-    throw new Error(await getErrorMessage(response));
-  }
-
-  const payload = await response.json();
 
   return Array.isArray(payload?.data)
     ? payload.data.map(normalizeImageAsset).filter(Boolean)
