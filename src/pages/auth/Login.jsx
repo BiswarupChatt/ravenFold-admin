@@ -20,9 +20,11 @@ export default function Login() {
 
     const [formData, setFormData] = useState({
         email: "test@example.com",
+        mfaCode: "",
         password: "password123"
     });
     const [error, setError] = useState("");
+    const [requiresMfa, setRequiresMfa] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleChange = (e) => {
@@ -41,7 +43,8 @@ export default function Login() {
         try {
             const { token, admin } = await loginWithAdminUser(
                 formData.email,
-                formData.password
+                formData.password,
+                formData.mfaCode
             );
 
             setAuthToken(token);
@@ -50,7 +53,12 @@ export default function Login() {
 
             navigate("/");
         } catch (err) {
-            setError(err.message || "Login failed. Please try again.");
+            if (err?.mfaRequired) {
+                setRequiresMfa(true);
+                setError("Enter the 6-digit code from your authenticator app.");
+            } else {
+                setError(err.message || "Login failed. Please try again.");
+            }
         } finally {
             setIsSubmitting(false);
         }
@@ -95,6 +103,26 @@ export default function Login() {
                 value={formData.password}
                 onChange={handleChange}
             />
+
+            {requiresMfa && (
+                <TextField
+                    margin="normal"
+                    required
+                    fullWidth
+                    name="mfaCode"
+                    label="Authenticator code"
+                    type="text"
+                    id="mfaCode"
+                    autoComplete="one-time-code"
+                    value={formData.mfaCode}
+                    onChange={handleChange}
+                    inputProps={{
+                        inputMode: "numeric",
+                        maxLength: 6,
+                        pattern: "[0-9]*",
+                    }}
+                />
+            )}
 
             <Button
                 type="submit"
