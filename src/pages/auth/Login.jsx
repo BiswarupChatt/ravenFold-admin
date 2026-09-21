@@ -6,7 +6,6 @@ import {
     Button,
     TextField,
     Typography,
-    Link,
     Alert,
 } from "@mui/material";
 import { authTokenAtom, userDataAtom, isAuthenticatedAtom } from "../../lib/state/atoms/authAtoms";
@@ -19,9 +18,9 @@ export default function Login() {
     const setIsAuthenticated = useSetAtom(isAuthenticatedAtom);
 
     const [formData, setFormData] = useState({
-        email: "test@example.com",
+        email: "",
         mfaCode: "",
-        password: "password123"
+        password: ""
     });
     const [error, setError] = useState("");
     const [requiresMfa, setRequiresMfa] = useState(false);
@@ -134,11 +133,6 @@ export default function Login() {
                 {isSubmitting ? "Signing In..." : "Sign In"}
             </Button>
 
-            <Box sx={{ textAlign: "center" }}>
-                <Link href="/auth/signup" variant="body2">
-                    {"Don't have an account? Sign Up"}
-                </Link>
-            </Box>
         </Box>
     );
 }
