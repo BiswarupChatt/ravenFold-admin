@@ -1,10 +1,12 @@
 import axios from "axios";
 
-const DEFAULT_API_BASE_URL = "https://api.ravenfold.in/api";
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || DEFAULT_API_BASE_URL)
-  .replace(/\/$/, "")
-  .replace(/\/api$/, "");
+if (!apiBaseUrl) {
+  throw new Error("Missing VITE_API_BASE_URL environment variable");
+}
+
+const API_BASE_URL = apiBaseUrl.replace(/\/$/, "").replace(/\/api$/, "");
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
