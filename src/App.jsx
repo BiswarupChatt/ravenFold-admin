@@ -8,6 +8,7 @@ import { getTheme } from "./theme/theme";
 import { themeAtom } from "./lib/state/atoms/settingsAtoms";
 import StateBootstrap from "./lib/state/StateBootstrap";
 import { ToastProvider } from "./hooks/ToastContext";
+import AuthExpiryHandler from "./lib/auth/AuthExpiryHandler";
 
 export default function App() {
   const themeMode = useAtomValue(themeAtom);
@@ -44,6 +45,7 @@ export default function App() {
     <ThemeProvider theme={theme}>
       <ToastProvider>
         <StateBootstrap />
+        <AuthExpiryHandler />
         <CssBaseline />
         <Suspense fallback={loadingFallback}>
           {routes}
