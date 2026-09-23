@@ -6,6 +6,7 @@ if (!apiBaseUrl) {
   throw new Error("Missing VITE_API_BASE_URL environment variable");
 }
 
+
 const API_BASE_URL = apiBaseUrl.replace(/\/$/, "").replace(/\/api$/, "");
 
 const apiClient = axios.create({
