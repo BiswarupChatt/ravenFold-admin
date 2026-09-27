@@ -64,6 +64,7 @@ const ImageUploadField = ({
   const expectedText = expectedWidth && expectedHeight
     ? `${expectedWidth} x ${expectedHeight}px ratio`
     : "";
+  const formatText = "Supported formats: JPG, PNG, WEBP, AVIF, GIF.";
 
   const handleFileChange = async (event) => {
     const [file] = Array.from(event.target.files || []);
@@ -113,7 +114,7 @@ const ImageUploadField = ({
           {label}
         </Typography>
         <Typography color="text.secondary" variant="caption">
-          {[expectedText ? `Required: ${expectedText}.` : "", helperText].filter(Boolean).join(" ")}
+          {[expectedText ? `Required: ${expectedText}.` : "", formatText, helperText].filter(Boolean).join(" ")}
         </Typography>
       </Box>
 

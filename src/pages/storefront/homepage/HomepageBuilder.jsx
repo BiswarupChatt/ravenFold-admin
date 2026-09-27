@@ -5,6 +5,10 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   Divider,
   FormControlLabel,
   IconButton,
@@ -17,6 +21,14 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
+import FormatQuoteRoundedIcon from "@mui/icons-material/FormatQuoteRounded";
+import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import ShieldOutlinedIcon from "@mui/icons-material/ShieldOutlined";
+import StarRoundedIcon from "@mui/icons-material/StarRounded";
+import SupportAgentOutlinedIcon from "@mui/icons-material/SupportAgentOutlined";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 
 import ImageUploadField from "@/components/ImageUploadField";
 import SectionHeader from "@/components/SectionHeader";
@@ -52,6 +64,13 @@ const EMPTY_CONTENT = {
   testimonial: { author: "", isActive: true, quote: "", rating: 5 },
 };
 
+const supportIconMap = {
+  invoice: ReceiptLongOutlinedIcon,
+  shield: ShieldOutlinedIcon,
+  shipping: LocalShippingOutlinedIcon,
+  support: SupportAgentOutlinedIcon,
+};
+
 const Panel = ({ children, title }) => (
   <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden" }}>
     <Box sx={{ borderBottom: "1px solid", borderColor: "divider", px: 2, py: 1.5 }}>
@@ -60,6 +79,189 @@ const Panel = ({ children, title }) => (
     <Stack spacing={2} sx={{ p: 2 }}>{children}</Stack>
   </Paper>
 );
+
+const PreviewButton = ({ children }) => (
+  <Button
+    disableElevation
+    size="small"
+    sx={{
+      bgcolor: "text.primary",
+      color: "#ffffff",
+      minHeight: 34,
+      px: 1.6,
+      "&:hover": {
+        bgcolor: "primary.main",
+      },
+    }}
+    variant="contained"
+  >
+    {children}
+  </Button>
+);
+
+const HomepagePreview = ({ content, viewport }) => {
+  const isMobile = viewport === "mobile";
+  const previewWidth = isMobile ? 390 : 1180;
+  const hero = content.hero || EMPTY_CONTENT.hero;
+  const promoStrip = content.promoStrip || EMPTY_CONTENT.promoStrip;
+  const productSection = content.productSection || EMPTY_CONTENT.productSection;
+  const testimonial = content.testimonial || EMPTY_CONTENT.testimonial;
+  const supportCards = content.supportCards || EMPTY_CONTENT.supportCards;
+  const finalCta = content.finalCta || EMPTY_CONTENT.finalCta;
+
+  return (
+    <Box
+      sx={{
+        bgcolor: "grey.100",
+        display: "flex",
+        justifyContent: "center",
+        minHeight: 420,
+        overflow: "auto",
+        p: { xs: 1, md: 2 },
+      }}
+    >
+      <Box
+        sx={{
+          bgcolor: "#f7f4ef",
+          boxShadow: 3,
+          color: "#18181b",
+          maxWidth: "100%",
+          overflow: "hidden",
+          width: previewWidth,
+        }}
+      >
+        {hero.isActive ? (
+          <Box
+            sx={{
+              alignItems: "stretch",
+              backgroundImage: [
+                "linear-gradient(90deg, rgba(247, 244, 239, 0.98) 0%, rgba(247, 244, 239, 0.9) 34%, rgba(247, 244, 239, 0.34) 62%, rgba(247, 244, 239, 0.06) 100%)",
+                hero.backgroundImageUrl ? `url(${hero.backgroundImageUrl})` : "",
+              ].filter(Boolean).join(", "),
+              backgroundPosition: isMobile ? "62% center" : "center",
+              backgroundRepeat: "no-repeat",
+              backgroundSize: "cover",
+              display: "flex",
+              minHeight: isMobile ? 520 : 620,
+              px: isMobile ? 2.5 : 7,
+            }}
+          >
+            <Stack justifyContent="center" spacing={2.5} sx={{ maxWidth: isMobile ? 330 : 680, py: isMobile ? 6 : 9 }}>
+              <Typography sx={{ fontSize: "0.82rem", fontWeight: 650, textTransform: "uppercase" }}>
+                {hero.eyebrow}
+              </Typography>
+              <Typography
+                component="h1"
+                sx={{
+                  fontSize: isMobile ? "3rem" : "6rem",
+                  fontWeight: 500,
+                  lineHeight: 0.94,
+                }}
+              >
+                {hero.title}
+              </Typography>
+              <Typography sx={{ color: "#5f6368", fontSize: isMobile ? "0.98rem" : "1.08rem", lineHeight: 1.6, maxWidth: 520 }}>
+                {hero.subtitle}
+              </Typography>
+              <Stack direction={isMobile ? "column" : "row"} spacing={1.5}>
+                <PreviewButton>{hero.primaryCtaLabel}</PreviewButton>
+                <Button size="small" variant="text">{hero.secondaryCtaLabel}</Button>
+              </Stack>
+            </Stack>
+          </Box>
+        ) : null}
+
+        {promoStrip.isActive && promoStrip.items.length ? (
+          <Box sx={{ borderBottom: "1px solid #e6dfd5", overflow: "hidden", py: 1.5 }}>
+            <Stack direction="row" spacing={3} sx={{ px: 2, whiteSpace: "nowrap" }}>
+              {promoStrip.items.map((item, index) => (
+                <Stack alignItems="center" direction="row" key={`${item}-${index}`} spacing={1.5}>
+                  <Typography sx={{ fontSize: "0.84rem", fontWeight: 650 }}>{item}</Typography>
+                  <BoltOutlinedIcon sx={{ color: "#5f6368", fontSize: 18 }} />
+                </Stack>
+              ))}
+            </Stack>
+          </Box>
+        ) : null}
+
+        {productSection.isActive ? (
+          <Box sx={{ px: isMobile ? 2.5 : 7, py: isMobile ? 5 : 7 }}>
+            <Stack spacing={3}>
+              <Box sx={{ alignItems: isMobile ? "flex-start" : "flex-end", display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr" : "1fr auto" }}>
+                <Stack spacing={1}>
+                  <Typography sx={{ fontSize: "0.95rem", fontWeight: 600 }}>{productSection.eyebrow}</Typography>
+                  <Typography component="h2" sx={{ fontSize: isMobile ? "2.2rem" : "3.2rem", fontWeight: 500, lineHeight: 1 }}>
+                    {productSection.title}
+                  </Typography>
+                </Stack>
+                <PreviewButton>{productSection.buttonLabel}</PreviewButton>
+              </Box>
+              <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)" }}>
+                {Array.from({ length: Math.min(Number(productSection.productLimit || 4), isMobile ? 2 : 4) }).map((_, index) => (
+                  <Box key={index} sx={{ bgcolor: "#ffffff", border: "1px solid #e6dfd5", minHeight: isMobile ? 180 : 260 }}>
+                    <Box sx={{ bgcolor: "#ebe4d9", height: isMobile ? 118 : 185 }} />
+                    <Stack spacing={0.6} sx={{ p: 1.5 }}>
+                      <Typography sx={{ fontWeight: 750 }}>Product preview</Typography>
+                      <Typography color="text.secondary" variant="caption">Raven Fold</Typography>
+                    </Stack>
+                  </Box>
+                ))}
+              </Box>
+            </Stack>
+          </Box>
+        ) : null}
+
+        {testimonial.isActive ? (
+          <Box sx={{ bgcolor: "#ffffff", px: isMobile ? 2.5 : 7, py: isMobile ? 5 : 7, textAlign: "center" }}>
+            <Stack alignItems="center" spacing={2}>
+              <FormatQuoteRoundedIcon sx={{ color: "#d9461f", fontSize: 48 }} />
+              <Typography component="h2" sx={{ fontSize: isMobile ? "1.75rem" : "2.7rem", fontWeight: 450, lineHeight: 1.25 }}>
+                "{testimonial.quote}"
+              </Typography>
+              <Stack alignItems="center" spacing={0.75}>
+                <Stack direction="row" spacing={0.35}>
+                  {Array.from({ length: Math.round(testimonial.rating || 5) }).map((_, index) => (
+                    <StarRoundedIcon key={index} sx={{ color: "#e19a00", fontSize: 18 }} />
+                  ))}
+                </Stack>
+                <Typography sx={{ fontWeight: 650 }}>{testimonial.author}</Typography>
+              </Stack>
+            </Stack>
+          </Box>
+        ) : null}
+
+        {supportCards.isActive && supportCards.items.length ? (
+          <Box sx={{ px: isMobile ? 2.5 : 7, py: isMobile ? 4 : 5 }}>
+            <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)" }}>
+              {supportCards.items.map(({ description, icon, title }) => {
+                const Icon = supportIconMap[icon] || ShieldOutlinedIcon;
+
+                return (
+                  <Stack alignItems="center" key={`${title}-${icon}`} spacing={1.2} sx={{ border: "1px solid #e6dfd5", minHeight: 190, p: 2.5, textAlign: "center" }}>
+                    <Icon sx={{ color: "#d9461f", fontSize: 32 }} />
+                    <Typography sx={{ fontWeight: 800 }}>{title}</Typography>
+                    <Typography sx={{ color: "#5f6368", fontSize: "0.9rem", lineHeight: 1.5 }}>{description}</Typography>
+                  </Stack>
+                );
+              })}
+            </Box>
+          </Box>
+        ) : null}
+
+        {finalCta.isActive ? (
+          <Box sx={{ px: isMobile ? 2.5 : 7, pb: isMobile ? 5 : 7 }}>
+            <Box sx={{ alignItems: "center", borderTop: "1px solid #e6dfd5", display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr" : "1fr auto", pt: 3 }}>
+              <Typography component="h2" sx={{ fontSize: isMobile ? "2rem" : "3.1rem", fontWeight: 650, lineHeight: 1 }}>
+                {finalCta.title}
+              </Typography>
+              <PreviewButton>{finalCta.buttonLabel}</PreviewButton>
+            </Box>
+          </Box>
+        ) : null}
+      </Box>
+    </Box>
+  );
+};
 
 const normalizeContent = (content = {}) => ({
   finalCta: { ...EMPTY_CONTENT.finalCta, ...(content.finalCta || {}) },
@@ -137,6 +339,8 @@ const HomepageBuilder = () => {
   const [content, setContent] = useState(EMPTY_CONTENT);
   const [savedContent, setSavedContent] = useState(EMPTY_CONTENT);
   const [loading, setLoading] = useState(true);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [previewViewport, setPreviewViewport] = useState("desktop");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
@@ -228,7 +432,22 @@ const HomepageBuilder = () => {
 
   return (
     <>
-      <SectionHeader title="Homepage Builder" />
+      <Stack
+        direction={{ xs: "column", sm: "row" }}
+        spacing={1.5}
+        alignItems={{ xs: "stretch", sm: "center" }}
+        justifyContent="space-between"
+        sx={{ mb: 2 }}
+      >
+        <SectionHeader title="Homepage Builder" />
+        <Button
+          startIcon={<VisibilityIcon />}
+          variant="outlined"
+          onClick={() => setPreviewOpen(true)}
+        >
+          Preview
+        </Button>
+      </Stack>
       {error ? <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError("")}>{error}</Alert> : null}
 
       <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: { xs: "1fr", lg: "minmax(0, 1fr) 320px" } }}>
@@ -332,6 +551,51 @@ const HomepageBuilder = () => {
           </Panel>
         </Stack>
       </Box>
+
+      <Dialog
+        fullWidth
+        maxWidth="xl"
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+      >
+        <DialogTitle>
+          <Stack
+            direction={{ xs: "column", sm: "row" }}
+            spacing={1.5}
+            alignItems={{ xs: "stretch", sm: "center" }}
+            justifyContent="space-between"
+          >
+            <Box>
+              <Typography fontWeight={800} variant="h6">Homepage Preview</Typography>
+              <Typography color="text.secondary" variant="body2">
+                Preview uses the current unsaved builder values.
+              </Typography>
+            </Box>
+            <Stack direction="row" spacing={1}>
+              <Button
+                size="small"
+                variant={previewViewport === "desktop" ? "contained" : "outlined"}
+                onClick={() => setPreviewViewport("desktop")}
+              >
+                Desktop
+              </Button>
+              <Button
+                size="small"
+                variant={previewViewport === "mobile" ? "contained" : "outlined"}
+                onClick={() => setPreviewViewport("mobile")}
+              >
+                Mobile
+              </Button>
+            </Stack>
+          </Stack>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0 }}>
+          <HomepagePreview content={content} viewport={previewViewport} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setPreviewOpen(false)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };
