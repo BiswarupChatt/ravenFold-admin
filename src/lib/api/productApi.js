@@ -1,6 +1,6 @@
 import { buildQueryString, normalizePagination } from "@/lib/utils/utils";
 import { apiRequest } from "@/lib/api/apiClient";
-import { uploadImages } from "@/lib/api/uploadApi";
+import { uploadImages, validateImageFilesDimensions } from "@/lib/api/uploadApi";
 
 const AUTH_MESSAGE = "Please sign in again to manage products.";
 const ERROR_MESSAGE = "Product request failed.";
@@ -32,7 +32,33 @@ export const fetchAdminProduct = async (authToken, productIdOrSlug) => {
 };
 
 export const uploadProductImages = async (authToken, files = []) => {
-  return uploadImages(authToken, files, "product");
+  return uploadImages(authToken, files, "product", PRODUCT_IMAGE_RULE);
+};
+
+export const PRODUCT_IMAGE_RULE = {
+  expectedHeight: 5,
+  expectedWidth: 4,
+  label: "Product image",
+};
+
+export const PRODUCT_SIZE_GUIDE_IMAGE_RULE = {
+  expectedHeight: 1,
+  expectedWidth: 1,
+  label: "Size guide image",
+};
+
+export const validateProductImageFiles = async (files = []) => (
+  validateImageFilesDimensions(files, PRODUCT_IMAGE_RULE)
+);
+
+export const validateProductSizeGuideImageFiles = async (files = []) => (
+  validateImageFilesDimensions(files, PRODUCT_SIZE_GUIDE_IMAGE_RULE)
+);
+
+export const uploadProductSizeGuideImage = async (authToken, file) => {
+  const [uploadedImage] = await uploadImages(authToken, [file], "product", PRODUCT_SIZE_GUIDE_IMAGE_RULE);
+
+  return uploadedImage || null;
 };
 
 export const createProduct = async (authToken, productPayload) => {

@@ -30,7 +30,11 @@ export const updateGstConfiguration = async (authToken, payload) => {
 };
 
 export const uploadGstImage = async (authToken, file) => {
-  return uploadImage(authToken, file, "gst");
+  return uploadImage(authToken, file, "gst", {
+    expectedHeight: 1,
+    expectedWidth: 4,
+    label: "GST business logo",
+  });
 };
 
 export const fetchAdminInvoices = async (authToken, params = {}) => {

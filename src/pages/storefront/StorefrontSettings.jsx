@@ -18,6 +18,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
+import ImageUploadField from "@/components/ImageUploadField";
 import SectionHeader from "@/components/SectionHeader";
 import { useToast } from "@/hooks/ToastContext";
 import { fetchAdminSiteSettings, updateSiteSettings } from "@/lib/api/siteSettingsApi";
@@ -292,23 +293,31 @@ const StorefrontSettings = () => {
               value={formData.brandName}
               onChange={(event) => setRootField("brandName", event.target.value)}
             />
-            <TextField
-              fullWidth
-              label="Logo URL"
-              value={formData.logo.url}
-              onChange={(event) => setField("logo", "url", event.target.value)}
+            <ImageUploadField
+              altValue={formData.logo.alt}
+              disabled={saving}
+              expectedHeight={80}
+              expectedWidth={380}
+              folderKey="storefront"
+              helperText="Used in the storefront navbar and footer."
+              label="Logo"
+              previewAspectRatio="19 / 4"
+              value={formData.logo}
+              onAltChange={(value) => setField("logo", "alt", value)}
+              onChange={(asset) => setRootField("logo", asset)}
+              onRemove={() => setRootField("logo", { alt: "", publicId: "", url: "" })}
             />
-            <TextField
-              fullWidth
-              label="Logo Alt Text"
-              value={formData.logo.alt}
-              onChange={(event) => setField("logo", "alt", event.target.value)}
-            />
-            <TextField
-              fullWidth
-              label="Favicon URL"
-              value={formData.favicon.url}
-              onChange={(event) => setField("favicon", "url", event.target.value)}
+            <ImageUploadField
+              disabled={saving}
+              expectedHeight={512}
+              expectedWidth={512}
+              folderKey="storefront"
+              helperText="Square favicon/app icon source."
+              label="Favicon"
+              previewAspectRatio="1 / 1"
+              value={formData.favicon}
+              onChange={(asset) => setRootField("favicon", asset)}
+              onRemove={() => setRootField("favicon", { alt: "", publicId: "", url: "" })}
             />
           </Panel>
 

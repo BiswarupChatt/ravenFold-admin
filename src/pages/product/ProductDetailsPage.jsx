@@ -20,6 +20,7 @@ import {
   fetchAdminProduct,
   updateProduct,
   uploadProductImages,
+  validateProductImageFiles,
 } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import {
@@ -644,7 +645,7 @@ const ProductDetailsPage = ({ mode }) => {
     }));
   }, [setPageFormData]);
 
-  const handleSelectImageFiles = useCallback((files) => {
+  const handleSelectImageFiles = useCallback(async (files) => {
     const fileList = Array.from(files || []);
     const imageFiles = fileList.filter((file) => file.type?.startsWith("image/"));
 
@@ -661,6 +662,13 @@ const ProductDetailsPage = ({ mode }) => {
 
     if (imageFiles.length !== fileList.length) {
       toast.warning("Non-image files were skipped.");
+    }
+
+    try {
+      await validateProductImageFiles(imageFiles);
+    } catch (err) {
+      toast.error(err.message || "One or more product images do not match the required ratio.");
+      throw err;
     }
 
     setPendingImageFiles((currentFiles) => [...currentFiles, ...imageFiles]);

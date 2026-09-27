@@ -18,6 +18,7 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
+import ImageUploadField from "@/components/ImageUploadField";
 import SectionHeader from "@/components/SectionHeader";
 import { useToast } from "@/hooks/ToastContext";
 import { fetchAdminHomePage, updateAdminHomePage } from "@/lib/api/storefrontPageApi";
@@ -237,7 +238,18 @@ const HomepageBuilder = () => {
             <TextField fullWidth label="Eyebrow" value={content.hero.eyebrow} onChange={(event) => setSectionField("hero", "eyebrow", event.target.value)} />
             <TextField fullWidth label="Title" value={content.hero.title} onChange={(event) => setSectionField("hero", "title", event.target.value)} />
             <TextField fullWidth label="Subtitle" multiline minRows={2} value={content.hero.subtitle} onChange={(event) => setSectionField("hero", "subtitle", event.target.value)} />
-            <TextField fullWidth label="Background Image URL" value={content.hero.backgroundImageUrl} onChange={(event) => setSectionField("hero", "backgroundImageUrl", event.target.value)} />
+            <ImageUploadField
+              disabled={saving}
+              expectedHeight={900}
+              expectedWidth={1920}
+              folderKey="storefront"
+              helperText="Used as the homepage first-screen background."
+              label="Hero Background Image"
+              previewAspectRatio="32 / 15"
+              value={{ url: content.hero.backgroundImageUrl }}
+              onChange={(asset) => setSectionField("hero", "backgroundImageUrl", asset.url)}
+              onRemove={() => setSectionField("hero", "backgroundImageUrl", "")}
+            />
             <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
               <TextField fullWidth label="Primary CTA Label" value={content.hero.primaryCtaLabel} onChange={(event) => setSectionField("hero", "primaryCtaLabel", event.target.value)} />
               <TextField fullWidth label="Primary CTA URL" value={content.hero.primaryCtaUrl} onChange={(event) => setSectionField("hero", "primaryCtaUrl", event.target.value)} />

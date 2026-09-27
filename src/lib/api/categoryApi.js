@@ -64,5 +64,9 @@ export const deleteCategory = async (authToken, categoryId) => {
 };
 
 export const uploadCategoryImage = async (authToken, file) => {
-  return uploadImage(authToken, file, "category");
+  return uploadImage(authToken, file, "category", {
+    expectedHeight: 1,
+    expectedWidth: 1,
+    label: "Category image",
+  });
 };

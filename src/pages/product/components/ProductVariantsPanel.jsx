@@ -43,6 +43,8 @@ import {
   updateProductOptionValue,
   updateProductVariant,
   uploadProductImages,
+  uploadProductSizeGuideImage,
+  validateProductImageFiles,
 } from "@/lib/api/productApi";
 import { authTokenAtom } from "@/lib/state/atoms/authAtoms";
 import { useToast } from "@/hooks/ToastContext";
@@ -326,7 +328,7 @@ const ProductVariantsPanel = ({
   };
 
   const uploadSingleOptionImage = async (file) => {
-    const [uploadedImage] = await uploadProductImages(authToken, [file]);
+    const uploadedImage = await uploadProductSizeGuideImage(authToken, file);
 
     if (!uploadedImage?.url) {
       throw new Error("Image upload did not return a URL.");
@@ -591,7 +593,7 @@ const ProductVariantsPanel = ({
     }));
   };
 
-  const queueVariantImageFiles = (files) => {
+  const queueVariantImageFiles = async (files) => {
     const fileList = Array.from(files || []);
     const imageFiles = fileList.filter((file) => file.type?.startsWith("image/"));
 
@@ -606,6 +608,13 @@ const ProductVariantsPanel = ({
 
     if (imageFiles.length !== fileList.length) {
       toast.warning("Non-image files were skipped.");
+    }
+
+    try {
+      await validateProductImageFiles(imageFiles);
+    } catch (err) {
+      showError(err.message || "One or more variant images do not match the required ratio.");
+      return [];
     }
 
     setVariantImageFiles((currentFiles) => [...currentFiles, ...imageFiles]);
