@@ -22,6 +22,8 @@ const Review = lazy(() => import("../pages/other/review/Review"));
 const Customer = lazy(() => import("../pages/customer/Customer"));
 const PolicyPages = lazy(() => import("../pages/policy/PolicyPages"));
 const PolicyPageDetails = lazy(() => import("../pages/policy/PolicyPageDetails"));
+const StorefrontSettings = lazy(() => import("../pages/storefront/StorefrontSettings"));
+const HomepageBuilder = lazy(() => import("../pages/storefront/homepage/HomepageBuilder"));
 const NotFound = lazy(() => import("../pages/NotFound"));
 
 // Auth layout / pages
@@ -61,6 +63,8 @@ export const appRoutes = [
       { path: `${ROUTES.POLICY_PAGES.slice(1)}/:policyId`, element: <Navigate to="edit" replace /> },
       { path: ROUTES.POLICY_PAGES.slice(1), element: <PolicyPages /> },
       { path: ROUTES.CUSTOMER.slice(1), element: <Customer /> },
+      { path: ROUTES.STOREFRONT_SETTINGS.slice(1), element: <StorefrontSettings /> },
+      { path: ROUTES.HOMEPAGE_BUILDER.slice(1), element: <HomepageBuilder /> },
       { path: ROUTES.ACCOUNT.slice(1), element: <Account /> },
       { path: ROUTES.NOT_FOUND, element: <NotFound /> },
     ],

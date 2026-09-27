@@ -14,6 +14,8 @@ import RateReviewIcon from "@mui/icons-material/RateReview";
 import AllInboxIcon from "@mui/icons-material/AllInbox";
 import CampaignIcon from "@mui/icons-material/Campaign";
 import ArticleIcon from "@mui/icons-material/Article";
+import TuneIcon from "@mui/icons-material/Tune";
+import ViewQuiltIcon from "@mui/icons-material/ViewQuilt";
 
 import ROUTES from "../../../../../routes/routes";
 
@@ -42,6 +44,16 @@ export const SIDEBAR_ITEMS = [
     name: "GST",
     path: ROUTES.GST,
     icon: RequestQuoteIcon,
+  },
+  {
+    name: "Storefront Settings",
+    path: ROUTES.STOREFRONT_SETTINGS,
+    icon: TuneIcon,
+  },
+  {
+    name: "Homepage Builder",
+    path: ROUTES.HOMEPAGE_BUILDER,
+    icon: ViewQuiltIcon,
   },
   {
     name: "Other",

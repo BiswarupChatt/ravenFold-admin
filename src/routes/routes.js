@@ -21,6 +21,8 @@ const ROUTES = {
   OTHER_BOX_TYPES: "/other/box-types",
   POLICY_PAGES: "/policy-pages",
   CUSTOMER: "/customer",
+  STOREFRONT_SETTINGS: "/storefront-settings",
+  HOMEPAGE_BUILDER: "/homepage-builder",
 
   NOT_FOUND: "*",
 };
