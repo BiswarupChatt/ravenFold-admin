@@ -17,6 +17,8 @@ const ROUTES = {
   OTHER: "/other",
   OTHER_COUPON: "/other/coupon",
   OTHER_ANNOUNCEMENT_BANNERS: "/other/announcement-banners",
+  POPUP_CAMPAIGNS: "/popup-campaigns",
+  LEADS: "/leads",
   OTHER_REVIEW: "/other/review",
   OTHER_BOX_TYPES: "/other/box-types",
   POLICY_PAGES: "/policy-pages",

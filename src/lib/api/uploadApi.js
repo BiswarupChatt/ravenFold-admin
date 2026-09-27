@@ -34,12 +34,24 @@ const getImageDimensions = (file) => new Promise((resolve, reject) => {
   image.src = imageUrl;
 });
 
-const isAspectRatioValid = ({ actualHeight, actualWidth, expectedHeight, expectedWidth }) => {
+const isAspectRatioValid = ({
+  actualHeight,
+  actualWidth,
+  expectedHeight,
+  expectedWidth,
+  tolerancePx = 10,
+}) => {
   if (!expectedHeight || !expectedWidth) {
     return true;
   }
 
-  return actualWidth * expectedHeight === actualHeight * expectedWidth;
+  const heightForActualWidth = (actualWidth * expectedHeight) / expectedWidth;
+  const widthForActualHeight = (actualHeight * expectedWidth) / expectedHeight;
+
+  return (
+    Math.abs(actualHeight - heightForActualWidth) <= tolerancePx ||
+    Math.abs(actualWidth - widthForActualHeight) <= tolerancePx
+  );
 };
 
 export const validateImageFileDimensions = async (file, rule = {}) => {
@@ -54,9 +66,11 @@ export const validateImageFileDimensions = async (file, rule = {}) => {
     actualWidth: dimensions.width,
     expectedHeight: rule.expectedHeight,
     expectedWidth: rule.expectedWidth,
+    tolerancePx: rule.tolerancePx ?? 10,
   })) {
     const label = rule.label || "Image";
-    const ratioText = `${rule.expectedWidth} x ${rule.expectedHeight}px ratio`;
+    const toleranceText = `±${rule.tolerancePx ?? 10}px tolerance`;
+    const ratioText = `${rule.expectedWidth} x ${rule.expectedHeight}px ratio, ${toleranceText}`;
 
     throw new Error(
       `${label} must match ${ratioText}. Selected image is ${dimensions.width} x ${dimensions.height}px.`,

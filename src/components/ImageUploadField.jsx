@@ -35,13 +35,27 @@ const getImageDimensions = (file) => new Promise((resolve, reject) => {
   image.src = imageUrl;
 });
 
-const isAspectRatioValid = ({ actualHeight, actualWidth, expectedHeight, expectedWidth }) => {
+const isAspectRatioValid = ({
+  actualHeight,
+  actualWidth,
+  expectedHeight,
+  expectedWidth,
+  tolerancePx = 10,
+}) => {
   if (!expectedHeight || !expectedWidth) {
     return true;
   }
 
-  return actualWidth * expectedHeight === actualHeight * expectedWidth;
+  const heightForActualWidth = (actualWidth * expectedHeight) / expectedWidth;
+  const widthForActualHeight = (actualHeight * expectedWidth) / expectedHeight;
+
+  return (
+    Math.abs(actualHeight - heightForActualWidth) <= tolerancePx ||
+    Math.abs(actualWidth - widthForActualHeight) <= tolerancePx
+  );
 };
+
+const formatFileSize = (sizeInMb) => `${Number(sizeInMb).toFixed(Number.isInteger(sizeInMb) ? 0 : 1)} MB`;
 
 const ImageUploadField = ({
   altValue = "",
@@ -51,10 +65,12 @@ const ImageUploadField = ({
   folderKey = "storefront",
   helperText = "",
   label,
+  maxFileSizeMb = 2,
   onAltChange,
   onChange,
   onRemove,
   previewAspectRatio = "16 / 9",
+  ratioTolerancePx = 10,
   value = null,
 }) => {
   const authToken = useAtomValue(authTokenAtom);
@@ -62,9 +78,11 @@ const ImageUploadField = ({
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const expectedText = expectedWidth && expectedHeight
-    ? `${expectedWidth} x ${expectedHeight}px ratio`
+    ? `${expectedWidth} x ${expectedHeight}px ratio, ±${ratioTolerancePx}px tolerance`
     : "";
   const formatText = "Supported formats: JPG, PNG, WEBP, AVIF, GIF.";
+  const maxFileSizeBytes = Number(maxFileSizeMb || 0) * 1024 * 1024;
+  const sizeText = maxFileSizeMb ? `Maximum size: ${formatFileSize(maxFileSizeMb)}.` : "";
 
   const handleFileChange = async (event) => {
     const [file] = Array.from(event.target.files || []);
@@ -78,6 +96,11 @@ const ImageUploadField = ({
     setError("");
 
     try {
+      if (maxFileSizeBytes && file.size > maxFileSizeBytes) {
+        setError(`${label} must be ${formatFileSize(maxFileSizeMb)} or smaller. Selected file is ${formatFileSize(file.size / 1024 / 1024)}.`);
+        return;
+      }
+
       const dimensions = await getImageDimensions(file);
 
       if (!isAspectRatioValid({
@@ -85,6 +108,7 @@ const ImageUploadField = ({
         actualWidth: dimensions.width,
         expectedHeight,
         expectedWidth,
+        tolerancePx: ratioTolerancePx,
       })) {
         setError(
           `${label} must match ${expectedText}. Selected image is ${dimensions.width} x ${dimensions.height}px.`,
@@ -114,7 +138,7 @@ const ImageUploadField = ({
           {label}
         </Typography>
         <Typography color="text.secondary" variant="caption">
-          {[expectedText ? `Required: ${expectedText}.` : "", formatText, helperText].filter(Boolean).join(" ")}
+          {[expectedText ? `Required: ${expectedText}.` : "", formatText, sizeText, helperText].filter(Boolean).join(" ")}
         </Typography>
       </Box>
 
@@ -172,7 +196,11 @@ const ImageUploadField = ({
             disabled={disabled || uploading}
             onClick={() => {
               setError("");
-              onRemove?.();
+              if (onRemove) {
+                onRemove();
+              } else {
+                onChange?.(null);
+              }
             }}
             startIcon={<DeleteOutlineIcon />}
             variant="outlined"
