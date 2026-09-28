@@ -21,6 +21,8 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import BoltOutlinedIcon from "@mui/icons-material/BoltOutlined";
 import FormatQuoteRoundedIcon from "@mui/icons-material/FormatQuoteRounded";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
@@ -62,7 +64,59 @@ const EMPTY_CONTENT = {
   promoStrip: { isActive: true, items: [] },
   supportCards: { isActive: true, items: [] },
   testimonial: { author: "", isActive: true, quote: "", rating: 5 },
+  sections: [],
 };
+
+const SECTION_DEFINITIONS = [
+  { key: "hero", label: "Hero" },
+  { key: "promoStrip", label: "Promo Strip" },
+  { key: "productSection", label: "Product Section" },
+  { key: "testimonial", label: "Testimonial" },
+  { key: "supportCards", label: "Support Cards" },
+  { key: "finalCta", label: "Final CTA" },
+];
+
+const buildDefaultSections = (content = {}) => SECTION_DEFINITIONS.map((section, index) => ({
+  id: section.key,
+  isActive: content[section.key]?.isActive !== false,
+  sortOrder: index,
+  type: section.key,
+}));
+
+const normalizeSections = (content = {}) => {
+  const rawSections = Array.isArray(content.sections) ? content.sections : [];
+  const sectionByType = new Map(rawSections.map((section, index) => [
+    section.type || section.id,
+    {
+      id: section.id || section.type,
+      isActive: section.isActive !== false,
+      sortOrder: Number.isFinite(Number(section.sortOrder)) ? Number(section.sortOrder) : index,
+      type: section.type || section.id,
+    },
+  ]));
+
+  return SECTION_DEFINITIONS
+    .map((definition, index) => (
+      sectionByType.get(definition.key) || {
+        id: definition.key,
+        isActive: content[definition.key]?.isActive !== false,
+        sortOrder: rawSections.length + index,
+        type: definition.key,
+      }
+    ))
+    .sort((first, second) => Number(first.sortOrder || 0) - Number(second.sortOrder || 0))
+    .map((section, index) => ({ ...section, sortOrder: index }));
+};
+
+const getSectionMeta = (content, type) => (
+  (content.sections || []).find((section) => section.type === type) || {
+    isActive: content[type]?.isActive !== false,
+    sortOrder: SECTION_DEFINITIONS.findIndex((section) => section.key === type),
+  }
+);
+
+const getOrderedSections = (content = {}) => normalizeSections(content)
+  .filter((section) => section.isActive !== false);
 
 const supportIconMap = {
   invoice: ReceiptLongOutlinedIcon,
@@ -108,6 +162,144 @@ const HomepagePreview = ({ content, viewport }) => {
   const testimonial = content.testimonial || EMPTY_CONTENT.testimonial;
   const supportCards = content.supportCards || EMPTY_CONTENT.supportCards;
   const finalCta = content.finalCta || EMPTY_CONTENT.finalCta;
+  const renderSection = (type) => {
+    if (type === "hero" && hero.isActive) {
+      return (
+        <Box
+          key="hero"
+          sx={{
+            alignItems: "stretch",
+            backgroundImage: [
+              "linear-gradient(90deg, rgba(247, 244, 239, 0.98) 0%, rgba(247, 244, 239, 0.9) 34%, rgba(247, 244, 239, 0.34) 62%, rgba(247, 244, 239, 0.06) 100%)",
+              hero.backgroundImageUrl ? `url(${hero.backgroundImageUrl})` : "",
+            ].filter(Boolean).join(", "),
+            backgroundPosition: isMobile ? "62% center" : "center",
+            backgroundRepeat: "no-repeat",
+            backgroundSize: "cover",
+            display: "flex",
+            minHeight: isMobile ? 520 : 620,
+            px: isMobile ? 2.5 : 7,
+          }}
+        >
+          <Stack justifyContent="center" spacing={2.5} sx={{ maxWidth: isMobile ? 330 : 680, py: isMobile ? 6 : 9 }}>
+            <Typography sx={{ fontSize: "0.82rem", fontWeight: 650, textTransform: "uppercase" }}>
+              {hero.eyebrow}
+            </Typography>
+            <Typography component="h1" sx={{ fontSize: isMobile ? "3rem" : "6rem", fontWeight: 500, lineHeight: 0.94 }}>
+              {hero.title}
+            </Typography>
+            <Typography sx={{ color: "#5f6368", fontSize: isMobile ? "0.98rem" : "1.08rem", lineHeight: 1.6, maxWidth: 520 }}>
+              {hero.subtitle}
+            </Typography>
+            <Stack direction={isMobile ? "column" : "row"} spacing={1.5}>
+              <PreviewButton>{hero.primaryCtaLabel}</PreviewButton>
+              <Button size="small" variant="text">{hero.secondaryCtaLabel}</Button>
+            </Stack>
+          </Stack>
+        </Box>
+      );
+    }
+
+    if (type === "promoStrip" && promoStrip.isActive && promoStrip.items.length) {
+      return (
+        <Box key="promoStrip" sx={{ borderBottom: "1px solid #e6dfd5", overflow: "hidden", py: 1.5 }}>
+          <Stack direction="row" spacing={3} sx={{ px: 2, whiteSpace: "nowrap" }}>
+            {promoStrip.items.map((item, index) => (
+              <Stack alignItems="center" direction="row" key={`${item}-${index}`} spacing={1.5}>
+                <Typography sx={{ fontSize: "0.84rem", fontWeight: 650 }}>{item}</Typography>
+                <BoltOutlinedIcon sx={{ color: "#5f6368", fontSize: 18 }} />
+              </Stack>
+            ))}
+          </Stack>
+        </Box>
+      );
+    }
+
+    if (type === "productSection" && productSection.isActive) {
+      return (
+        <Box key="productSection" sx={{ px: isMobile ? 2.5 : 7, py: isMobile ? 5 : 7 }}>
+          <Stack spacing={3}>
+            <Box sx={{ alignItems: isMobile ? "flex-start" : "flex-end", display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr" : "1fr auto" }}>
+              <Stack spacing={1}>
+                <Typography sx={{ fontSize: "0.95rem", fontWeight: 600 }}>{productSection.eyebrow}</Typography>
+                <Typography component="h2" sx={{ fontSize: isMobile ? "2.2rem" : "3.2rem", fontWeight: 500, lineHeight: 1 }}>
+                  {productSection.title}
+                </Typography>
+              </Stack>
+              <PreviewButton>{productSection.buttonLabel}</PreviewButton>
+            </Box>
+            <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)" }}>
+              {Array.from({ length: Math.min(Number(productSection.productLimit || 4), isMobile ? 2 : 4) }).map((_, index) => (
+                <Box key={index} sx={{ bgcolor: "#ffffff", border: "1px solid #e6dfd5", minHeight: isMobile ? 180 : 260 }}>
+                  <Box sx={{ bgcolor: "#ebe4d9", height: isMobile ? 118 : 185 }} />
+                  <Stack spacing={0.6} sx={{ p: 1.5 }}>
+                    <Typography sx={{ fontWeight: 750 }}>Product preview</Typography>
+                    <Typography color="text.secondary" variant="caption">Raven Fold</Typography>
+                  </Stack>
+                </Box>
+              ))}
+            </Box>
+          </Stack>
+        </Box>
+      );
+    }
+
+    if (type === "testimonial" && testimonial.isActive) {
+      return (
+        <Box key="testimonial" sx={{ bgcolor: "#ffffff", px: isMobile ? 2.5 : 7, py: isMobile ? 5 : 7, textAlign: "center" }}>
+          <Stack alignItems="center" spacing={2}>
+            <FormatQuoteRoundedIcon sx={{ color: "#d9461f", fontSize: 48 }} />
+            <Typography component="h2" sx={{ fontSize: isMobile ? "1.75rem" : "2.7rem", fontWeight: 450, lineHeight: 1.25 }}>
+              "{testimonial.quote}"
+            </Typography>
+            <Stack alignItems="center" spacing={0.75}>
+              <Stack direction="row" spacing={0.35}>
+                {Array.from({ length: Math.round(testimonial.rating || 5) }).map((_, index) => (
+                  <StarRoundedIcon key={index} sx={{ color: "#e19a00", fontSize: 18 }} />
+                ))}
+              </Stack>
+              <Typography sx={{ fontWeight: 650 }}>{testimonial.author}</Typography>
+            </Stack>
+          </Stack>
+        </Box>
+      );
+    }
+
+    if (type === "supportCards" && supportCards.isActive && supportCards.items.length) {
+      return (
+        <Box key="supportCards" sx={{ px: isMobile ? 2.5 : 7, py: isMobile ? 4 : 5 }}>
+          <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)" }}>
+            {supportCards.items.map(({ description, icon, title }) => {
+              const Icon = supportIconMap[icon] || ShieldOutlinedIcon;
+
+              return (
+                <Stack alignItems="center" key={`${title}-${icon}`} spacing={1.2} sx={{ border: "1px solid #e6dfd5", minHeight: 190, p: 2.5, textAlign: "center" }}>
+                  <Icon sx={{ color: "#d9461f", fontSize: 32 }} />
+                  <Typography sx={{ fontWeight: 800 }}>{title}</Typography>
+                  <Typography sx={{ color: "#5f6368", fontSize: "0.9rem", lineHeight: 1.5 }}>{description}</Typography>
+                </Stack>
+              );
+            })}
+          </Box>
+        </Box>
+      );
+    }
+
+    if (type === "finalCta" && finalCta.isActive) {
+      return (
+        <Box key="finalCta" sx={{ px: isMobile ? 2.5 : 7, pb: isMobile ? 5 : 7 }}>
+          <Box sx={{ alignItems: "center", borderTop: "1px solid #e6dfd5", display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr" : "1fr auto", pt: 3 }}>
+            <Typography component="h2" sx={{ fontSize: isMobile ? "2rem" : "3.1rem", fontWeight: 650, lineHeight: 1 }}>
+              {finalCta.title}
+            </Typography>
+            <PreviewButton>{finalCta.buttonLabel}</PreviewButton>
+          </Box>
+        </Box>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <Box
@@ -125,139 +317,14 @@ const HomepagePreview = ({ content, viewport }) => {
           bgcolor: "#f7f4ef",
           boxShadow: 3,
           color: "#18181b",
+          display: "flex",
+          flexDirection: "column",
           maxWidth: "100%",
           overflow: "hidden",
           width: previewWidth,
         }}
       >
-        {hero.isActive ? (
-          <Box
-            sx={{
-              alignItems: "stretch",
-              backgroundImage: [
-                "linear-gradient(90deg, rgba(247, 244, 239, 0.98) 0%, rgba(247, 244, 239, 0.9) 34%, rgba(247, 244, 239, 0.34) 62%, rgba(247, 244, 239, 0.06) 100%)",
-                hero.backgroundImageUrl ? `url(${hero.backgroundImageUrl})` : "",
-              ].filter(Boolean).join(", "),
-              backgroundPosition: isMobile ? "62% center" : "center",
-              backgroundRepeat: "no-repeat",
-              backgroundSize: "cover",
-              display: "flex",
-              minHeight: isMobile ? 520 : 620,
-              px: isMobile ? 2.5 : 7,
-            }}
-          >
-            <Stack justifyContent="center" spacing={2.5} sx={{ maxWidth: isMobile ? 330 : 680, py: isMobile ? 6 : 9 }}>
-              <Typography sx={{ fontSize: "0.82rem", fontWeight: 650, textTransform: "uppercase" }}>
-                {hero.eyebrow}
-              </Typography>
-              <Typography
-                component="h1"
-                sx={{
-                  fontSize: isMobile ? "3rem" : "6rem",
-                  fontWeight: 500,
-                  lineHeight: 0.94,
-                }}
-              >
-                {hero.title}
-              </Typography>
-              <Typography sx={{ color: "#5f6368", fontSize: isMobile ? "0.98rem" : "1.08rem", lineHeight: 1.6, maxWidth: 520 }}>
-                {hero.subtitle}
-              </Typography>
-              <Stack direction={isMobile ? "column" : "row"} spacing={1.5}>
-                <PreviewButton>{hero.primaryCtaLabel}</PreviewButton>
-                <Button size="small" variant="text">{hero.secondaryCtaLabel}</Button>
-              </Stack>
-            </Stack>
-          </Box>
-        ) : null}
-
-        {promoStrip.isActive && promoStrip.items.length ? (
-          <Box sx={{ borderBottom: "1px solid #e6dfd5", overflow: "hidden", py: 1.5 }}>
-            <Stack direction="row" spacing={3} sx={{ px: 2, whiteSpace: "nowrap" }}>
-              {promoStrip.items.map((item, index) => (
-                <Stack alignItems="center" direction="row" key={`${item}-${index}`} spacing={1.5}>
-                  <Typography sx={{ fontSize: "0.84rem", fontWeight: 650 }}>{item}</Typography>
-                  <BoltOutlinedIcon sx={{ color: "#5f6368", fontSize: 18 }} />
-                </Stack>
-              ))}
-            </Stack>
-          </Box>
-        ) : null}
-
-        {productSection.isActive ? (
-          <Box sx={{ px: isMobile ? 2.5 : 7, py: isMobile ? 5 : 7 }}>
-            <Stack spacing={3}>
-              <Box sx={{ alignItems: isMobile ? "flex-start" : "flex-end", display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr" : "1fr auto" }}>
-                <Stack spacing={1}>
-                  <Typography sx={{ fontSize: "0.95rem", fontWeight: 600 }}>{productSection.eyebrow}</Typography>
-                  <Typography component="h2" sx={{ fontSize: isMobile ? "2.2rem" : "3.2rem", fontWeight: 500, lineHeight: 1 }}>
-                    {productSection.title}
-                  </Typography>
-                </Stack>
-                <PreviewButton>{productSection.buttonLabel}</PreviewButton>
-              </Box>
-              <Box sx={{ display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr 1fr" : "repeat(4, 1fr)" }}>
-                {Array.from({ length: Math.min(Number(productSection.productLimit || 4), isMobile ? 2 : 4) }).map((_, index) => (
-                  <Box key={index} sx={{ bgcolor: "#ffffff", border: "1px solid #e6dfd5", minHeight: isMobile ? 180 : 260 }}>
-                    <Box sx={{ bgcolor: "#ebe4d9", height: isMobile ? 118 : 185 }} />
-                    <Stack spacing={0.6} sx={{ p: 1.5 }}>
-                      <Typography sx={{ fontWeight: 750 }}>Product preview</Typography>
-                      <Typography color="text.secondary" variant="caption">Raven Fold</Typography>
-                    </Stack>
-                  </Box>
-                ))}
-              </Box>
-            </Stack>
-          </Box>
-        ) : null}
-
-        {testimonial.isActive ? (
-          <Box sx={{ bgcolor: "#ffffff", px: isMobile ? 2.5 : 7, py: isMobile ? 5 : 7, textAlign: "center" }}>
-            <Stack alignItems="center" spacing={2}>
-              <FormatQuoteRoundedIcon sx={{ color: "#d9461f", fontSize: 48 }} />
-              <Typography component="h2" sx={{ fontSize: isMobile ? "1.75rem" : "2.7rem", fontWeight: 450, lineHeight: 1.25 }}>
-                "{testimonial.quote}"
-              </Typography>
-              <Stack alignItems="center" spacing={0.75}>
-                <Stack direction="row" spacing={0.35}>
-                  {Array.from({ length: Math.round(testimonial.rating || 5) }).map((_, index) => (
-                    <StarRoundedIcon key={index} sx={{ color: "#e19a00", fontSize: 18 }} />
-                  ))}
-                </Stack>
-                <Typography sx={{ fontWeight: 650 }}>{testimonial.author}</Typography>
-              </Stack>
-            </Stack>
-          </Box>
-        ) : null}
-
-        {supportCards.isActive && supportCards.items.length ? (
-          <Box sx={{ px: isMobile ? 2.5 : 7, py: isMobile ? 4 : 5 }}>
-            <Box sx={{ display: "grid", gap: 1.5, gridTemplateColumns: isMobile ? "1fr" : "repeat(4, 1fr)" }}>
-              {supportCards.items.map(({ description, icon, title }) => {
-                const Icon = supportIconMap[icon] || ShieldOutlinedIcon;
-
-                return (
-                  <Stack alignItems="center" key={`${title}-${icon}`} spacing={1.2} sx={{ border: "1px solid #e6dfd5", minHeight: 190, p: 2.5, textAlign: "center" }}>
-                    <Icon sx={{ color: "#d9461f", fontSize: 32 }} />
-                    <Typography sx={{ fontWeight: 800 }}>{title}</Typography>
-                    <Typography sx={{ color: "#5f6368", fontSize: "0.9rem", lineHeight: 1.5 }}>{description}</Typography>
-                  </Stack>
-                );
-              })}
-            </Box>
-          </Box>
-        ) : null}
-
-        {finalCta.isActive ? (
-          <Box sx={{ px: isMobile ? 2.5 : 7, pb: isMobile ? 5 : 7 }}>
-            <Box sx={{ alignItems: "center", borderTop: "1px solid #e6dfd5", display: "grid", gap: 2, gridTemplateColumns: isMobile ? "1fr" : "1fr auto", pt: 3 }}>
-              <Typography component="h2" sx={{ fontSize: isMobile ? "2rem" : "3.1rem", fontWeight: 650, lineHeight: 1 }}>
-                {finalCta.title}
-              </Typography>
-              <PreviewButton>{finalCta.buttonLabel}</PreviewButton>
-            </Box>
-          </Box>
-        ) : null}
+        {getOrderedSections(content).map((section) => renderSection(section.type))}
       </Box>
     </Box>
   );
@@ -278,6 +345,7 @@ const normalizeContent = (content = {}) => ({
     items: Array.isArray(content.supportCards?.items) ? content.supportCards.items : [],
   },
   testimonial: { ...EMPTY_CONTENT.testimonial, ...(content.testimonial || {}) },
+  sections: normalizeSections(content),
 });
 
 const buildPayload = (content) => ({
@@ -328,6 +396,12 @@ const buildPayload = (content) => ({
       quote: normalizeText(content.testimonial.quote),
       rating: Number(content.testimonial.rating || 5),
     },
+    sections: normalizeSections(content).map((section, index) => ({
+      id: normalizeText(section.id) || section.type,
+      isActive: Boolean(section.isActive),
+      sortOrder: index,
+      type: normalizeText(section.type),
+    })),
   },
   status: "published",
   title: "Homepage",
@@ -399,6 +473,36 @@ const HomepageBuilder = () => {
         ...current[section],
         items: current[section].items.filter((_, itemIndex) => itemIndex !== index),
       },
+    }));
+  };
+
+  const moveSection = (type, direction) => {
+    setContent((current) => {
+      const sections = normalizeSections(current);
+      const currentIndex = sections.findIndex((section) => section.type === type);
+      const nextIndex = currentIndex + direction;
+
+      if (currentIndex < 0 || nextIndex < 0 || nextIndex >= sections.length) {
+        return current;
+      }
+
+      const nextSections = [...sections];
+      const [section] = nextSections.splice(currentIndex, 1);
+      nextSections.splice(nextIndex, 0, section);
+
+      return {
+        ...current,
+        sections: nextSections.map((nextSection, index) => ({ ...nextSection, sortOrder: index })),
+      };
+    });
+  };
+
+  const toggleBuilderSection = (type, isActive) => {
+    setContent((current) => ({
+      ...current,
+      sections: normalizeSections(current).map((section) => (
+        section.type === type ? { ...section, isActive } : section
+      )),
     }));
   };
 
@@ -541,6 +645,47 @@ const HomepageBuilder = () => {
         </Stack>
 
         <Stack spacing={2} sx={{ position: { lg: "sticky" }, top: { lg: 16 } }}>
+          <Panel title="Section Order">
+            <Typography color="text.secondary" variant="caption">
+              Reorder and show/hide homepage sections.
+            </Typography>
+            <Stack spacing={1}>
+              {normalizeSections(content).map((section, index, sections) => {
+                const sectionLabel = SECTION_DEFINITIONS.find((definition) => definition.key === section.type)?.label || section.type;
+
+                return (
+                  <Paper key={section.type} variant="outlined" sx={{ p: 1 }}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography fontWeight={700} noWrap variant="body2">{sectionLabel}</Typography>
+                        <Typography color="text.secondary" variant="caption">Position {index + 1}</Typography>
+                      </Box>
+                      <Switch
+                        checked={section.isActive !== false}
+                        size="small"
+                        onChange={(event) => toggleBuilderSection(section.type, event.target.checked)}
+                      />
+                      <Tooltip title="Move up">
+                        <span>
+                          <IconButton disabled={index === 0} size="small" onClick={() => moveSection(section.type, -1)}>
+                            <ArrowUpwardIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                      <Tooltip title="Move down">
+                        <span>
+                          <IconButton disabled={index === sections.length - 1} size="small" onClick={() => moveSection(section.type, 1)}>
+                            <ArrowDownwardIcon fontSize="small" />
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Stack>
+                  </Paper>
+                );
+              })}
+            </Stack>
+          </Panel>
+
           <Panel title="Publishing">
             <Typography fontWeight={700} variant="body2">{dirty ? "Unsaved changes" : "All changes saved"}</Typography>
             <Typography color="text.secondary" variant="caption">Homepage changes go live immediately after save.</Typography>

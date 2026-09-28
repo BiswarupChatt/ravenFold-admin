@@ -57,6 +57,26 @@ const STATUS_FILTER_OPTIONS = [
   { value: "false", label: "Inactive" },
 ];
 
+const DEVICE_TARGET_OPTIONS = [
+  { value: "ALL", label: "All devices" },
+  { value: "DESKTOP", label: "Desktop only" },
+  { value: "MOBILE", label: "Mobile only" },
+];
+
+const PAGE_TARGET_OPTIONS = [
+  { value: "ALL", label: "All pages" },
+  { value: "HOME", label: "Homepage" },
+  { value: "PRODUCT", label: "Product page" },
+  { value: "CHECKOUT", label: "Checkout" },
+];
+
+const CUSTOMER_TARGET_OPTIONS = [
+  { value: "ALL", label: "All visitors" },
+  { value: "NEW_VISITOR", label: "New visitors" },
+  { value: "RETURNING_VISITOR", label: "Returning visitors" },
+  { value: "LOGGED_IN", label: "Logged-in customers" },
+];
+
 const TITLE_CHARACTER_LIMIT = 32;
 const MESSAGE_CHARACTER_LIMIT = 90;
 const CTA_LABEL_CHARACTER_LIMIT = 18;
@@ -70,9 +90,12 @@ const EMPTY_FORM = {
   backgroundColor: "",
   ctaLabel: "",
   ctaUrl: "",
+  customerTarget: "ALL",
+  deviceTarget: "ALL",
   endDate: "",
   isActive: true,
   message: "",
+  pageTarget: "ALL",
   placement: "TOP_NAVBAR",
   priority: "0",
   startDate: "",
@@ -125,9 +148,12 @@ const toFormData = (banner = {}) => ({
   backgroundColor: banner.backgroundColor || "",
   ctaLabel: banner.ctaLabel || "",
   ctaUrl: banner.ctaUrl || "",
+  customerTarget: banner.customerTarget || "ALL",
+  deviceTarget: banner.deviceTarget || "ALL",
   endDate: formatDateTimeInput(banner.endDate),
   isActive: banner.isActive !== false,
   message: banner.message || "",
+  pageTarget: banner.pageTarget || "ALL",
   placement: banner.placement || "TOP_NAVBAR",
   priority: banner.priority === null || banner.priority === undefined ? "0" : String(banner.priority),
   startDate: formatDateTimeInput(banner.startDate),
@@ -140,9 +166,12 @@ const buildPayload = (formData) => ({
   backgroundColor: normalizeText(formData.backgroundColor),
   ctaLabel: normalizeText(formData.ctaLabel),
   ctaUrl: normalizeText(formData.ctaUrl),
+  customerTarget: normalizeText(formData.customerTarget) || "ALL",
+  deviceTarget: normalizeText(formData.deviceTarget) || "ALL",
   endDate: normalizeText(formData.endDate) || null,
   isActive: Boolean(formData.isActive),
   message: normalizeText(formData.message),
+  pageTarget: normalizeText(formData.pageTarget) || "ALL",
   placement: "TOP_NAVBAR",
   priority: Number(formData.priority || 0),
   startDate: normalizeText(formData.startDate) || null,
@@ -358,6 +387,45 @@ function AnnouncementBannerDialog({
               value={formData.endDate}
               onChange={onChange}
             />
+          </Stack>
+
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
+            <TextField
+              select
+              fullWidth
+              label="Device target"
+              name="deviceTarget"
+              value={formData.deviceTarget}
+              onChange={onChange}
+            >
+              {DEVICE_TARGET_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              fullWidth
+              label="Page target"
+              name="pageTarget"
+              value={formData.pageTarget}
+              onChange={onChange}
+            >
+              {PAGE_TARGET_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              fullWidth
+              label="Customer target"
+              name="customerTarget"
+              value={formData.customerTarget}
+              onChange={onChange}
+            >
+              {CUSTOMER_TARGET_OPTIONS.map((option) => (
+                <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
+              ))}
+            </TextField>
           </Stack>
 
           <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
@@ -668,6 +736,17 @@ const AnnouncementBanner = () => {
       ),
     },
     {
+      header: "Targeting",
+      minWidth: 220,
+      render: (banner) => (
+        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+          <Chip label={humanizeValue(banner.deviceTarget || "ALL")} size="small" variant="outlined" />
+          <Chip label={humanizeValue(banner.pageTarget || "ALL")} size="small" variant="outlined" />
+          <Chip label={humanizeValue(banner.customerTarget || "ALL")} size="small" variant="outlined" />
+        </Stack>
+      ),
+    },
+    {
       header: "Priority",
       minWidth: 100,
       render: (banner) => (
@@ -796,7 +875,7 @@ const AnnouncementBanner = () => {
             getRowId={(row) => row.id}
             loading={loading}
             loadingMessage="Loading announcement banners..."
-            minWidth={1230}
+            minWidth={1450}
             pagination={{
               ...pagination,
               onPageChange: (nextPage) => {

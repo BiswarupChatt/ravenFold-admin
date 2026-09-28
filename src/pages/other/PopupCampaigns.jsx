@@ -46,6 +46,8 @@ const defaultForm = {
   fallbackLabel: "Limited Offer",
   ctaLabel: "",
   ctaUrl: "",
+  customerTarget: "ALL",
+  deviceTarget: "ALL",
   showEmailInput: false,
   successMessage: "Thank you for subscribing.",
   isActive: true,
@@ -55,6 +57,7 @@ const defaultForm = {
   displayDelaySeconds: 2,
   startDate: "",
   endDate: "",
+  pageTarget: "ALL",
   priority: 0,
 };
 
@@ -65,10 +68,32 @@ const displayModeOptions = [
   { value: "ONCE_EVERY_X_DAYS", label: "Once every X days" },
 ];
 
+const deviceTargetOptions = [
+  { value: "ALL", label: "All devices" },
+  { value: "DESKTOP", label: "Desktop only" },
+  { value: "MOBILE", label: "Mobile only" },
+];
+
+const pageTargetOptions = [
+  { value: "ALL", label: "All pages" },
+  { value: "HOME", label: "Homepage" },
+  { value: "PRODUCT", label: "Product page" },
+  { value: "CHECKOUT", label: "Checkout" },
+];
+
+const customerTargetOptions = [
+  { value: "ALL", label: "All visitors" },
+  { value: "NEW_VISITOR", label: "New visitors" },
+  { value: "RETURNING_VISITOR", label: "Returning visitors" },
+  { value: "LOGGED_IN", label: "Logged-in customers" },
+];
+
 const editablePopupCampaignFields = [
   "ctaLabel",
   "ctaUrl",
+  "customerTarget",
   "description",
+  "deviceTarget",
   "displayDelaySeconds",
   "displayMode",
   "endDate",
@@ -77,6 +102,7 @@ const editablePopupCampaignFields = [
   "isActive",
   "isDismissible",
   "priority",
+  "pageTarget",
   "repeatAfterDays",
   "showEmailInput",
   "startDate",
@@ -85,6 +111,8 @@ const editablePopupCampaignFields = [
 ];
 
 const toDateInput = (value) => (value ? String(value).slice(0, 10) : "");
+
+const getOptionLabel = (options, value) => options.find((option) => option.value === value)?.label || value || "All";
 
 const normalizeForm = (campaign = null) => ({
   ...defaultForm,
@@ -191,6 +219,24 @@ const PopupCampaignDialog = ({ campaign, open, onClose, onSave }) => {
                 <Grid item xs={12} md={6}>
                   <TextField fullWidth type="date" label="End date" InputLabelProps={{ shrink: true }} value={form.endDate} onChange={(event) => setField("endDate", event.target.value)} />
                 </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField select fullWidth label="Device target" value={form.deviceTarget} onChange={(event) => setField("deviceTarget", event.target.value)}>
+                    {deviceTargetOptions.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField select fullWidth label="Page target" value={form.pageTarget} onChange={(event) => setField("pageTarget", event.target.value)}>
+                    {pageTargetOptions.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField select fullWidth label="Customer target" value={form.customerTarget} onChange={(event) => setField("customerTarget", event.target.value)}>
+                    {customerTargetOptions.map((option) => <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>)}
+                  </TextField>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField fullWidth type="number" label="Priority" value={form.priority} onChange={(event) => setField("priority", event.target.value)} />
+                </Grid>
               </Grid>
               <Divider />
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -276,7 +322,7 @@ const PopupCampaigns = () => {
           </Stack>
           <TableContainer sx={{ mt: 2 }}>
             <Table size="small">
-              <TableHead><TableRow><TableCell>Title</TableCell><TableCell>Mode</TableCell><TableCell>Email</TableCell><TableCell>Status</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
+              <TableHead><TableRow><TableCell>Title</TableCell><TableCell>Mode</TableCell><TableCell>Targeting</TableCell><TableCell>Email</TableCell><TableCell>Priority</TableCell><TableCell>Status</TableCell><TableCell align="right">Actions</TableCell></TableRow></TableHead>
               <TableBody>
                 {campaigns.map((campaign) => (
                   <TableRow key={campaign.id}>
@@ -285,7 +331,15 @@ const PopupCampaigns = () => {
                       <Typography color="text.secondary" variant="caption">{campaign.ctaLabel || "Promotion popup"}</Typography>
                     </TableCell>
                     <TableCell>{displayModeOptions.find((option) => option.value === campaign.displayMode)?.label || campaign.displayMode}</TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                        <Chip label={getOptionLabel(deviceTargetOptions, campaign.deviceTarget || "ALL")} size="small" variant="outlined" />
+                        <Chip label={getOptionLabel(pageTargetOptions, campaign.pageTarget || "ALL")} size="small" variant="outlined" />
+                        <Chip label={getOptionLabel(customerTargetOptions, campaign.customerTarget || "ALL")} size="small" variant="outlined" />
+                      </Stack>
+                    </TableCell>
                     <TableCell>{campaign.showEmailInput ? "Collects email" : "Banner only"}</TableCell>
+                    <TableCell>{Number(campaign.priority || 0)}</TableCell>
                     <TableCell><Chip color={campaign.isActive ? "success" : "default"} label={campaign.isActive ? "Active" : "Inactive"} size="small" onClick={() => handleToggle(campaign)} /></TableCell>
                     <TableCell align="right">
                       <IconButton size="small" onClick={() => { setEditingCampaign(campaign); setDialogOpen(true); }}><EditIcon fontSize="small" /></IconButton>
